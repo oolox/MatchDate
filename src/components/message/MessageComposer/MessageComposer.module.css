@@ -1,0 +1,88 @@
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+.composerBare {
+  padding: 0;
+  border: none;
+  border-top: none;
+  background: transparent;
+}
+
+.dropZone {
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.composerInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  position: relative;
+}
+
+.fieldWrap {
+  position: relative;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.actionsStart {
+  justify-content: flex-start;
+}
+
+.actionsLeading {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.actionsLeadingInline {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.streaming {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 4.5rem;
+  padding: var(--space-sm) 0;
+}
+
+.streamingLabel {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.streamingCaption {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.streamingSpinner {
+  color: var(--color-accent);
+}

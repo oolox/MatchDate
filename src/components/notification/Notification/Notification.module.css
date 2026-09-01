@@ -1,0 +1,49 @@
+.notification {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 16rem;
+  max-width: 24rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: notificationSlideIn 0.3s ease-out forwards;
+}
+
+.notificationExiting {
+  animation: notificationSlideOut 0.3s ease-in forwards;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+@keyframes notificationSlideIn {
+  from {
+    transform: translateY(calc(100% + var(--space-md)));
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes notificationSlideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(calc(100% + var(--space-md)));
+    opacity: 0;
+  }
+}

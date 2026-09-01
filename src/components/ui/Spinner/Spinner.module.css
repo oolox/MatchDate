@@ -1,0 +1,35 @@
+.spinner {
+  display: block;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.dot1,
+.dot2,
+.dot3 {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dotPulse 3.6s ease-in-out infinite;
+}
+
+.dot2 {
+  animation-delay: -1.2s;
+}
+
+.dot3 {
+  animation-delay: -2.4s;
+}
+
+@keyframes dotPulse {
+  0%,
+  28%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+
+  14% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}

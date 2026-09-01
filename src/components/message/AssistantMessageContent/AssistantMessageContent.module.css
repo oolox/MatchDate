@@ -1,0 +1,15 @@
+.blocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.blocks :first-child {
+  margin-top: 0;
+}
+
+.blocks :last-child {
+  margin-bottom: 0;
+}

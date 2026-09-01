@@ -1,0 +1,179 @@
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.xs {
+  width: calc(1.5em + 2px);
+  height: calc(1.5em + 2px);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: var(--font-size-md);
+}
+
+.xs .icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.xs .icon svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.iconButton.xs,
+.iconButton.xs:hover:not(:disabled),
+.iconButton.xs:focus-visible:not(:disabled),
+.iconButton.xs:active:not(:disabled),
+.iconButton.xs.current {
+  border: none;
+}
+
+.iconButton.xs.current {
+  color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+  background: transparent;
+}
+
+.iconButton.xs.primary.current {
+  color: var(--color-accent);
+}
+
+.iconButton.xs.primary.current:hover:not(:disabled),
+.iconButton.xs.primary.current:focus-visible:not(:disabled),
+.iconButton.xs.primary.current:active:not(:disabled) {
+  color: var(--color-accent-hover);
+}
+
+.sm {
+  width: calc(1.25rem + 2px);
+  height: calc(1.25rem + 2px);
+  border: none;
+  box-shadow: 0 2px 2px rgb(0 0 0 / 50%);
+}
+
+.iconButton.sm,
+.iconButton.sm:hover:not(:disabled),
+.iconButton.sm:focus-visible:not(:disabled),
+.iconButton.sm:active:not(:disabled) {
+  border: none;
+}
+
+.sm .icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.sm .icon svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.md {
+  width: 2rem;
+  height: 2rem;
+  padding: 0.25rem;
+}
+
+.md .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.md .icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary {
+  border-color: transparent;
+  color: var(--color-accent);
+}
+
+.md.primary {
+  border-color: var(--color-accent);
+}
+
+.primary:hover:not(:disabled),
+.primary:focus-visible:not(:disabled),
+.primary:active:not(:disabled) {
+  border-color: var(--color-accent-hover);
+  color: var(--color-accent-hover);
+}
+
+.secondary {
+  border-color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+  color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.secondary:hover:not(:disabled):not(.current),
+.secondary:focus-visible:not(:disabled):not(.current),
+.secondary:active:not(:disabled):not(.current),
+.secondary.xs.current {
+  border-color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+  color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+}
+
+.current {
+  color: #000;
+  background: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+  border-color: transparent;
+}
+
+.success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.success:hover:not(:disabled),
+.success:focus-visible:not(:disabled),
+.success:active:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-success) 80%, white);
+  color: color-mix(in srgb, var(--color-success) 80%, white);
+}
+
+.warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.warning:hover:not(:disabled),
+.warning:focus-visible:not(:disabled),
+.warning:active:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-warning) 80%, white);
+  color: color-mix(in srgb, var(--color-warning) 80%, white);
+}
+
+.danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.danger:hover:not(:disabled),
+.danger:focus-visible:not(:disabled),
+.danger:active:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-danger) 80%, white);
+  color: color-mix(in srgb, var(--color-danger) 80%, white);
+}

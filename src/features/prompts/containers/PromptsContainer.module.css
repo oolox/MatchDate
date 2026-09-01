@@ -1,0 +1,196 @@
+.section {
+  height: 100%;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: var(--space-lg);
+  height: 100%;
+  min-height: 0;
+}
+
+.editorColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+
+.nameField {
+  flex: 1;
+  min-width: 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.nameLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.nameInput {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.button {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonPrimary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  flex: 1;
+  min-height: 0;
+}
+
+.promptHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.promptLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.catalogColumn {
+  border-left: 1px solid var(--color-border-subtle);
+  padding-left: var(--space-lg);
+  min-height: 0;
+  overflow: auto;
+}
+
+.catalogTitle {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.catalogEmpty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.catalogList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.catalogItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.catalogButton {
+  width: 100%;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-panel);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.catalogButtonSelected {
+  border-color: var(--color-accent);
+}
+
+.catalogName {
+  display: block;
+  font-size: var(--font-size-md);
+}
+
+.activeBadge {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}
+
+.catalogActions {
+  display: flex;
+  gap: var(--space-sm);
+  padding-left: var(--space-sm);
+}
+
+.linkButton,
+.linkButtonDanger {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.linkButton {
+  color: var(--color-text-secondary);
+}
+
+.linkButtonDanger {
+  color: var(--color-danger);
+}
+
+.linkButton:disabled,
+.linkButtonDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .catalogColumn {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--color-border-subtle);
+    padding-top: var(--space-lg);
+  }
+}

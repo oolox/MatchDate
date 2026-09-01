@@ -1,0 +1,10 @@
+.wrapper {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+  color: inherit;
+}
+
+.wrapper svg {
+  display: block;
+}
