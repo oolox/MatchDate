@@ -16,7 +16,7 @@ export type OpfsDocSubtype =
   | 'frame'
   | 'character';
 
-export type OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text';
+export type OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text' | 'character';
 
 export interface OpfsDocRefs {
   assets?: string[];

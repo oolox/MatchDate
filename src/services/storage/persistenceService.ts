@@ -1,7 +1,8 @@
 import { DEFAULT_SYSTEM_PROMPT } from '../../features/chat/constants';
+import type { Character } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import type { SessionDocument } from '../../types/session';
-import { nowIso } from '../../utils/id';
+import { createId, nowIso } from '../../utils/id';
 import { slugifyName } from '../../utils/slug';
 import type { PromptsState } from '../../store/slices/promptsSlice';
 import type { SessionsState } from '../../store/slices/sessionsSlice';
@@ -12,6 +13,7 @@ import {
   saveAssetDocument,
   tryLoadAssetDocument,
 } from './assetPersistence';
+import { assetDocumentFromCharacter, characterFromAssetDocument } from './characterAsset';
 import { deleteText } from './textStorage';
 import { deleteImage } from './imageStorage';
 import { migrateTextAssetMetadata } from './migrateTextAssetMetadata';
@@ -170,8 +172,33 @@ export async function deleteAsset(id: string): Promise<void> {
     await deleteImage(id);
   } else if (asset.subtype === 'video') {
     await deleteVideo(id);
+  } else if (asset.subtype === 'character') {
+    // Metadata-only asset; no blob cleanup required.
   }
   await deleteAssetDocument(storage, id);
+}
+
+export async function saveCharacter(
+  character: Character,
+  id?: string,
+): Promise<AssetDocument> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  const resolvedId = id?.trim() || createId();
+  let createdAt: string | undefined;
+  if (id?.trim()) {
+    const existing = await tryLoadAssetDocument(storage, resolvedId);
+    createdAt = existing?.createdAt;
+  }
+  return saveAssetDocument(
+    storage,
+    assetDocumentFromCharacter(character, { id: resolvedId, createdAt }),
+  );
+}
+
+export async function loadCharacter(id: string): Promise<Character> {
+  const asset = await loadAsset(id);
+  return characterFromAssetDocument(asset);
 }
 
 export async function listPresets() {

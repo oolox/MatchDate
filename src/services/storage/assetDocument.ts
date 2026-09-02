@@ -6,7 +6,13 @@ import type { SavedTextMetadata, SavedTextRef } from '../../types/savedText';
 import { imagePath, textPath, videoPath } from './paths';
 
 export function isAssetSubtype(value: unknown): value is OpfsAssetSubtype {
-  return value === 'image' || value === 'video' || value === 'frame' || value === 'text';
+  return (
+    value === 'image' ||
+    value === 'video' ||
+    value === 'frame' ||
+    value === 'text' ||
+    value === 'character'
+  );
 }
 
 export function assetDocumentFromImageRef(

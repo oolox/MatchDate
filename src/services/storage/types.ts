@@ -51,7 +51,8 @@ export type OpfsDocSubtype =
   | 'image'
   | 'video'
   | 'text'
-  | 'frame';
+  | 'frame'
+  | 'character';
 
 export interface LibraryCatalogFields {
   name: string;
