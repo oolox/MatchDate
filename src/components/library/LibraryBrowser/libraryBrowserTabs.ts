@@ -10,7 +10,7 @@ export const LIBRARY_BROWSER_TABS: ReadonlyArray<{
   listKind: LibraryListKind;
 }> = [
   { id: 'sessions', label: 'CHATS', kinds: ['session'], listKind: 'session' },
-  { id: 'prompts', label: 'PROMPTS', kinds: ['prompt'], listKind: 'prompt' },
+  { id: 'prompts', label: 'PROMPT', kinds: ['prompt'], listKind: 'prompt' },
   { id: 'assets', label: 'ASSETS', kinds: ['asset'], listKind: 'asset' },
   { id: 'all', label: 'ALL', kinds: null, listKind: 'all' },
 ] as const;

@@ -18,16 +18,16 @@ const LABELS: Record<LibraryListKind, LibraryListLabels> = {
     ariaLabel: 'Chats',
   },
   prompt: {
-    title: 'Prompts',
+    title: 'Prompt',
     loading: 'Loading presets…',
     empty: 'No saved presets yet.',
-    ariaLabel: 'Prompts',
+    ariaLabel: 'Prompt',
   },
   asset: {
-    title: 'Assets',
+    title: 'Asset',
     loading: 'Loading assets…',
     empty: 'No saved assets yet.',
-    ariaLabel: 'Assets',
+    ariaLabel: 'Asset',
   },
   all: {
     title: 'All',

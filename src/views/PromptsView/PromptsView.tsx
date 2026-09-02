@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { AppHeader } from '../../components/layout/AppHeader';
 import { ColumnSplit } from '../../components/layout/ColumnSplit/ColumnSplit';
 import { LibraryBrowser } from '../../components/library/LibraryBrowser/LibraryBrowser';
 import { PromptsContainer } from '../../features/prompts/containers/PromptsContainer';
@@ -52,14 +53,7 @@ export function PromptsView() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>System prompts</h1>
-        <nav className={styles.nav}>
-          <Link className={styles.navLink} to="/">
-            Back to chat
-          </Link>
-        </nav>
-      </header>
+      <AppHeader />
       <main className={styles.main}>
         <ColumnSplit
           left={<PromptsContainer editor={editor} />}

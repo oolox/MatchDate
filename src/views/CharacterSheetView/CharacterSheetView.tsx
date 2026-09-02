@@ -1,23 +1,22 @@
-import { MessageThreadContainer } from '../../features/chat/containers/MessageThreadContainer';
 import { useSessionEditor } from '../../features/session/useSessionEditor';
 import { SessionWorkspaceLayout } from '../../features/session/SessionWorkspaceLayout';
-import styles from './ChatView.module.css';
+import styles from './CharacterSheetView.module.css';
 
-export interface ChatViewProps {
+export interface CharacterSheetViewProps {
   sessionId: string;
 }
 
-export function ChatView({ sessionId }: ChatViewProps) {
+export function CharacterSheetView({ sessionId }: CharacterSheetViewProps) {
   const { ready, persistAfterTurn } = useSessionEditor(sessionId);
 
   return (
     <SessionWorkspaceLayout
       sessionId={sessionId}
-      routePrefix="session"
+      routePrefix="character"
       persistence={{ ready, persistAfterTurn }}
       left={
-        <div className={styles.chat}>
-          <MessageThreadContainer threadId={sessionId} />
+        <div className={styles.sheet}>
+          <p className={styles.placeholder}>Placeholder</p>
         </div>
       }
     />
