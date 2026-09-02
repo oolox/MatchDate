@@ -1,0 +1,140 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  color: var(--color-text-muted);
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0.2rem 0.5rem 0.2rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.wrap:hover:has(.trigger:not(:disabled)),
+.triggerOpen {
+  color: var(--color-text-secondary);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-text-primary) 50%, transparent);
+  outline-offset: 1px;
+}
+
+.trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.leadIcon {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+}
+
+.leadIcon svg {
+  width: 1em;
+  height: 1em;
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu {
+  position: fixed;
+  z-index: 40;
+  max-height: 12rem;
+  margin: 0;
+  padding: var(--space-xs);
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, #000 35%, transparent);
+  box-sizing: border-box;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.option:hover,
+.optionActive {
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+
+.optionSelected {
+  color: #000;
+  background: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.optionSelected:hover,
+.optionSelected.optionActive {
+  color: #000;
+  background: color-mix(in srgb, var(--color-text-primary) 50%, transparent);
+}
+
+.option[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.optionIcon {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+}
+
+.optionIcon svg {
+  width: 1em;
+  height: 1em;
+}
+
+.optionLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

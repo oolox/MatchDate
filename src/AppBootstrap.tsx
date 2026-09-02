@@ -7,6 +7,7 @@ import {
   requestPersistentStorage,
 } from './services/storage/persistenceService';
 import { useAppDispatch } from './store/hooks';
+import { hydrateLocalStorage, loadLocalStorageSliceState } from './store/slices/localStorageSlice';
 import { hydratePrompts } from './store/slices/promptsSlice';
 import { hydrateSessions } from './store/slices/sessionsSlice';
 import styles from './AppBootstrap.module.css';
@@ -30,6 +31,7 @@ export function AppBootstrap({ children }: AppBootstrapProps) {
           loadPromptsState(),
         ]);
         if (!cancelled) {
+          dispatch(hydrateLocalStorage(loadLocalStorageSliceState()));
           dispatch(hydrateSessions(sessions));
           dispatch(hydratePrompts(prompts));
           await requestPersistentStorage();

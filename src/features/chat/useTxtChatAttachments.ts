@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { useNotification } from '../../components/notification/Notification/useNotification';
 import { formatFailure } from '../../utils/formatFailure';
 import {
-  listTextAssets,
+  listAssets,
+  loadAsset,
+} from '../../services/storage/persistenceService';
+import {
   loadTextContent,
   saveText,
   TEXT_UPLOAD_ACCEPT,
@@ -42,7 +45,9 @@ export function useTxtChatAttachments(threadId: string) {
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [libraryItems, setLibraryItems] = useState<Array<{ id: string; name: string }>>([]);
+  const [libraryItems, setLibraryItems] = useState<
+    Array<{ id: string; name: string; mime: ChatTextAttachment['mime'] }>
+  >([]);
 
   useEffect(() => {
     setAttachments([]);
@@ -53,8 +58,21 @@ export function useTxtChatAttachments(threadId: string) {
 
   const refreshLibrary = useCallback(async () => {
     try {
-      const assets = await listTextAssets();
-      setLibraryItems(assets.map((item) => ({ id: item.id, name: item.name })));
+      const assets = await listAssets();
+      const textAssets = assets.filter((item) => item.subtype === 'text');
+      const rows = await Promise.all(
+        textAssets.map(async (item) => {
+          try {
+            const asset = await loadAsset(item.id);
+            const mime =
+              asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain';
+            return { id: item.id, name: item.name, mime };
+          } catch {
+            return { id: item.id, name: item.name, mime: 'text/plain' as const };
+          }
+        }),
+      );
+      setLibraryItems(rows);
     } catch (error) {
       notify(formatFailure('list text files', undefined, error));
     }
@@ -161,7 +179,7 @@ export function useTxtChatAttachments(threadId: string) {
           addDraft({
             assetId,
             name: item?.name ?? assetId,
-            mime: mimeFromFileName(item?.name ?? 'notes.txt'),
+            mime: item?.mime ?? mimeFromFileName(item?.name ?? 'notes.txt'),
             body,
           });
         } catch (error) {

@@ -7,6 +7,16 @@ import type { PromptsState } from '../../store/slices/promptsSlice';
 import type { SessionsState } from '../../store/slices/sessionsSlice';
 import { getFileStorageService } from './index';
 import {
+  deleteAssetDocument,
+  loadAssetDocument,
+  saveAssetDocument,
+  tryLoadAssetDocument,
+} from './assetPersistence';
+import { deleteText } from './textStorage';
+import { deleteImage } from './imageStorage';
+import { migrateTextAssetMetadata } from './migrateTextAssetMetadata';
+import { deleteVideo } from './videoStorage';
+import {
   listLibraryItems,
   parsePreset,
   parseSessionDocument,
@@ -18,6 +28,7 @@ import {
 import { CONFIG_PATH, presetPath, sessionDocumentPath } from './paths';
 import type { ConfigManifest, FileStorageService, LibraryItemKind, LibraryItemMeta, SystemPromptPreset } from './types';
 import { StorageError } from './types';
+import type { AssetDocument } from '../../types/opfsDoc';
 
 export interface LoadSessionResult {
   session: SessionDocument;
@@ -123,7 +134,44 @@ export async function ensureInitialized(storage: FileStorageService): Promise<vo
 export async function reconcileLibrary(): Promise<void> {
   const storage = getStorage();
   await ensureInitialized(storage);
+  await migrateTextAssetMetadata();
   await reconcileLibraryIndex(storage);
+}
+
+export async function listAssets(): Promise<LibraryItemMeta[]> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  await reconcileLibraryIndex(storage);
+  return listLibraryItems(storage, 'asset');
+}
+
+export async function loadAsset(id: string): Promise<AssetDocument> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  return loadAssetDocument(storage, id);
+}
+
+export async function saveAsset(document: AssetDocument): Promise<AssetDocument> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  return saveAssetDocument(storage, document);
+}
+
+export async function deleteAsset(id: string): Promise<void> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  const asset = await tryLoadAssetDocument(storage, id);
+  if (!asset) {
+    return;
+  }
+  if (asset.subtype === 'text') {
+    await deleteText(id);
+  } else if (asset.subtype === 'image') {
+    await deleteImage(id);
+  } else if (asset.subtype === 'video') {
+    await deleteVideo(id);
+  }
+  await deleteAssetDocument(storage, id);
 }
 
 export async function listPresets() {

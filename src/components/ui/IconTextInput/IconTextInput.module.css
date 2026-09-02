@@ -1,0 +1,49 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+  max-width: 10rem;
+  height: calc(1.5em + 2px + 2 * var(--space-xs));
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  box-sizing: border-box;
+  font-size: calc(var(--font-size-md) * 0.65625);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 1.25em;
+  height: 1.25em;
+  color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.icon svg {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.input::placeholder {
+  color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

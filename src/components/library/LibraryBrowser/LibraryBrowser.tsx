@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DropdownSelect } from '../../ui/DropdownSelect';
+import { Tabs } from '../../ui/Tabs';
+import { SubSubHeader } from '../../ui/SubSubHeader';
 import { useNotification } from '../../notification/Notification/useNotification';
-import { searchLibraryItems } from '../../../services/library/searchLibraryItems';
-import { setActivePrompt } from '../../../services/storage/persistenceService';
 import type { LibraryItemKind, LibraryItemMeta } from '../../../services/storage/types';
 import {
   loadSessionIntoApp,
@@ -14,12 +15,28 @@ import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { selectIsStreaming } from '../../../store/slices/chatUiSlice';
 import { selectActiveSystemPresetSlug, setActiveSystemPreset } from '../../../store/slices/promptsSlice';
 import { selectIsActiveThreadDirty } from '../../../store/slices/sessionsSlice';
-import { LibrarySidebar, type LibraryTabId } from '../LibraryList/LibrarySidebar';
+import { setActivePrompt } from '../../../services/storage/persistenceService';
+import { LibrarySidebar } from '../LibraryList/LibrarySidebar';
 import {
   confirmAndDeleteLibraryItem,
   toggleLibraryItemFavoriteSafe,
 } from './libraryBrowserActions';
+import {
+  defaultTabForLoadableKinds,
+  kindsForTab,
+  LIBRARY_BROWSER_TABS,
+  listKindForTab,
+  type LibraryBrowserTabId,
+} from './libraryBrowserTabs';
+import {
+  defaultSubtypeForLoadableKinds,
+  itemMatchesSubtypeTab,
+  subtypeTabsLabel,
+  subtypesForFolder,
+  type LibraryBrowserSubtypeId,
+} from './libraryBrowserSubtypes';
 import { useLibraryCatalog } from './useLibraryCatalog';
+import styles from './LibraryBrowser.module.css';
 
 export interface LibraryBrowserProps {
   loadableKinds: LibraryItemKind[];
@@ -33,27 +50,6 @@ export interface LibraryBrowserProps {
   onActivateType?: (item: LibraryItemMeta) => void | Promise<void>;
   onCatalogMutated?: () => void;
   headerActions?: React.ReactNode;
-}
-
-function kindsForTab(tab: LibraryTabId): LibraryItemKind[] | null {
-  switch (tab) {
-    case 'sessions':
-      return ['session'];
-    case 'prompts':
-      return ['prompt'];
-    default:
-      return null;
-  }
-}
-
-function defaultTabForKinds(loadableKinds: LibraryItemKind[]): LibraryTabId {
-  if (loadableKinds.length === 1 && loadableKinds[0] === 'prompt') {
-    return 'prompts';
-  }
-  if (loadableKinds.length === 1 && loadableKinds[0] === 'session') {
-    return 'sessions';
-  }
-  return 'all';
 }
 
 export function LibraryBrowser({
@@ -75,26 +71,55 @@ export function LibraryBrowser({
   const isStreaming = useAppSelector(selectIsStreaming);
   const isDirty = useAppSelector(selectIsActiveThreadDirty);
   const activePromptId = useAppSelector(selectActiveSystemPresetSlug);
-  const { items, isRefreshing, setItemFavorite } = useLibraryCatalog(catalogEpoch);
-  const [tab, setTab] = useState<LibraryTabId>(() => defaultTabForKinds(loadableKinds));
-  const [searchQuery, setSearchQuery] = useState('');
+  const { items, storageReady, isRefreshing, setItemFavorite } = useLibraryCatalog(catalogEpoch);
+  const [activeTab, setActiveTab] = useState<LibraryBrowserTabId>(() =>
+    defaultTabForLoadableKinds(loadableKinds),
+  );
+  const [activeSubtype, setActiveSubtype] = useState<LibraryBrowserSubtypeId>(() => {
+    const folder = defaultTabForLoadableKinds(loadableKinds);
+    const subtypes = subtypesForFolder(folder);
+    return subtypes ? defaultSubtypeForLoadableKinds(folder, subtypes) : 'all';
+  });
   const [actionBusy, setActionBusy] = useState(false);
 
   const isBusy = editorBusy || isStreaming || isRefreshing || actionBusy;
 
+  const tabKinds = useMemo(() => kindsForTab(activeTab), [activeTab]);
+  const listKind = listKindForTab(activeTab);
+  const subtypeTabs = useMemo(() => subtypesForFolder(activeTab), [activeTab]);
+  const showKindLabels = activeTab === 'all';
+
+  const tabItems = useMemo(
+    () => LIBRARY_BROWSER_TABS.map(({ id, label }) => ({ id, label })),
+    [],
+  );
+
+  useEffect(() => {
+    const subtypes = subtypesForFolder(activeTab);
+    if (!subtypes) {
+      setActiveSubtype('all');
+      return;
+    }
+    setActiveSubtype(defaultSubtypeForLoadableKinds(activeTab, subtypes));
+  }, [activeTab]);
+
   const filteredItems = useMemo(() => {
-    const tabKinds = kindsForTab(tab);
-    const byTab = tabKinds
-      ? items.filter((item) => tabKinds.includes(item.kind))
-      : items;
-    const searched = searchLibraryItems(byTab, searchQuery);
-    return [...searched].sort((a, b) => {
-      if (a.isFavorite !== b.isFavorite) {
-        return a.isFavorite ? -1 : 1;
+    let next = items;
+    if (tabKinds !== null) {
+      const allowed = new Set(tabKinds);
+      next = next.filter((item) => allowed.has(item.kind));
+    }
+    if (subtypeTabs) {
+      const subtype = subtypeTabs.find((tab) => tab.id === activeSubtype);
+      if (
+        subtype &&
+        (subtype.kind != null || subtype.docSubtype != null)
+      ) {
+        next = next.filter((item) => itemMatchesSubtypeTab(item, subtype));
       }
-      return b.updatedAt.localeCompare(a.updatedAt);
-    });
-  }, [items, searchQuery, tab]);
+    }
+    return next;
+  }, [activeSubtype, items, subtypeTabs, tabKinds]);
 
   const isLoadable = useCallback(
     (item: LibraryItemMeta) => loadableKinds.includes(item.kind),
@@ -228,18 +253,55 @@ export function LibraryBrowser({
     ],
   );
 
+  const chromeKey = `${activeTab}:${activeSubtype}`;
+
   return (
     <LibrarySidebar
-      tab={tab}
-      searchQuery={searchQuery}
+      kind={listKind}
       items={filteredItems}
       selectedId={selectedId}
       selectedKind={selectedKind}
       activePromptId={activePromptId}
+      storageReady={storageReady}
       isBusy={isBusy}
+      chromeKey={chromeKey}
+      showKindLabels={showKindLabels}
       headerActions={headerActions}
-      onTabChange={setTab}
-      onSearchChange={setSearchQuery}
+      sortSelectClassName={styles.sortSelect}
+      searchInputClassName={styles.searchInput}
+      header={
+        <Tabs
+          items={tabItems}
+          value={activeTab}
+          disabled={isBusy}
+          idPrefix="library-folder"
+          aria-label="Library folders"
+          onChange={(id) => setActiveTab(id as LibraryBrowserTabId)}
+        />
+      }
+      subHeader={
+        subtypeTabs
+          ? ({ sortSelect, searchInput }) => (
+              <SubSubHeader tabsLabel={subtypeTabsLabel(activeTab)}>
+                <div className={styles.subSubHeaderControls}>
+                  {subtypeTabs.length > 1 ? (
+                    <DropdownSelect
+                      className={styles.subtypeSelect}
+                      aria-label={subtypeTabsLabel(activeTab)}
+                      icon="tag"
+                      options={subtypeTabs.map(({ id, label }) => ({ value: id, label }))}
+                      value={activeSubtype}
+                      disabled={isBusy}
+                      onChange={setActiveSubtype}
+                    />
+                  ) : null}
+                  {sortSelect}
+                  {searchInput}
+                </div>
+              </SubSubHeader>
+            )
+          : undefined
+      }
       onSelect={handleSelect}
       onActivateType={handleActivateType}
       onToggleFavorite={handleToggleFavorite}

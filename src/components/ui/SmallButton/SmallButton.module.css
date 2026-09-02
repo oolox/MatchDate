@@ -1,0 +1,78 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  box-sizing: border-box;
+  height: calc(1.5em + 4px);
+  padding: 0 9px;
+  font-size: calc(var(--font-size-md) * 0.65625);
+  font-weight: 500;
+  line-height: 1.25;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 0.75rem;
+  background: transparent;
+  box-shadow: 0 2px 2px rgb(0 0 0 / 50%);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.withIcon {
+  padding-left: 0.125rem;
+}
+
+.label {
+  display: inline-block;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.icon {
+  width: 1.5em;
+  height: 1.5em;
+  color: inherit;
+}
+
+.icon svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.button:hover,
+.button:focus-visible {
+  text-decoration: none;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.current {
+  color: #000;
+  background: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.primary {
+  color: var(--color-accent);
+}
+
+.primary:hover:not(:disabled):not(.current),
+.primary:focus-visible:not(:disabled):not(.current) {
+  color: var(--color-accent-hover);
+}
+
+.secondary {
+  color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.secondary:hover:not(:disabled):not(.current),
+.secondary:focus-visible:not(:disabled):not(.current) {
+  color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+}

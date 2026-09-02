@@ -1,4 +1,4 @@
-import { deletePreset, deleteSession, toggleFavorite } from '../../../services/storage/persistenceService';
+import { deleteAsset, deletePreset, deleteSession, toggleFavorite } from '../../../services/storage/persistenceService';
 import type { LibraryItemMeta } from '../../../services/storage/types';
 import { formatFailure } from '../../../utils/formatFailure';
 
@@ -9,6 +9,9 @@ export async function deleteLibraryItem(item: LibraryItemMeta): Promise<void> {
       return;
     case 'session':
       await deleteSession(item.id);
+      return;
+    case 'asset':
+      await deleteAsset(item.id);
       return;
     default:
       throw new Error(`Unsupported library kind: ${item.kind}`);
@@ -23,7 +26,7 @@ export async function confirmAndDeleteLibraryItem(
   item: LibraryItemMeta,
   notify: (message: string) => void,
 ): Promise<boolean> {
-  if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
+  if (item.kind !== 'asset' && !window.confirm(`Delete "${item.name}"? This cannot be undone.`)) {
     return false;
   }
   try {

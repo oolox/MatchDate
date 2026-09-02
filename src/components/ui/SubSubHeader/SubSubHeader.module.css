@@ -1,0 +1,29 @@
+.subSubHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-shrink: 0;
+  height: var(--subsubheader-height, 2.5rem);
+  overflow: hidden;
+  width: 100%;
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-bg-input) 88%, var(--color-bg-app) 12%);
+  box-sizing: border-box;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  padding-right: var(--space-md);
+}

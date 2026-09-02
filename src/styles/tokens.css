@@ -32,4 +32,7 @@
   --font-size-lg: 1.125rem;
 
   --composer-min-height: 3rem;
+
+  --subheader-height: 2.75rem;
+  --subsubheader-height: 2.5rem;
 }

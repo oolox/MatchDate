@@ -39,9 +39,38 @@ export interface FileStorageService {
   exists(path: StoragePath): Promise<boolean>;
 }
 
-export type LibraryItemKind = 'session' | 'prompt' | (string & {});
+export type LibraryItemKind = 'session' | 'prompt' | 'asset' | (string & {});
 
 export type PromptType = 'system';
+
+export type OpfsDocType = 'generator' | 'prompt' | 'asset' | 'workflow';
+
+export type OpfsDocSubtype =
+  | 'session'
+  | 'systemPrompt'
+  | 'image'
+  | 'video'
+  | 'text'
+  | 'frame';
+
+export interface LibraryCatalogFields {
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  type?: OpfsDocType;
+  subtype?: OpfsDocSubtype;
+}
+
+export interface LibraryKindRegistration {
+  kind: LibraryItemKind;
+  directory: string;
+  pathForId: (id: string) => { fileName: string; path: StoragePath };
+  listIdsFromDisk: (storage: FileStorageService) => Promise<string[]>;
+  readCatalogFields: (
+    storage: FileStorageService,
+    id: string,
+  ) => Promise<LibraryCatalogFields>;
+}
 
 export interface SystemPromptPreset {
   schemaVersion?: number;
@@ -55,6 +84,8 @@ export interface SystemPromptPreset {
 
 export interface LibraryItemMeta {
   kind: LibraryItemKind;
+  type?: OpfsDocType;
+  subtype?: OpfsDocSubtype;
   id: string;
   name: string;
   fileName: string;

@@ -9,13 +9,18 @@ import {
   PROMPTS_SESSIONS_DIR,
   sessionDocumentFileName,
   sessionDocumentPath,
+  assetFileName,
+  assetPath,
 } from './paths';
+import { getAssetRegistration } from './libraryRegistry';
 import { parseStorageJson } from './parseStorageJson';
 import type {
   FileStorageService,
   LibraryIndex,
   LibraryItemMeta,
   LibraryItemKind,
+  OpfsDocSubtype,
+  OpfsDocType,
   SystemPromptPreset,
 } from './types';
 import { StorageError } from './types';
@@ -35,6 +40,12 @@ function libraryPathsForKind(kind: LibraryItemKind, id: string) {
     return {
       fileName: presetFileName(id),
       path: presetPath(id),
+    };
+  }
+  if (kind === 'asset') {
+    return {
+      fileName: assetFileName(id),
+      path: assetPath(id),
     };
   }
   return {
@@ -69,6 +80,8 @@ function parseLibraryIndex(raw: string): LibraryIndex {
 
         items.push({
           kind: item.kind,
+          type: item.type,
+          subtype: item.subtype,
           id: item.id,
           name: item.name,
           fileName: item.fileName,
@@ -238,6 +251,8 @@ export async function reconcileLibraryIndex(storage: FileStorageService): Promis
       const fields = await readSessionCatalogFields(storage, id);
       nextItems.push({
         kind: 'session',
+        type: 'generator',
+        subtype: 'session',
         id,
         name: fields.name,
         fileName: sessionDocumentFileName(id),
@@ -271,10 +286,46 @@ export async function reconcileLibraryIndex(storage: FileStorageService): Promis
       const fields = await readPresetCatalogFields(storage, slug);
       nextItems.push({
         kind: 'prompt',
+        type: 'prompt',
+        subtype: 'systemPrompt',
         id: slug,
         name: fields.name,
         fileName: presetFileName(slug),
         path: presetPath(slug),
+        isFavorite: existing?.isFavorite ?? false,
+        favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
+        createdAt: fields.createdAt,
+        updatedAt: fields.updatedAt,
+      });
+    } catch {
+      if (existing) {
+        nextItems.push(existing);
+      }
+    }
+  }
+
+  const assetRegistration = getAssetRegistration();
+  let assetIds: string[] = [];
+  try {
+    assetIds = await assetRegistration.listIdsFromDisk(storage);
+  } catch {
+    assetIds = [];
+  }
+
+  for (const id of assetIds) {
+    const key = itemKey('asset', id);
+    const existing = byKey.get(key);
+    const { fileName, path } = assetRegistration.pathForId(id);
+    try {
+      const fields = await assetRegistration.readCatalogFields(storage, id);
+      nextItems.push({
+        kind: 'asset',
+        type: fields.type ?? 'asset',
+        subtype: fields.subtype,
+        id,
+        name: fields.name,
+        fileName,
+        path,
         isFavorite: existing?.isFavorite ?? false,
         favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
         createdAt: fields.createdAt,
@@ -301,6 +352,8 @@ export async function upsertLibraryItem(
     name: string;
     createdAt: string;
     updatedAt: string;
+    type?: OpfsDocType;
+    subtype?: OpfsDocSubtype;
   },
 ): Promise<LibraryItemMeta> {
   const index = await loadLibraryIndex(storage);
@@ -311,6 +364,8 @@ export async function upsertLibraryItem(
 
   const nextItem: LibraryItemMeta = {
     kind: input.kind,
+    type: input.type ?? existing?.type,
+    subtype: input.subtype ?? existing?.subtype,
     id: input.id,
     name: input.name,
     fileName,

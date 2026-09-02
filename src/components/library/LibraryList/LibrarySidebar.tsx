@@ -1,88 +1,117 @@
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ListSubHeader } from '../../ui/ListSubHeader';
+import { IconTextInput } from '../../ui/IconTextInput';
 import type { LibraryItemMeta } from '../../../services/storage/types';
+import { searchLibraryItems } from '../../../services/library/searchLibraryItems';
+import { getLibraryListLabels, type LibraryListKind } from './libraryListLabels';
 import { LibraryList } from './LibraryList';
+import { LibraryListSortSelect } from './LibraryListSortSelect';
+import { useLibraryListSort } from './useLibraryListSort';
 import styles from './LibrarySidebar.module.css';
 
-export type LibraryTabId = 'all' | 'sessions' | 'prompts';
+export interface LibrarySidebarSubHeaderExtras {
+  sortSelect: ReactNode | null;
+  searchInput: ReactNode | null;
+}
 
 export interface LibrarySidebarProps {
-  title?: string;
-  tab: LibraryTabId;
-  searchQuery: string;
+  kind: LibraryListKind;
   items: LibraryItemMeta[];
   selectedId?: string | null;
   selectedKind?: string | null;
   activePromptId?: string | null;
-  isBusy?: boolean;
+  storageReady: boolean;
+  isBusy: boolean;
+  header?: ReactNode;
+  subHeader?: ReactNode | ((extras: LibrarySidebarSubHeaderExtras) => ReactNode);
+  chromeKey?: string;
+  showKindLabels?: boolean;
   headerActions?: ReactNode;
-  onTabChange: (tab: LibraryTabId) => void;
-  onSearchChange: (query: string) => void;
+  sortSelectClassName?: string;
+  searchInputClassName?: string;
   onSelect: (item: LibraryItemMeta) => void;
   onActivateType?: (item: LibraryItemMeta) => void;
   onToggleFavorite: (item: LibraryItemMeta) => void;
   onDelete: (item: LibraryItemMeta) => void;
 }
 
-const TABS: Array<{ id: LibraryTabId; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'sessions', label: 'Chats' },
-  { id: 'prompts', label: 'Prompts' },
-];
-
 export function LibrarySidebar({
-  title = 'Library',
-  tab,
-  searchQuery,
+  kind,
   items,
-  selectedId,
-  selectedKind,
-  activePromptId,
-  isBusy = false,
+  selectedId = null,
+  selectedKind = null,
+  activePromptId = null,
+  storageReady,
+  isBusy,
+  header,
+  subHeader,
+  chromeKey,
+  showKindLabels = false,
   headerActions,
-  onTabChange,
-  onSearchChange,
+  sortSelectClassName,
+  searchInputClassName,
   onSelect,
   onActivateType,
   onToggleFavorite,
   onDelete,
 }: LibrarySidebarProps) {
+  const labels = getLibraryListLabels(kind);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { field, direction, setField, toggleDirection, sortedItems } = useLibraryListSort(kind);
+
+  useEffect(() => {
+    setSearchQuery('');
+  }, [chromeKey]);
+
+  const visibleItems = useMemo(() => {
+    return sortedItems(searchLibraryItems(items, searchQuery));
+  }, [items, searchQuery, sortedItems]);
+
+  const subSubHeaderSortSelect = storageReady ? (
+    <LibraryListSortSelect
+      className={sortSelectClassName}
+      field={field}
+      direction={direction}
+      disabled={isBusy}
+      onFieldChange={setField}
+      onToggleDirection={toggleDirection}
+    />
+  ) : null;
+
+  const subSubHeaderSearchInput = storageReady ? (
+    <IconTextInput
+      className={searchInputClassName}
+      aria-label={`Search ${labels.title}`}
+      icon="search"
+      value={searchQuery}
+      disabled={isBusy}
+      placeholder="SEARCH"
+      onChange={setSearchQuery}
+    />
+  ) : null;
+
+  const resolvedSubHeader =
+    typeof subHeader === 'function'
+      ? subHeader({ sortSelect: subSubHeaderSortSelect, searchInput: subSubHeaderSearchInput })
+      : subHeader;
+
   return (
-    <aside className={styles.sidebar} aria-label={title}>
-      <header className={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-sm)' }}>
-          <h2 className={styles.title}>{title}</h2>
-          {headerActions}
-        </div>
-        <div className={styles.tabs} role="tablist" aria-label="Library filter">
-          {TABS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === entry.id}
-              className={[styles.tab, tab === entry.id ? styles.tabActive : ''].filter(Boolean).join(' ')}
-              onClick={() => onTabChange(entry.id)}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-        <input
-          type="search"
-          className={styles.search}
-          value={searchQuery}
-          placeholder="Search library…"
-          aria-label="Search library"
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
-      </header>
+    <aside ref={sidebarRef} className={styles.sidebar} aria-label={labels.ariaLabel}>
+      <ListSubHeader
+        trailing={storageReady ? headerActions : null}
+      >
+        {header ?? <h3 className={styles.title}>{labels.title}</h3>}
+      </ListSubHeader>
+      {resolvedSubHeader}
       <div className={styles.listWrap}>
         <LibraryList
-          items={items}
+          items={visibleItems}
           selectedId={selectedId}
           selectedKind={selectedKind}
           isBusy={isBusy}
-          showKindLabels={tab === 'all'}
+          showKindLabels={showKindLabels}
           activePromptId={activePromptId}
           onSelect={onSelect}
           onActivateType={onActivateType}

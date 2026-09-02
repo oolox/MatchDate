@@ -15,3 +15,33 @@ export type OpfsDocSubtype =
   | 'text'
   | 'frame'
   | 'character';
+
+export type OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text';
+
+export interface OpfsDocRefs {
+  assets?: string[];
+  prompts?: string[];
+  workflows?: string[];
+  chats?: string[];
+}
+
+export interface OpfsDocBase {
+  schemaVersion?: number;
+  type: OpfsDocType;
+  subtype?: OpfsDocSubtype;
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  refs?: OpfsDocRefs;
+}
+
+export interface AssetDocument extends OpfsDocBase {
+  type: 'asset';
+  subtype: OpfsAssetSubtype;
+  blobPath: string;
+  fileName: string;
+  mimeType?: string;
+  posterPath?: string;
+  metadata?: Record<string, unknown>;
+}

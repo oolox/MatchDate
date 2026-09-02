@@ -1,7 +1,9 @@
 import type { SavedTextKind, SavedTextMetadata, SavedTextRef } from '../../types/savedText';
 import { createId, nowIso } from '../../utils/id';
+import { ensureTextAsset, tryLoadAssetDocument } from './assetPersistence';
 import { getFileStorageService } from './index';
-import { parseTextIdFromFileName, textMetaPath, textPath, TEXT_ASSETS_DIR } from './paths';
+import { listLibraryItems, reconcileLibraryIndex } from './libraryIndex';
+import { textMetaPath, textPath } from './paths';
 
 const EXCERPT_LENGTH = 200;
 
@@ -57,20 +59,7 @@ export async function saveText(
     },
   };
 
-  await storage.write(
-    textMetaPath(id),
-    JSON.stringify(
-      {
-        id: ref.id,
-        originalName,
-        mimeType,
-        createdAt: ref.createdAt,
-        metadata: ref.metadata,
-      },
-      null,
-      2,
-    ),
-  );
+  await ensureTextAsset(storage, ref, { name: originalName });
 
   return ref;
 }
@@ -86,15 +75,28 @@ export async function loadTextMeta(id: string): Promise<{
   mimeType: SavedTextKind;
 }> {
   const storage = getFileStorageService();
-  const raw = await storage.read(textMetaPath(id));
-  const parsed = JSON.parse(raw) as {
-    originalName?: string;
-    mimeType?: SavedTextKind;
-  };
-  return {
-    originalName: parsed.originalName ?? id,
-    mimeType: parsed.mimeType ?? 'text/plain',
-  };
+  const asset = await tryLoadAssetDocument(storage, id);
+  if (asset?.subtype === 'text') {
+    const meta = asset.metadata as SavedTextMetadata | undefined;
+    return {
+      originalName: meta?.originalName ?? asset.name,
+      mimeType: asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain',
+    };
+  }
+
+  if (await storage.exists(textMetaPath(id))) {
+    const raw = await storage.read(textMetaPath(id));
+    const parsed = JSON.parse(raw) as {
+      originalName?: string;
+      mimeType?: SavedTextKind;
+    };
+    return {
+      originalName: parsed.originalName ?? id,
+      mimeType: parsed.mimeType ?? 'text/plain',
+    };
+  }
+
+  return { originalName: id, mimeType: 'text/plain' };
 }
 
 export async function deleteText(id: string): Promise<void> {
@@ -107,36 +109,25 @@ export async function deleteText(id: string): Promise<void> {
 
 export async function listTextAssets(): Promise<TextAssetSummary[]> {
   const storage = getFileStorageService();
-  let entries;
-  try {
-    entries = await storage.list(TEXT_ASSETS_DIR);
-  } catch {
-    return [];
-  }
-  const items: TextAssetSummary[] = [];
+  await reconcileLibraryIndex(storage);
+  const items = await listLibraryItems(storage, 'asset');
+  const summaries: TextAssetSummary[] = [];
 
-  for (const entry of entries) {
-    if (entry.kind !== 'file' || !entry.path.endsWith('.json')) {
+  for (const item of items) {
+    if (item.subtype !== 'text' && item.subtype !== undefined) {
       continue;
     }
-    const fileName = entry.path.split('/').pop() ?? '';
-    const id = parseTextIdFromFileName(fileName);
-    if (!id) {
-      continue;
-    }
-    try {
-      const meta = await loadTextMeta(id);
-      items.push({
-        id,
-        name: meta.originalName,
-        mimeType: meta.mimeType,
-      });
-    } catch {
-      // skip invalid metadata
-    }
+    const asset = await tryLoadAssetDocument(storage, item.id);
+    const mimeType =
+      asset?.mimeType === 'text/markdown' ? 'text/markdown' : ('text/plain' as SavedTextKind);
+    summaries.push({
+      id: item.id,
+      name: item.name,
+      mimeType,
+    });
   }
 
-  return items.sort((a, b) => a.name.localeCompare(b.name));
+  return summaries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export const TEXT_UPLOAD_ACCEPT = '.txt,.md,text/plain,text/markdown';

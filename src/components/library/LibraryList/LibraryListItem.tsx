@@ -1,8 +1,20 @@
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { LibraryItemMeta } from '../../../services/storage/types';
 import { formatLibraryListDateTime } from './libraryListDateTime';
-import { getLibraryKindLabel } from './libraryListLabels';
+import { getLibraryKindBadge, getLibraryKindLabel } from './libraryListLabels';
+import { LibraryAssetThumb } from './LibraryAssetThumb';
+import { LibraryTextThumb } from './LibraryTextThumb';
+import { LibraryVideoThumb } from './LibraryVideoThumb';
 import styles from './LibraryList.module.css';
+
+const ASSET_NAME_MAX = 40;
+
+function truncateAssetName(name: string): string {
+  if (name.length <= ASSET_NAME_MAX) {
+    return name;
+  }
+  return `${name.slice(0, ASSET_NAME_MAX - 1)}…`;
+}
 
 export interface LibraryListItemProps {
   item: LibraryItemMeta;
@@ -29,9 +41,14 @@ export function LibraryListItem({
 }: LibraryListItemProps) {
   const updated = formatLibraryListDateTime(item.updatedAt);
   const kindLabel = showKindLabel ? getLibraryKindLabel(item.kind) : null;
+  const kindBadge = showKindLabel ? getLibraryKindBadge(item.kind) : null;
+  const isAsset = item.kind === 'asset';
+  const displayName = isAsset ? truncateAssetName(item.name) : item.name;
+
+  const assetSubtype = item.subtype ?? (isAsset ? 'image' : undefined);
 
   return (
-    <li className={styles.item}>
+    <li className={[styles.item, selected ? styles.itemSelected : ''].filter(Boolean).join(' ')}>
       {item.kind === 'prompt' ? (
         <button
           type="button"
@@ -43,11 +60,18 @@ export function LibraryListItem({
         >
           SYS
         </button>
+      ) : kindBadge ? (
+        <span className={styles.kindBadge} aria-hidden="true">
+          {kindBadge}
+        </span>
       ) : kindLabel ? (
         <span className={styles.kindBadge} aria-hidden="true">
           {kindLabel}
         </span>
       ) : null}
+      {isAsset && assetSubtype === 'text' ? <LibraryTextThumb name={item.name} /> : null}
+      {isAsset && assetSubtype === 'image' ? <LibraryAssetThumb name={item.name} /> : null}
+      {isAsset && assetSubtype === 'video' ? <LibraryVideoThumb name={item.name} /> : null}
       <button
         type="button"
         className={styles.select}
@@ -56,7 +80,9 @@ export function LibraryListItem({
         disabled={disabled}
         onClick={() => onSelect(item)}
       >
-        <span className={styles.name}>{item.name}</span>
+        <span className={[styles.name, isAsset ? styles.assetName : ''].filter(Boolean).join(' ')}>
+          {displayName}
+        </span>
         {updated ? (
           <span className={styles.meta} aria-hidden="true">
             <span>{updated}</span>

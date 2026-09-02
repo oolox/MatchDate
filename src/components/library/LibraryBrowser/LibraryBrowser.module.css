@@ -1,0 +1,19 @@
+.subSubHeaderControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.subtypeSelect,
+.sortSelect {
+  flex: 0 0 6rem;
+  width: 6rem;
+  max-width: 6rem;
+}
+
+.searchInput {
+  flex: 0 0 10rem;
+  width: 10rem;
+  max-width: 10rem;
+}

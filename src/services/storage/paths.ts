@@ -8,7 +8,34 @@ export const PROMPTS_PRESET_DIR = `${PROMPTS_DIR}/session`;
 export const CONFIG_PATH = `${OPFS_ROOT}/config.json`;
 export const LIBRARY_PATH = `${OPFS_ROOT}/library.json`;
 export const ASSETS_DIR = `${OPFS_ROOT}/assets`;
+export const ASSETS_IMG_DIR = `${ASSETS_DIR}/img`;
+export const ASSETS_VID_DIR = `${ASSETS_DIR}/vid`;
 export const TEXT_ASSETS_DIR = `${ASSETS_DIR}/text`;
+export const ASSETS_METADATA_DIR = `${ASSETS_DIR}/metadata`;
+
+export function imageFileName(id: string): string {
+  return `matchDate-img-${id}.png`;
+}
+
+export function videoFileName(id: string): string {
+  return `matchDate-vid-${id}.mp4`;
+}
+
+export function assetFileName(id: string): string {
+  return `matchDate-asset-${id}.json`;
+}
+
+export function imagePath(id: string): StoragePath {
+  return `${ASSETS_IMG_DIR}/${imageFileName(id)}`;
+}
+
+export function videoPath(id: string): StoragePath {
+  return `${ASSETS_VID_DIR}/${videoFileName(id)}`;
+}
+
+export function assetPath(id: string): StoragePath {
+  return `${ASSETS_METADATA_DIR}/${assetFileName(id)}`;
+}
 
 export function textFileName(id: string): string {
   return `matchDate-text-${id}.txt`;

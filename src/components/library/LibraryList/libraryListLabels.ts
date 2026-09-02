@@ -1,4 +1,45 @@
 import type { LibraryItemKind } from '../../../services/storage/types';
+import type { LibrarySortListKind } from '../../../services/localStorage/keys';
+
+export type LibraryListKind = LibrarySortListKind;
+
+export interface LibraryListLabels {
+  title: string;
+  loading: string;
+  empty: string;
+  ariaLabel: string;
+}
+
+const LABELS: Record<LibraryListKind, LibraryListLabels> = {
+  session: {
+    title: 'Chats',
+    loading: 'Loading chats…',
+    empty: 'No saved chats yet.',
+    ariaLabel: 'Chats',
+  },
+  prompt: {
+    title: 'Prompts',
+    loading: 'Loading presets…',
+    empty: 'No saved presets yet.',
+    ariaLabel: 'Prompts',
+  },
+  asset: {
+    title: 'Assets',
+    loading: 'Loading assets…',
+    empty: 'No saved assets yet.',
+    ariaLabel: 'Assets',
+  },
+  all: {
+    title: 'All',
+    loading: 'Loading library…',
+    empty: 'No saved items yet.',
+    ariaLabel: 'All library items',
+  },
+};
+
+export function getLibraryListLabels(kind: LibraryListKind): LibraryListLabels {
+  return LABELS[kind];
+}
 
 export function getLibraryKindLabel(kind: LibraryItemKind): string {
   switch (kind) {
@@ -6,7 +47,22 @@ export function getLibraryKindLabel(kind: LibraryItemKind): string {
       return 'Chat';
     case 'prompt':
       return 'Prompt';
+    case 'asset':
+      return 'Asset';
     default:
       return kind;
+  }
+}
+
+export function getLibraryKindBadge(kind: LibraryItemKind): string | null {
+  switch (kind) {
+    case 'session':
+      return 'CHAT';
+    case 'asset':
+      return 'AST';
+    case 'prompt':
+      return null;
+    default:
+      return null;
   }
 }
