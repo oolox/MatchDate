@@ -353,3 +353,29 @@ export async function listLibraryItems(
   }
   return index.items.filter((item) => item.kind === kind);
 }
+
+export async function toggleFavorite(
+  storage: FileStorageService,
+  kind: LibraryItemKind,
+  id: string,
+): Promise<LibraryItemMeta> {
+  const index = await loadLibraryIndex(storage);
+  const byKey = indexByKey(index.items);
+  const key = itemKey(kind, id);
+  const item = byKey.get(key);
+  if (!item) {
+    throw new StorageError('NOT_FOUND', `Library item not found: ${kind}/${id}`);
+  }
+
+  const now = nowIso();
+  const nextItem: LibraryItemMeta = item.isFavorite
+    ? { ...item, isFavorite: false, favoritedAt: undefined }
+    : { ...item, isFavorite: true, favoritedAt: now };
+
+  byKey.set(key, nextItem);
+  await writeLibraryIndex(storage, {
+    items: [...byKey.values()],
+    updatedAt: now,
+  });
+  return nextItem;
+}

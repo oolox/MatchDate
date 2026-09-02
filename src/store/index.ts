@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import chatUiReducer from './slices/chatUiSlice';
+import appShellReducer from './slices/appShellSlice';
 import promptsReducer from './slices/promptsSlice';
 import sessionsReducer from './slices/sessionsSlice';
 import threadReducer from './slices/threadSlice';
@@ -10,6 +11,7 @@ export const store = configureStore({
     chatUi: chatUiReducer,
     sessions: sessionsReducer,
     prompts: promptsReducer,
+    appShell: appShellReducer,
   },
 });
 

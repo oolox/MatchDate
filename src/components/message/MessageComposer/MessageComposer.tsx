@@ -1,4 +1,5 @@
-import type { FormEvent, KeyboardEvent, ReactNode } from 'react';
+import type { DragEvent, FormEvent, KeyboardEvent, ReactNode, Ref } from 'react';
+import { useCallback, useState } from 'react';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { IconName } from '../../ui/Icon/icons';
 import { Spinner } from '../../ui/Spinner/Spinner';
@@ -14,10 +15,20 @@ export interface MessageComposerProps {
   rows?: number;
   streamingLabel?: string;
   sendIcon?: IconName;
+  allowEmptySend?: boolean;
   actionsTrailing?: ReactNode;
+  attachments?: ReactNode;
+  mentionMenu?: ReactNode;
+  mentionOpen?: boolean;
+  mentionActiveId?: string;
+  textareaRef?: Ref<HTMLTextAreaElement>;
+  enableFileDrop?: boolean;
+  dropLabel?: string;
   onChange: (value: string) => void;
   onSend: () => void;
   onAbort?: () => void;
+  onFilesDrop?: (files: File[]) => void;
+  onComposerKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean;
 }
 
 export function MessageComposer({
@@ -29,12 +40,24 @@ export function MessageComposer({
   rows = 3,
   streamingLabel = 'Generating response…',
   sendIcon = 'send',
+  allowEmptySend = false,
   actionsTrailing,
+  attachments,
+  mentionMenu,
+  mentionOpen = false,
+  mentionActiveId,
+  textareaRef,
+  enableFileDrop = false,
+  dropLabel = 'Drop text files here',
   onChange,
   onSend,
   onAbort,
+  onFilesDrop,
+  onComposerKeyDown,
 }: MessageComposerProps) {
-  const canSend = !disabled && !isStreaming && value.trim().length > 0;
+  const [dragActive, setDragActive] = useState(false);
+  const canSend =
+    !disabled && !isStreaming && (allowEmptySend || value.trim().length > 0);
   const showStreamingReplace = Boolean(isStreaming && streamingLabel);
 
   const handleSubmit = (event: FormEvent) => {
@@ -45,6 +68,9 @@ export function MessageComposer({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (onComposerKeyDown?.(event)) {
+      return;
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (canSend) {
@@ -52,6 +78,41 @@ export function MessageComposer({
       }
     }
   };
+
+  const handleDragOver = useCallback(
+    (event: DragEvent) => {
+      if (!enableFileDrop || !onFilesDrop || disabled || isStreaming) {
+        return;
+      }
+      event.preventDefault();
+      setDragActive(true);
+    },
+    [disabled, enableFileDrop, isStreaming, onFilesDrop],
+  );
+
+  const handleDragLeave = useCallback(() => {
+    setDragActive(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: DragEvent) => {
+      if (!enableFileDrop || !onFilesDrop || disabled || isStreaming) {
+        return;
+      }
+      event.preventDefault();
+      setDragActive(false);
+      const files = Array.from(event.dataTransfer.files).filter(
+        (file) =>
+          file.type.startsWith('text/') ||
+          file.name.endsWith('.txt') ||
+          file.name.endsWith('.md'),
+      );
+      if (files.length > 0) {
+        onFilesDrop(files);
+      }
+    },
+    [disabled, enableFileDrop, isStreaming, onFilesDrop],
+  );
 
   if (showStreamingReplace) {
     return (
@@ -74,14 +135,35 @@ export function MessageComposer({
   }
 
   return (
-    <form className={styles.composer} onSubmit={handleSubmit}>
+    <form
+      className={[
+        styles.composer,
+        enableFileDrop ? styles.dropZone : '',
+        dragActive ? styles.dropZoneActive : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onSubmit={handleSubmit}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      aria-label={dragActive ? dropLabel : undefined}
+    >
+      {attachments}
       <div className={styles.fieldWrap}>
+        {mentionMenu}
         <MessageTextInput
+          ref={textareaRef}
           label={label}
           value={value}
           placeholder={placeholder}
           rows={rows}
           disabled={disabled || isStreaming}
+          aria-describedby={mentionOpen ? 'txt-attach-listbox' : undefined}
+          aria-autocomplete={mentionOpen ? 'list' : undefined}
+          aria-controls={mentionOpen ? 'txt-attach-listbox' : undefined}
+          aria-expanded={mentionOpen || undefined}
+          aria-activedescendant={mentionActiveId}
           onChange={onChange}
           onKeyDown={handleKeyDown}
         />

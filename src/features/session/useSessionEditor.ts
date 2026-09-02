@@ -6,6 +6,7 @@ import {
 } from '../../services/storage/persistenceService';
 import { StorageError } from '../../services/storage/types';
 import { useAppDispatch } from '../../store/hooks';
+import { bumpLibraryEpoch } from '../../store/slices/appShellSlice';
 import type { RootState } from '../../store';
 import {
   markSessionSaved,
@@ -75,6 +76,7 @@ export function useSessionEditor(sessionId: string) {
     setSessionDoc(saved);
     dispatch(markSessionSaved({ id: saved.id, updatedAt: saved.updatedAt }));
     dispatch(setSelectedSessionId(saved.id));
+    dispatch(bumpLibraryEpoch());
   }, [dispatch, sessionDoc, sessionId, store]);
 
   return { ready, persistAfterTurn, sessionDoc };

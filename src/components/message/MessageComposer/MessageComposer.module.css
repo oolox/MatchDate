@@ -30,6 +30,15 @@
   position: relative;
 }
 
+.dropZone {
+  position: relative;
+}
+
+.dropZoneActive {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -2px;
+}
+
 .actions {
   display: flex;
   align-items: center;

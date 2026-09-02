@@ -4,11 +4,18 @@ export type MessageRole = 'system' | 'user' | 'assistant';
 
 export type MessageStatus = 'pending' | 'streaming' | 'complete' | 'error';
 
+export interface ChatTextAttachment {
+  assetId: string;
+  name: string;
+  mime: string;
+}
+
 export interface ThreadMessage {
   id: string;
   role: MessageRole;
   content: string;
   apiContent?: string;
+  attachments?: ChatTextAttachment[];
   status?: MessageStatus;
   createdAt: string;
 }

@@ -12,10 +12,11 @@ import {
   parseSessionDocument,
   reconcileLibraryIndex,
   removeLibraryItem,
+  toggleFavorite as toggleLibraryFavorite,
   upsertLibraryItem,
 } from './libraryIndex';
 import { CONFIG_PATH, presetPath, sessionDocumentPath } from './paths';
-import type { ConfigManifest, FileStorageService, SystemPromptPreset } from './types';
+import type { ConfigManifest, FileStorageService, LibraryItemKind, LibraryItemMeta, SystemPromptPreset } from './types';
 import { StorageError } from './types';
 
 export interface LoadSessionResult {
@@ -366,4 +367,42 @@ export async function requestPersistentStorage(): Promise<void> {
       // best-effort
     }
   }
+}
+
+export async function listLibrary(): Promise<LibraryItemMeta[]> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  await reconcileLibraryIndex(storage);
+  return listLibraryItems(storage);
+}
+
+export async function toggleFavorite(
+  kind: LibraryItemKind,
+  id: string,
+): Promise<LibraryItemMeta> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  await reconcileLibraryIndex(storage);
+  return toggleLibraryFavorite(storage, kind, id);
+}
+
+export async function deleteSession(sessionId: string): Promise<{ activeSessionId: string | null }> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+
+  const path = sessionDocumentPath(sessionId);
+  if (await storage.exists(path)) {
+    await storage.delete(path);
+  }
+  await removeLibraryItem(storage, 'session', sessionId);
+
+  const manifest = await readConfigManifest(storage);
+  if (manifest.activeSessionId !== sessionId) {
+    return { activeSessionId: manifest.activeSessionId };
+  }
+
+  const remaining = await listLibraryItems(storage, 'session');
+  const nextActiveId = remaining[0]?.id ?? null;
+  await updateConfigManifest(storage, { activeSessionId: nextActiveId });
+  return { activeSessionId: nextActiveId };
 }

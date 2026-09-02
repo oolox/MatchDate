@@ -1,39 +1,31 @@
-import type { KeyboardEvent, Ref } from 'react';
+import type { KeyboardEvent, TextareaHTMLAttributes } from 'react';
 import { forwardRef } from 'react';
 import { TextArea } from '../../ui/TextArea/TextArea';
 
-export interface MessageTextInputProps {
+export interface MessageTextInputProps
+  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   label: string;
-  value: string;
-  placeholder?: string;
-  rows?: number;
-  disabled?: boolean;
   onChange: (value: string) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
-export const MessageTextInput = forwardRef(function MessageTextInput(
-  {
-    label,
-    value,
-    placeholder,
-    rows = 3,
-    disabled = false,
-    onChange,
-    onKeyDown,
-  }: MessageTextInputProps,
-  ref: Ref<HTMLTextAreaElement>,
-) {
-  return (
-    <TextArea
-      ref={ref}
-      label={label}
-      value={value}
-      placeholder={placeholder}
-      rows={rows}
-      disabled={disabled}
-      onChange={(event) => onChange(event.target.value)}
-      onKeyDown={onKeyDown}
-    />
-  );
-});
+export const MessageTextInput = forwardRef<HTMLTextAreaElement, MessageTextInputProps>(
+  function MessageTextInput(
+    { label, value, placeholder, rows = 3, disabled = false, onChange, onKeyDown, ...rest },
+    ref,
+  ) {
+    return (
+      <TextArea
+        ref={ref}
+        label={label}
+        value={value}
+        placeholder={placeholder}
+        rows={rows}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        {...rest}
+      />
+    );
+  },
+);

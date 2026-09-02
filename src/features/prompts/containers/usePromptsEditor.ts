@@ -9,6 +9,7 @@ import {
   setActivePrompt,
 } from '../../../services/storage/persistenceService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import {
   selectActiveSystemPresetSlug,
   selectPresetCatalog,
@@ -119,6 +120,7 @@ export function usePromptsEditor() {
       }
 
       await refreshCatalog();
+      dispatch(bumpLibraryEpoch());
       notify(`Saved ${saved.name}`);
     } catch (error) {
       notify(formatFailure('save', name, error));
@@ -164,6 +166,7 @@ export function usePromptsEditor() {
         }
 
         await refreshCatalog();
+        dispatch(bumpLibraryEpoch());
         notify(`Deleted ${name}`);
       } catch (error) {
         notify(formatFailure('delete', name, error));

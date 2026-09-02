@@ -1,0 +1,72 @@
+.split {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.dragging * {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.left {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.handle {
+  flex: 0 0 0;
+  width: 0;
+  position: relative;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+  flex-shrink: 0;
+  background: transparent;
+}
+
+.handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.375rem;
+  width: 0.75rem;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.handle:hover::after,
+.dragging .handle::after {
+  background: var(--color-accent);
+}
+
+.right {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

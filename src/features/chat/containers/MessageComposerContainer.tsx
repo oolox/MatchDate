@@ -1,8 +1,12 @@
 import { useCallback } from 'react';
+import { AttachmentChips } from '../../../components/chat/AttachmentChips/AttachmentChips';
+import { MentionMenu } from '../../../components/chat/MentionMenu/MentionMenu';
 import { MessageComposer } from '../../../components/message/MessageComposer/MessageComposer';
 import { useNotification } from '../../../components/notification/Notification/useNotification';
 import { useSessionPersistence } from '../../../features/session/SessionPersistenceContext';
 import { resolveThreadSystemPrompt } from '../../../features/chat/sessionSystemPrompt';
+import { apiContentForMessage } from '../attach/xmlAttach';
+import { useTxtChatAttachments } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -40,16 +44,32 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   );
   const { persistAfterTurn } = useSessionPersistence();
   const { abortRef, begin, abort } = useAbortController(threadId);
+  const attach = useTxtChatAttachments(threadId);
+
+  const setDraft = useCallback(
+    (value: string) => {
+      dispatch(setComposerDraft(value));
+      const caret = attach.textareaRef.current?.selectionStart ?? value.length;
+      attach.syncMentionFromCaret(value, caret);
+    },
+    [attach, dispatch],
+  );
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
-    if (!text || isStreaming) {
+    if ((!text && attach.attachments.length === 0) || isStreaming) {
       return;
     }
 
     const controller = begin();
     const userMessageId = createId();
     const assistantMessageId = createId();
+    const chips = attach.attachments.map(({ assetId, name, mime }) => ({
+      assetId,
+      name,
+      mime,
+    }));
+    const apiContent = attach.buildApiContent(text);
 
     dispatch(
       appendMessage({
@@ -58,12 +78,16 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           id: userMessageId,
           role: 'user',
           content: text,
+          apiContent: chips.length > 0 ? apiContent : undefined,
+          attachments: chips.length > 0 ? chips : undefined,
           status: 'complete',
           createdAt: nowIso(),
         },
       }),
     );
     dispatch(clearComposerDraft());
+    attach.clearAttachments();
+    attach.closeMention();
     dispatch(
       appendMessage({
         threadId,
@@ -85,9 +109,9 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
       systemPrompt,
       historyMessages: messages.map((message) => ({
         role: message.role,
-        content: message.apiContent ?? message.content,
+        content: apiContentForMessage(message),
       })),
-      userContent: text,
+      userContent: apiContent,
       signal: controller.signal,
       abortRef,
       controller,
@@ -129,6 +153,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   }, [
     abortRef,
     activeSystemPrompt,
+    attach,
     begin,
     dispatch,
     draft,
@@ -145,17 +170,55 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     dispatch(setIsStreaming(false));
   }, [abort, dispatch]);
 
+  const activeItem = attach.mentionItems[attach.activeIndex];
+
   return (
-    <MessageComposer
-      value={draft}
-      isStreaming={isStreaming}
-      sendIcon="send"
-      placeholder="Type a message…"
-      onChange={(value) => dispatch(setComposerDraft(value))}
-      onSend={() => {
-        void handleSend();
-      }}
-      onAbort={handleAbort}
-    />
+    <>
+      <input
+        ref={attach.fileInputRef}
+        type="file"
+        accept={attach.fileAccept}
+        multiple
+        hidden
+        aria-hidden="true"
+        tabIndex={-1}
+        onChange={(event) => attach.onFileInputChange(event.target.files)}
+      />
+      <MessageComposer
+        value={draft}
+        isStreaming={isStreaming}
+        sendIcon="send"
+        allowEmptySend={attach.attachments.length > 0}
+        placeholder="Type a message… (@ to attach)"
+        textareaRef={attach.textareaRef}
+        enableFileDrop
+        attachments={
+          <AttachmentChips items={attach.attachments} onRemove={attach.removeAttachment} />
+        }
+        mentionOpen={attach.mentionOpen}
+        mentionActiveId={
+          attach.mentionOpen && activeItem ? `txt-attach-option-${activeItem.id}` : undefined
+        }
+        mentionMenu={
+          attach.mentionOpen ? (
+            <MentionMenu
+              items={attach.mentionItems}
+              activeIndex={attach.activeIndex}
+              onActiveIndexChange={attach.setActiveIndex}
+              onSelect={(id) => attach.selectMention(id, draft, setDraft)}
+            />
+          ) : null
+        }
+        onFilesDrop={(files) => {
+          void attach.addFiles(files);
+        }}
+        onComposerKeyDown={(event) => attach.onComposerKeyDown(event, draft, setDraft)}
+        onChange={setDraft}
+        onSend={() => {
+          void handleSend();
+        }}
+        onAbort={handleAbort}
+      />
+    </>
   );
 }
