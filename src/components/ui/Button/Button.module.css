@@ -1,0 +1,98 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  box-sizing: border-box;
+  height: calc(1.5em + 2px);
+  padding: 0 12px;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  line-height: 1.25;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.withIcon {
+  padding-left: 0.125rem;
+}
+
+.label {
+  display: inline-block;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.icon {
+  width: 1.5em;
+  height: 1.5em;
+  color: inherit;
+}
+
+.icon svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.button:hover,
+.button:focus-visible {
+  text-decoration: none;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.current {
+  cursor: default;
+}
+
+.primary {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.primary:hover:not(:disabled):not(.current),
+.primary:focus-visible:not(:disabled):not(.current) {
+  border-color: var(--color-accent-hover);
+  color: var(--color-accent-hover);
+}
+
+.secondary {
+  border-color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+  color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+}
+
+.secondary:hover:not(:disabled):not(.current),
+.secondary:focus-visible:not(:disabled):not(.current) {
+  border-color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+  color: color-mix(in srgb, var(--color-text-primary) 75%, transparent);
+}
+
+.tab {
+  height: auto;
+  padding: 0.2rem 0.5rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border-color: currentColor;
+  color: var(--color-text-muted);
+}
+
+.tab .label {
+  text-transform: none;
+}
+
+.tab:hover:not(:disabled):not(.current),
+.tab:focus-visible:not(:disabled):not(.current) {
+  color: var(--color-text-secondary);
+}

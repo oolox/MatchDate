@@ -3,6 +3,7 @@ import chatUiReducer from './slices/chatUiSlice';
 import appShellReducer from './slices/appShellSlice';
 import localStorageReducer from './slices/localStorageSlice';
 import promptsReducer from './slices/promptsSlice';
+import characterReducer from './slices/characterSlice';
 import sessionsReducer from './slices/sessionsSlice';
 import threadReducer from './slices/threadSlice';
 
@@ -12,6 +13,7 @@ export const store = configureStore({
     chatUi: chatUiReducer,
     sessions: sessionsReducer,
     prompts: promptsReducer,
+    character: characterReducer,
     appShell: appShellReducer,
     localStorage: localStorageReducer,
   },
