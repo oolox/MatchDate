@@ -1,24 +1,23 @@
-import { useSessionEditor } from '../../features/session/useSessionEditor';
+import { useParams } from 'react-router-dom';
+import { CharacterEditor } from '../../features/character/CharacterEditor';
+import { CharacterEditorProvider } from '../../features/character/CharacterEditorContext';
+import { useCharacterEditor } from '../../features/character/useCharacterEditor';
 import { SessionWorkspaceLayout } from '../../features/session/SessionWorkspaceLayout';
-import styles from './CharacterSheetView.module.css';
+import { useAppSelector } from '../../store/hooks';
+import { selectStorageReady } from '../../store/slices/promptsSlice';
 
-export interface CharacterSheetViewProps {
-  sessionId: string;
-}
-
-export function CharacterSheetView({ sessionId }: CharacterSheetViewProps) {
-  const { ready, persistAfterTurn } = useSessionEditor(sessionId);
+export function CharacterSheetView() {
+  const { characterId } = useParams<{ characterId?: string }>();
+  const storageReady = useAppSelector(selectStorageReady);
+  const editor = useCharacterEditor(characterId?.trim() || null);
 
   return (
-    <SessionWorkspaceLayout
-      sessionId={sessionId}
-      routePrefix="character"
-      persistence={{ ready, persistAfterTurn }}
-      left={
-        <div className={styles.sheet}>
-          <p className={styles.placeholder}>Placeholder</p>
-        </div>
-      }
-    />
+    <CharacterEditorProvider value={editor}>
+      <SessionWorkspaceLayout
+        routePrefix="character"
+        persistence={{ ready: storageReady, persistAfterTurn: async () => {} }}
+        left={<CharacterEditor editor={editor} />}
+      />
+    </CharacterEditorProvider>
   );
 }

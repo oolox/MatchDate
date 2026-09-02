@@ -13,10 +13,18 @@ import {
   saveAssetDocument,
   tryLoadAssetDocument,
 } from './assetPersistence';
-import { assetDocumentFromCharacter, characterFromAssetDocument } from './characterAsset';
+import {
+  characterDocumentFromCharacter,
+  characterFromDocument,
+  deleteCharacterDocument,
+  loadCharacterDocument,
+  saveCharacterDocument,
+  tryLoadCharacterDocument,
+} from './characterPersistence';
 import { deleteText } from './textStorage';
 import { deleteImage } from './imageStorage';
 import { migrateTextAssetMetadata } from './migrateTextAssetMetadata';
+import { migrateCharacterFromAssets } from './migrateCharacterFromAssets';
 import { deleteVideo } from './videoStorage';
 import {
   listLibraryItems,
@@ -31,6 +39,7 @@ import { CONFIG_PATH, presetPath, sessionDocumentPath } from './paths';
 import type { ConfigManifest, FileStorageService, LibraryItemKind, LibraryItemMeta, SystemPromptPreset } from './types';
 import { StorageError } from './types';
 import type { AssetDocument } from '../../types/opfsDoc';
+import type { CharacterDocument } from '../../types/character';
 
 export interface LoadSessionResult {
   session: SessionDocument;
@@ -137,6 +146,7 @@ export async function reconcileLibrary(): Promise<void> {
   const storage = getStorage();
   await ensureInitialized(storage);
   await migrateTextAssetMetadata();
+  await migrateCharacterFromAssets();
   await reconcileLibraryIndex(storage);
 }
 
@@ -172,33 +182,46 @@ export async function deleteAsset(id: string): Promise<void> {
     await deleteImage(id);
   } else if (asset.subtype === 'video') {
     await deleteVideo(id);
-  } else if (asset.subtype === 'character') {
-    // Metadata-only asset; no blob cleanup required.
   }
   await deleteAssetDocument(storage, id);
+}
+
+export async function listCharacters(): Promise<LibraryItemMeta[]> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  await reconcileLibraryIndex(storage);
+  return listLibraryItems(storage, 'character');
 }
 
 export async function saveCharacter(
   character: Character,
   id?: string,
-): Promise<AssetDocument> {
+): Promise<CharacterDocument> {
   const storage = getStorage();
   await ensureInitialized(storage);
   const resolvedId = id?.trim() || createId();
   let createdAt: string | undefined;
   if (id?.trim()) {
-    const existing = await tryLoadAssetDocument(storage, resolvedId);
+    const existing = await tryLoadCharacterDocument(storage, resolvedId);
     createdAt = existing?.createdAt;
   }
-  return saveAssetDocument(
+  return saveCharacterDocument(
     storage,
-    assetDocumentFromCharacter(character, { id: resolvedId, createdAt }),
+    characterDocumentFromCharacter(character, { id: resolvedId, createdAt }),
   );
 }
 
 export async function loadCharacter(id: string): Promise<Character> {
-  const asset = await loadAsset(id);
-  return characterFromAssetDocument(asset);
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  const document = await loadCharacterDocument(storage, id);
+  return characterFromDocument(document);
+}
+
+export async function deleteCharacter(id: string): Promise<void> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  await deleteCharacterDocument(storage, id);
 }
 
 export async function listPresets() {

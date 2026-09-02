@@ -1,7 +1,15 @@
 import type { AssetDocument } from '../../types/opfsDoc';
+import type { CharacterDocument } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { isAssetSubtype } from './assetDocument';
-import { ASSETS_METADATA_DIR, assetFileName, assetPath } from './paths';
+import {
+  ASSETS_METADATA_DIR,
+  assetFileName,
+  assetPath,
+  characterDocumentFileName,
+  characterDocumentPath,
+  CHARACTERS_DIR,
+} from './paths';
 import { parseStorageJson } from './parseStorageJson';
 import type {
   FileStorageService,
@@ -50,6 +58,35 @@ export function parseAsset(raw: string, path: string): AssetDocument {
       };
     },
     'asset',
+  );
+}
+
+export function parseCharacterDocument(raw: string, path: string): CharacterDocument {
+  return parseStorageJson(
+    raw,
+    path,
+    (parsed) => {
+      const value = parsed as Partial<CharacterDocument>;
+      if (
+        !value.id ||
+        typeof value.name !== 'string' ||
+        !Array.isArray(value.attributes)
+      ) {
+        throw new StorageError('PARSE_ERROR', `Invalid character file: ${path}`);
+      }
+      const updatedAt = value.updatedAt ?? value.createdAt ?? new Date(0).toISOString();
+      return {
+        schemaVersion:
+          typeof value.schemaVersion === 'number' ? value.schemaVersion : OPFS_SCHEMA_VERSION,
+        type: 'character',
+        id: value.id,
+        name: value.name,
+        attributes: value.attributes,
+        createdAt: backfillCreatedAt(value.createdAt, updatedAt),
+        updatedAt,
+      };
+    },
+    'character',
   );
 }
 
@@ -106,7 +143,39 @@ const assetRegistration: LibraryKindRegistration = {
   },
 };
 
-const registrations: LibraryKindRegistration[] = [assetRegistration];
+const CHARACTER_FILE_PREFIX = 'matchDate-char-';
+
+const characterRegistration: LibraryKindRegistration = {
+  kind: 'character',
+  directory: CHARACTERS_DIR,
+  pathForId: (id) => ({
+    fileName: characterDocumentFileName(id),
+    path: characterDocumentPath(id),
+  }),
+  listIdsFromDisk: (storage) =>
+    listJsonIds(storage, CHARACTERS_DIR, {
+      prefix: CHARACTER_FILE_PREFIX,
+      idFromFileName: (fileName) => {
+        if (!fileName.startsWith(CHARACTER_FILE_PREFIX) || !fileName.endsWith('.json')) {
+          return null;
+        }
+        return fileName.slice(CHARACTER_FILE_PREFIX.length, -'.json'.length) || null;
+      },
+    }),
+  readCatalogFields: async (storage, id) => {
+    const path = characterDocumentPath(id);
+    const doc = parseCharacterDocument(await storage.read(path), path);
+    return {
+      name: doc.name,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+      type: 'character',
+      subtype: 'character',
+    };
+  },
+};
+
+const registrations: LibraryKindRegistration[] = [assetRegistration, characterRegistration];
 
 const registrationByKind = new Map(
   registrations.map((registration) => [registration.kind, registration]),
@@ -120,4 +189,8 @@ export function getLibraryKindRegistration(
 
 export function getAssetRegistration(): LibraryKindRegistration {
   return assetRegistration;
+}
+
+export function getCharacterRegistration(): LibraryKindRegistration {
+  return characterRegistration;
 }

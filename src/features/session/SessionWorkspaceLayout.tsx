@@ -6,8 +6,8 @@ import { SessionLibraryPanel, type SessionRoutePrefix } from './SessionLibraryPa
 import styles from './SessionWorkspaceLayout.module.css';
 
 export interface SessionWorkspaceLayoutProps {
-  sessionId: string;
   routePrefix: SessionRoutePrefix;
+  sessionId?: string;
   left: ReactNode;
   persistence: {
     ready: boolean;

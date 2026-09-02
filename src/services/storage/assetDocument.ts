@@ -10,8 +10,7 @@ export function isAssetSubtype(value: unknown): value is OpfsAssetSubtype {
     value === 'image' ||
     value === 'video' ||
     value === 'frame' ||
-    value === 'text' ||
-    value === 'character'
+    value === 'text'
   );
 }
 

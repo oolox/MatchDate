@@ -1,6 +1,6 @@
 export const OPFS_SCHEMA_VERSION = 2;
 
-export type OpfsDocType = 'generator' | 'prompt' | 'asset' | 'workflow';
+export type OpfsDocType = 'generator' | 'prompt' | 'asset' | 'workflow' | 'character';
 
 export type OpfsDocSubtype =
   | 'session'
@@ -16,7 +16,7 @@ export type OpfsDocSubtype =
   | 'frame'
   | 'character';
 
-export type OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text' | 'character';
+export type OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text';
 
 export interface OpfsDocRefs {
   assets?: string[];

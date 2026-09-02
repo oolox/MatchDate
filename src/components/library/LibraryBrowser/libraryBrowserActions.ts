@@ -1,4 +1,4 @@
-import { deleteAsset, deletePreset, deleteSession, toggleFavorite } from '../../../services/storage/persistenceService';
+import { deleteAsset, deleteCharacter, deletePreset, deleteSession, toggleFavorite } from '../../../services/storage/persistenceService';
 import type { LibraryItemMeta } from '../../../services/storage/types';
 import { formatFailure } from '../../../utils/formatFailure';
 
@@ -12,6 +12,9 @@ export async function deleteLibraryItem(item: LibraryItemMeta): Promise<void> {
       return;
     case 'asset':
       await deleteAsset(item.id);
+      return;
+    case 'character':
+      await deleteCharacter(item.id);
       return;
     default:
       throw new Error(`Unsupported library kind: ${item.kind}`);

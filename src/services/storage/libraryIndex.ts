@@ -11,8 +11,10 @@ import {
   sessionDocumentPath,
   assetFileName,
   assetPath,
+  characterDocumentFileName,
+  characterDocumentPath,
 } from './paths';
-import { getAssetRegistration } from './libraryRegistry';
+import { getAssetRegistration, getCharacterRegistration } from './libraryRegistry';
 import { parseStorageJson } from './parseStorageJson';
 import type {
   FileStorageService,
@@ -46,6 +48,12 @@ function libraryPathsForKind(kind: LibraryItemKind, id: string) {
     return {
       fileName: assetFileName(id),
       path: assetPath(id),
+    };
+  }
+  if (kind === 'character') {
+    return {
+      fileName: characterDocumentFileName(id),
+      path: characterDocumentPath(id),
     };
   }
   return {
@@ -318,9 +326,46 @@ export async function reconcileLibraryIndex(storage: FileStorageService): Promis
     const { fileName, path } = assetRegistration.pathForId(id);
     try {
       const fields = await assetRegistration.readCatalogFields(storage, id);
+      if (fields.subtype === 'character') {
+        continue;
+      }
       nextItems.push({
         kind: 'asset',
         type: fields.type ?? 'asset',
+        subtype: fields.subtype,
+        id,
+        name: fields.name,
+        fileName,
+        path,
+        isFavorite: existing?.isFavorite ?? false,
+        favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
+        createdAt: fields.createdAt,
+        updatedAt: fields.updatedAt,
+      });
+    } catch {
+      if (existing) {
+        nextItems.push(existing);
+      }
+    }
+  }
+
+  const characterRegistration = getCharacterRegistration();
+  let characterIds: string[] = [];
+  try {
+    characterIds = await characterRegistration.listIdsFromDisk(storage);
+  } catch {
+    characterIds = [];
+  }
+
+  for (const id of characterIds) {
+    const key = itemKey('character', id);
+    const existing = byKey.get(key);
+    const { fileName, path } = characterRegistration.pathForId(id);
+    try {
+      const fields = await characterRegistration.readCatalogFields(storage, id);
+      nextItems.push({
+        kind: 'character',
+        type: fields.type ?? 'character',
         subtype: fields.subtype,
         id,
         name: fields.name,

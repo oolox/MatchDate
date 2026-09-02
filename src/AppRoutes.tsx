@@ -22,11 +22,7 @@ function SessionRoute() {
 }
 
 function CharacterRoute() {
-  const { sessionId } = useParams<{ sessionId: string }>();
-  if (!sessionId?.trim()) {
-    return <Navigate to="/" replace />;
-  }
-  return <CharacterSheetView sessionId={sessionId} />;
+  return <CharacterSheetView />;
 }
 
 export function AppRoutes() {
@@ -34,7 +30,8 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/session/:sessionId" element={<SessionRoute />} />
-      <Route path="/character/:sessionId" element={<CharacterRoute />} />
+      <Route path="/character" element={<CharacterRoute />} />
+      <Route path="/character/:characterId" element={<CharacterRoute />} />
       <Route path="/prompts" element={<PromptsView />} />
       <Route path="/config" element={<ConfigView />} />
     </Routes>

@@ -15,9 +15,12 @@ const ASSETS_SUBTYPES: readonly LibraryBrowserSubtypeTab[] = [
   { id: 'image', label: 'IMAGE', docSubtype: 'image' },
   { id: 'video', label: 'VIDEO', docSubtype: 'video' },
   { id: 'text', label: 'TEXT', docSubtype: 'text' },
-  { id: 'character', label: 'CHARACTER', docSubtype: 'character' },
   { id: 'all', label: 'ALL', docSubtype: null },
 ] as const;
+
+const CHARACTERS_SUBTYPES: readonly LibraryBrowserSubtypeTab[] = [
+  { id: 'all', label: 'ALL', kind: 'character' },
+];
 
 const SESSIONS_SUBTYPES: readonly LibraryBrowserSubtypeTab[] = [
   { id: 'all', label: 'ALL', kind: null },
@@ -42,6 +45,9 @@ export function subtypesForFolder(
   }
   if (tabId === 'prompts') {
     return PROMPTS_SUBTYPES;
+  }
+  if (tabId === 'characters') {
+    return CHARACTERS_SUBTYPES;
   }
   if (tabId === 'assets') {
     return ASSETS_SUBTYPES;
@@ -87,6 +93,9 @@ export function subtypeTabsLabel(tabId: LibraryBrowserTabId): string {
   }
   if (tabId === 'prompts') {
     return 'Prompt subtypes';
+  }
+  if (tabId === 'characters') {
+    return 'Character subtypes';
   }
   return 'Subtypes';
 }

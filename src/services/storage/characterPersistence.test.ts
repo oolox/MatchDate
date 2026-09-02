@@ -1,22 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BASIC_VALUES } from '../../types/character';
+import { BASIC_VALUES, createDefaultCharacter } from '../../types/character';
 import { getFileStorageService, setFileStorageForTests } from './index';
 import { inMemoryFileStorage } from './inMemoryFileStorage';
 import {
-  assetDocumentFromCharacter,
-  characterFromAssetDocument,
-} from './characterAsset';
-import { loadAssetDocument, saveAssetDocument } from './assetPersistence';
+  characterDocumentFromCharacter,
+  characterFromDocument,
+} from './characterPersistence';
+import { deleteCharacterDocument, loadCharacterDocument, saveCharacterDocument } from './characterPersistence';
 import { listLibraryItems } from './libraryIndex';
-import { createDefaultCharacter } from '../../types/character';
 import { loadCharacter, saveCharacter } from './persistenceService';
 import {
   defaultSubtypeForLoadableKinds,
   itemMatchesSubtypeTab,
   subtypesForFolder,
 } from '../../components/library/LibraryBrowser/libraryBrowserSubtypes';
+import { LIBRARY_BROWSER_TABS } from '../../components/library/LibraryBrowser/libraryBrowserTabs';
 
-describe('characterAsset', () => {
+describe('characterPersistence', () => {
   beforeEach(() => {
     setFileStorageForTests(inMemoryFileStorage);
   });
@@ -25,7 +25,7 @@ describe('characterAsset', () => {
     setFileStorageForTests(null);
   });
 
-  it('round-trips character metadata through asset documents', async () => {
+  it('round-trips character documents', async () => {
     const character = createDefaultCharacter('Alex');
     character.attributes[0] = {
       ...character.attributes[0],
@@ -34,15 +34,15 @@ describe('characterAsset', () => {
     };
 
     const storage = getFileStorageService();
-    const saved = await saveAssetDocument(
+    const saved = await saveCharacterDocument(
       storage,
-      assetDocumentFromCharacter(character, { id: 'char-1' }),
+      characterDocumentFromCharacter(character, { id: 'char-1' }),
     );
 
-    expect(saved.subtype).toBe('character');
+    expect(saved.type).toBe('character');
     expect(saved.name).toBe('Alex');
 
-    const loaded = characterFromAssetDocument(await loadAssetDocument(storage, 'char-1'));
+    const loaded = characterFromDocument(await loadCharacterDocument(storage, 'char-1'));
     expect(loaded.name).toBe('Alex');
     expect(loaded.attributes).toHaveLength(BASIC_VALUES.length);
     expect(loaded.attributes[0]).toEqual({
@@ -52,11 +52,11 @@ describe('characterAsset', () => {
     });
   });
 
-  it('registers character assets in library.json', async () => {
+  it('registers characters in library.json', async () => {
     await saveCharacter(createDefaultCharacter('Jordan'), 'char-2');
-    const items = await listLibraryItems(getFileStorageService(), 'asset');
+    const items = await listLibraryItems(getFileStorageService(), 'character');
     const row = items.find((item) => item.id === 'char-2');
-    expect(row?.subtype).toBe('character');
+    expect(row?.kind).toBe('character');
     expect(row?.name).toBe('Jordan');
   });
 
@@ -66,31 +66,42 @@ describe('characterAsset', () => {
     expect(loaded.name).toBe('Sam');
     expect(loaded.attributes).toHaveLength(BASIC_VALUES.length);
   });
+
+  it('deletes character documents and catalog rows', async () => {
+    const storage = getFileStorageService();
+    await saveCharacter(createDefaultCharacter('Temp'), 'char-3');
+    await deleteCharacterDocument(storage, 'char-3');
+    const items = await listLibraryItems(storage, 'character');
+    expect(items.some((item) => item.id === 'char-3')).toBe(false);
+  });
 });
 
-describe('libraryBrowserSubtypes character filter', () => {
-  it('includes CHARACTER in asset subtypes', () => {
-    const subtypes = subtypesForFolder('assets');
-    expect(subtypes?.some((tab) => tab.id === 'character' && tab.label === 'CHARACTER')).toBe(
-      true,
-    );
+describe('library browser character tab', () => {
+  it('includes CHARACTER as a top-level folder tab', () => {
+    expect(
+      LIBRARY_BROWSER_TABS.some((tab) => tab.id === 'characters' && tab.label === 'CHARACTER'),
+    ).toBe(true);
   });
 
-  it('filters assets by character subtype tab', () => {
-    const subtypes = subtypesForFolder('assets') ?? [];
-    const characterTab = subtypes.find((tab) => tab.id === 'character');
-    expect(characterTab).toBeDefined();
+  it('does not include CHARACTER in asset subtypes', () => {
+    const subtypes = subtypesForFolder('assets');
+    expect(subtypes?.some((tab) => tab.id === 'character')).toBe(false);
+  });
+
+  it('filters characters in the characters folder tab', () => {
+    const subtypes = subtypesForFolder('characters') ?? [];
+    const allTab = subtypes.find((tab) => tab.id === 'all');
+    expect(allTab).toBeDefined();
     expect(
       itemMatchesSubtypeTab(
         {
-          kind: 'asset',
+          kind: 'character',
           id: '1',
           name: 'Alex',
           createdAt: '',
           updatedAt: '',
-          subtype: 'character',
         },
-        characterTab!,
+        allTab!,
       ),
     ).toBe(true);
     expect(
@@ -103,7 +114,7 @@ describe('libraryBrowserSubtypes character filter', () => {
           updatedAt: '',
           subtype: 'text',
         },
-        characterTab!,
+        allTab!,
       ),
     ).toBe(false);
   });

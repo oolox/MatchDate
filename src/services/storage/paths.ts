@@ -12,6 +12,11 @@ export const ASSETS_IMG_DIR = `${ASSETS_DIR}/img`;
 export const ASSETS_VID_DIR = `${ASSETS_DIR}/vid`;
 export const TEXT_ASSETS_DIR = `${ASSETS_DIR}/text`;
 export const ASSETS_METADATA_DIR = `${ASSETS_DIR}/metadata`;
+export const CHARACTERS_DIR = `${OPFS_ROOT}/characters`;
+
+export function characterDocumentFileName(id: string): string {
+  return `matchDate-char-${id}.json`;
+}
 
 export function imageFileName(id: string): string {
   return `matchDate-img-${id}.png`;
@@ -35,6 +40,10 @@ export function videoPath(id: string): StoragePath {
 
 export function assetPath(id: string): StoragePath {
   return `${ASSETS_METADATA_DIR}/${assetFileName(id)}`;
+}
+
+export function characterDocumentPath(id: string): StoragePath {
+  return `${CHARACTERS_DIR}/${characterDocumentFileName(id)}`;
 }
 
 export function textFileName(id: string): string {

@@ -42,6 +42,16 @@ export interface Character {
   attributes: ValueScore[];
 }
 
+export interface CharacterDocument {
+  schemaVersion?: number;
+  type: 'character';
+  id: string;
+  name: string;
+  attributes: ValueScore[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function createDefaultValueScores(): ValueScore[] {
   return BASIC_VALUES.map((name) => ({
     name,

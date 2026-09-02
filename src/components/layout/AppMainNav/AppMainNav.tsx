@@ -20,7 +20,7 @@ export function AppMainNav() {
         return;
       }
       if (next === 'character') {
-        navigate(`/character/${selectedSessionId ?? createId()}`);
+        navigate('/character');
         return;
       }
       if (next === 'prompts') {

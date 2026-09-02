@@ -13,6 +13,7 @@ export interface LocalStorageState {
   librarySidebarWidthPx: number | null;
   librarySortSession: LibrarySortPreference;
   librarySortPrompt: LibrarySortPreference;
+  librarySortCharacter: LibrarySortPreference;
   librarySortAsset: LibrarySortPreference;
   librarySortAll: LibrarySortPreference;
 }
@@ -22,6 +23,7 @@ const initialState: LocalStorageState = {
   librarySidebarWidthPx: null,
   librarySortSession: getDefaultLibrarySort('session'),
   librarySortPrompt: getDefaultLibrarySort('prompt'),
+  librarySortCharacter: getDefaultLibrarySort('character'),
   librarySortAsset: getDefaultLibrarySort('asset'),
   librarySortAll: getDefaultLibrarySort('all'),
 };
@@ -45,6 +47,9 @@ const localStorageSlice = createSlice({
           break;
         case 'prompt':
           state.librarySortPrompt = preference;
+          break;
+        case 'character':
+          state.librarySortCharacter = preference;
           break;
         case 'asset':
           state.librarySortAsset = preference;
@@ -77,6 +82,8 @@ export function selectLibrarySortPreference(
         return state.localStorage.librarySortSession;
       case 'prompt':
         return state.localStorage.librarySortPrompt;
+      case 'character':
+        return state.localStorage.librarySortCharacter;
       case 'asset':
         return state.localStorage.librarySortAsset;
       case 'all':
@@ -92,6 +99,7 @@ export function loadLocalStorageSliceState(): LocalStorageState {
     librarySidebarWidthPx: null,
     librarySortSession: sorts.session,
     librarySortPrompt: sorts.prompt,
+    librarySortCharacter: sorts.character,
     librarySortAsset: sorts.asset,
     librarySortAll: sorts.all,
   };

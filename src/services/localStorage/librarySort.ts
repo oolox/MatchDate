@@ -11,6 +11,7 @@ export interface LibrarySortPreference {
 const LIBRARY_SORT_DEFAULTS: Record<LibrarySortListKind, LibrarySortPreference> = {
   session: { field: 'updatedAt', direction: 'desc' },
   prompt: { field: 'name', direction: 'asc' },
+  character: { field: 'name', direction: 'asc' },
   asset: { field: 'updatedAt', direction: 'desc' },
   all: { field: 'updatedAt', direction: 'desc' },
 };
@@ -88,6 +89,7 @@ export function loadLibrarySortState(): Record<LibrarySortListKind, LibrarySortP
   return {
     session: readLibrarySortPreference('session'),
     prompt: readLibrarySortPreference('prompt'),
+    character: readLibrarySortPreference('character'),
     asset: readLibrarySortPreference('asset'),
     all: readLibrarySortPreference('all'),
   };

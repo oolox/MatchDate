@@ -39,11 +39,11 @@ export interface FileStorageService {
   exists(path: StoragePath): Promise<boolean>;
 }
 
-export type LibraryItemKind = 'session' | 'prompt' | 'asset' | (string & {});
+export type LibraryItemKind = 'session' | 'prompt' | 'asset' | 'character' | (string & {});
 
 export type PromptType = 'system';
 
-export type OpfsDocType = 'generator' | 'prompt' | 'asset' | 'workflow';
+export type OpfsDocType = 'generator' | 'prompt' | 'asset' | 'workflow' | 'character';
 
 export type OpfsDocSubtype =
   | 'session'

@@ -1,7 +1,7 @@
 import type { LibraryItemKind } from '../../../services/storage/types';
 import type { LibraryListKind } from '../LibraryList/libraryListLabels';
 
-export type LibraryBrowserTabId = 'all' | 'sessions' | 'prompts' | 'assets';
+export type LibraryBrowserTabId = 'all' | 'sessions' | 'prompts' | 'characters' | 'assets';
 
 export const LIBRARY_BROWSER_TABS: ReadonlyArray<{
   id: LibraryBrowserTabId;
@@ -11,6 +11,7 @@ export const LIBRARY_BROWSER_TABS: ReadonlyArray<{
 }> = [
   { id: 'sessions', label: 'CHATS', kinds: ['session'], listKind: 'session' },
   { id: 'prompts', label: 'PROMPT', kinds: ['prompt'], listKind: 'prompt' },
+  { id: 'characters', label: 'CHARACTER', kinds: ['character'], listKind: 'character' },
   { id: 'assets', label: 'ASSETS', kinds: ['asset'], listKind: 'asset' },
   { id: 'all', label: 'ALL', kinds: null, listKind: 'all' },
 ] as const;

@@ -23,6 +23,12 @@ const LABELS: Record<LibraryListKind, LibraryListLabels> = {
     empty: 'No saved presets yet.',
     ariaLabel: 'Prompt',
   },
+  character: {
+    title: 'Character',
+    loading: 'Loading characters…',
+    empty: 'No saved characters yet.',
+    ariaLabel: 'Character',
+  },
   asset: {
     title: 'Asset',
     loading: 'Loading assets…',
@@ -47,6 +53,8 @@ export function getLibraryKindLabel(kind: LibraryItemKind): string {
       return 'Chat';
     case 'prompt':
       return 'Prompt';
+    case 'character':
+      return 'Character';
     case 'asset':
       return 'Asset';
     default:
@@ -60,6 +68,8 @@ export function getLibraryKindBadge(kind: LibraryItemKind): string | null {
       return 'CHAT';
     case 'asset':
       return 'AST';
+    case 'character':
+      return 'CHAR';
     case 'prompt':
       return null;
     default:

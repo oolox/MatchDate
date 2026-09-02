@@ -1,8 +1,13 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LibraryBrowser } from '../../components/library/LibraryBrowser/LibraryBrowser';
-import { deleteSession, toggleFavorite } from '../../services/storage/persistenceService';
-import type { LibraryItemMeta } from '../../services/storage/types';
+import { useCharacterEditorContext } from '../character/CharacterEditorContext';
+import {
+  deleteCharacter,
+  deleteSession,
+  toggleFavorite,
+} from '../../services/storage/persistenceService';
+import type { LibraryItemKind, LibraryItemMeta } from '../../services/storage/types';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { bumpLibraryEpoch, selectLibraryEpoch } from '../../store/slices/appShellSlice';
 import { createId } from '../../store/slices/threadSlice';
@@ -15,40 +20,57 @@ function sessionPath(prefix: SessionRoutePrefix, sessionId: string): string {
 }
 
 export interface SessionLibraryPanelProps {
-  sessionId: string;
+  sessionId?: string;
   routePrefix: SessionRoutePrefix;
 }
 
 export function SessionLibraryPanel({ sessionId, routePrefix }: SessionLibraryPanelProps) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const characterEditor = useCharacterEditorContext();
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const [catalogEpoch, setCatalogEpoch] = useState(0);
+  const loadableKinds: LibraryItemKind[] =
+    routePrefix === 'character' ? ['character'] : ['session'];
 
   const bumpCatalog = useCallback(() => {
     dispatch(bumpLibraryEpoch());
     setCatalogEpoch((epoch) => epoch + 1);
   }, [dispatch]);
 
-  const handleLoadSession = useCallback(
+  const handleLoad = useCallback(
     (item: LibraryItemMeta) => {
-      if (item.id !== sessionId) {
+      if (item.kind === 'session' && sessionId && item.id !== sessionId) {
         navigate(sessionPath(routePrefix, item.id));
+        return;
+      }
+      if (item.kind === 'character') {
+        characterEditor?.loadCharacterById(item.id);
       }
     },
-    [navigate, routePrefix, sessionId],
+    [characterEditor, navigate, routePrefix, sessionId],
   );
 
-  const handleDeleteSession = useCallback(
+  const handleDeleteLoadable = useCallback(
     async (item: LibraryItemMeta) => {
-      const result = await deleteSession(item.id);
-      bumpCatalog();
-      if (item.id === sessionId) {
-        const nextId = result.activeSessionId;
-        navigate(nextId ? sessionPath(routePrefix, nextId) : '/');
+      if (item.kind === 'session') {
+        const result = await deleteSession(item.id);
+        bumpCatalog();
+        if (sessionId && item.id === sessionId) {
+          const nextId = result.activeSessionId;
+          navigate(nextId ? sessionPath(routePrefix, nextId) : '/');
+        }
+        return;
+      }
+      if (item.kind === 'character') {
+        await deleteCharacter(item.id);
+        bumpCatalog();
+        if (characterEditor?.characterId === item.id) {
+          characterEditor.startNewCharacter();
+        }
       }
     },
-    [bumpCatalog, navigate, routePrefix, sessionId],
+    [bumpCatalog, characterEditor, navigate, routePrefix, sessionId],
   );
 
   const handleToggleFavorite = useCallback(
@@ -59,22 +81,35 @@ export function SessionLibraryPanel({ sessionId, routePrefix }: SessionLibraryPa
     [bumpCatalog],
   );
 
-  const handleNewChat = useCallback(() => {
+  const handleNew = useCallback(() => {
+    if (routePrefix === 'character') {
+      characterEditor?.startNewCharacter();
+      return;
+    }
     navigate(sessionPath(routePrefix, createId()));
-  }, [navigate, routePrefix]);
+  }, [characterEditor, navigate, routePrefix]);
+
+  const selectedId =
+    routePrefix === 'session' ? (sessionId ?? null) : (characterEditor?.characterId ?? null);
+
+  const editorBusy =
+    routePrefix === 'character'
+      ? Boolean(characterEditor?.isBusy || characterEditor?.isDirty)
+      : false;
 
   return (
     <LibraryBrowser
-      loadableKinds={['session']}
+      loadableKinds={loadableKinds}
       catalogEpoch={catalogEpoch + libraryEpoch}
-      selectedId={sessionId}
-      selectedKind="session"
-      onLoad={handleLoadSession}
-      onDeleteLoadable={handleDeleteSession}
+      selectedId={selectedId}
+      selectedKind={routePrefix === 'session' ? 'session' : 'character'}
+      isBusy={editorBusy}
+      onLoad={handleLoad}
+      onDeleteLoadable={handleDeleteLoadable}
       onToggleFavoriteLoadable={handleToggleFavorite}
       headerActions={
-        <button type="button" className={styles.newChatButton} onClick={handleNewChat}>
-          New chat
+        <button type="button" className={styles.newChatButton} onClick={handleNew}>
+          {routePrefix === 'character' ? 'New character' : 'New chat'}
         </button>
       }
     />
