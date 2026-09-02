@@ -5,6 +5,8 @@ export {
   readLibrarySortPreference,
   writeLibrarySortPreference,
   loadLibrarySortState,
+  readTxtModel,
+  writeTxtModel,
   type LibrarySortListKind,
   type LibrarySortField,
   type LibrarySortDirection,

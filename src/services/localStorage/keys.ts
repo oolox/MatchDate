@@ -1,4 +1,5 @@
 export const LOCAL_STORAGE_KEYS = {
+  txtModel: 'matchdate.txtModel',
   librarySidebarWidthPx: 'matchdate.librarySidebarWidthPx',
   librarySortSession: 'matchdate.librarySort.session',
   librarySortPrompt: 'matchdate.librarySort.prompt',

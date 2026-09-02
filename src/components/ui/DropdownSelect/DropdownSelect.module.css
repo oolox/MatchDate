@@ -82,6 +82,10 @@
   box-sizing: border-box;
 }
 
+.menuUp {
+  transform-origin: bottom center;
+}
+
 .option {
   display: flex;
   align-items: center;

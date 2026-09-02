@@ -13,3 +13,4 @@ export {
   type LibrarySortDirection,
   type LibrarySortPreference,
 } from './librarySort';
+export { readTxtModel, writeTxtModel } from './chatModel';

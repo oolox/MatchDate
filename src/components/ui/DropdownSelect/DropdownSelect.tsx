@@ -26,6 +26,8 @@ export interface DropdownSelectProps
   onChange: (value: string) => void;
   /** Fixed icon shown in the trigger to the left of the selected label. */
   icon?: IconName;
+  /** Where the menu opens relative to the trigger. */
+  menuPlacement?: 'bottom' | 'top';
 }
 
 /**
@@ -37,6 +39,7 @@ export function DropdownSelect({
   value,
   onChange,
   icon,
+  menuPlacement = 'bottom',
   className,
   disabled = false,
   ...rest
@@ -48,7 +51,7 @@ export function DropdownSelect({
   const menuRef = useRef<HTMLUListElement>(null);
   const [open, setOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+  const [menuPos, setMenuPos] = useState({ top: 0, bottom: 0, left: 0, width: 0 });
 
   const selected = options.find((option) => option.value === value);
   const selectedLabel = selected?.label ?? value;
@@ -66,7 +69,12 @@ export function DropdownSelect({
       return;
     }
     const rect = trigger.getBoundingClientRect();
-    setMenuPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    setMenuPos({
+      top: rect.bottom + 4,
+      bottom: window.innerHeight - rect.top + 4,
+      left: rect.left,
+      width: rect.width,
+    });
   }, []);
 
   const setOpenSafe = useCallback(
@@ -186,6 +194,15 @@ export function DropdownSelect({
   const activeDescendant =
     open && highlighted ? `${optionIdPrefix}-${highlighted.value}` : undefined;
 
+  const menuClasses = [styles.menu, menuPlacement === 'top' ? styles.menuUp : '']
+    .filter(Boolean)
+    .join(' ');
+
+  const menuStyle =
+    menuPlacement === 'top'
+      ? { bottom: menuPos.bottom, left: menuPos.left, minWidth: menuPos.width }
+      : { top: menuPos.top, left: menuPos.left, minWidth: menuPos.width };
+
   return (
     <span ref={rootRef} className={wrapClasses}>
       <button
@@ -210,9 +227,9 @@ export function DropdownSelect({
             <ul
               ref={menuRef}
               id={listboxId}
-              className={styles.menu}
+              className={menuClasses}
               role="listbox"
-              style={{ top: menuPos.top, left: menuPos.left, minWidth: menuPos.width }}
+              style={menuStyle}
             >
               {options.map((option, index) => {
                 const selectedOption = option.value === value;

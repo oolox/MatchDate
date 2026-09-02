@@ -53,6 +53,7 @@
 .actionsLeading {
   display: flex;
   align-items: center;
+  gap: var(--space-sm);
   margin-right: auto;
   min-width: 0;
 }

@@ -16,6 +16,7 @@ export interface MessageComposerProps {
   streamingLabel?: string;
   sendIcon?: IconName;
   allowEmptySend?: boolean;
+  actionsLeading?: ReactNode;
   actionsTrailing?: ReactNode;
   attachments?: ReactNode;
   mentionMenu?: ReactNode;
@@ -41,6 +42,7 @@ export function MessageComposer({
   streamingLabel = 'Generating response…',
   sendIcon = 'send',
   allowEmptySend = false,
+  actionsLeading,
   actionsTrailing,
   attachments,
   mentionMenu,
@@ -169,6 +171,9 @@ export function MessageComposer({
         />
       </div>
       <div className={styles.actions}>
+        {actionsLeading ? (
+          <div className={styles.actionsLeading}>{actionsLeading}</div>
+        ) : null}
         {actionsTrailing}
         <IconButton
           type="submit"

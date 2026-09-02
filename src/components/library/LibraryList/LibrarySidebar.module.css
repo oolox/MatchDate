@@ -3,8 +3,10 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
   background: var(--color-bg-panel);
   border-left: 1px solid var(--color-border-subtle);
+  box-sizing: border-box;
 }
 
 .title {
@@ -13,20 +15,26 @@
   font-weight: 600;
 }
 
-.listWrap {
+.listBody {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
   padding: var(--space-sm);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
 }
 
 .empty {

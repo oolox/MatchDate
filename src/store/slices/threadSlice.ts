@@ -99,6 +99,23 @@ const threadSlice = createSlice({
       state.threads[thread.id] = thread;
       state.activeThreadId = thread.id;
     },
+    setThreadSystemPromptSlug: (
+      state,
+      action: PayloadAction<{ threadId: ThreadId; slug: string | null }>,
+    ) => {
+      const { threadId, slug } = action.payload;
+      const thread = state.threads[threadId];
+      if (!thread) {
+        return;
+      }
+      const next = slug?.trim();
+      if (next) {
+        thread.systemPromptSlug = next;
+      } else {
+        delete thread.systemPromptSlug;
+      }
+      thread.updatedAt = nowIso();
+    },
   },
 });
 
@@ -109,6 +126,7 @@ export const {
   clearThread,
   startNewChat,
   loadThread,
+  setThreadSystemPromptSlug,
 } = threadSlice.actions;
 
 export const selectActiveThreadId = (state: { thread: ThreadState }) =>

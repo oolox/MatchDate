@@ -105,7 +105,7 @@ export function LibrarySidebar({
         {header ?? <h3 className={styles.title}>{labels.title}</h3>}
       </ListSubHeader>
       {resolvedSubHeader}
-      <div className={styles.listWrap}>
+      <div className={styles.listBody}>
         <LibraryList
           items={visibleItems}
           selectedId={selectedId}

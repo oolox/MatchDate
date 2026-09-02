@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
+import { ChatModelSelect } from '../../../components/chat/ChatModelSelect';
+import { SystemPromptSelect } from '../../../components/chat/SystemPromptSelect';
 import { AttachmentChips } from '../../../components/chat/AttachmentChips/AttachmentChips';
 import { MentionMenu } from '../../../components/chat/MentionMenu/MentionMenu';
 import { MessageComposer } from '../../../components/message/MessageComposer/MessageComposer';
 import { useNotification } from '../../../components/notification/Notification/useNotification';
 import { useSessionPersistence } from '../../../features/session/SessionPersistenceContext';
-import { resolveThreadSystemPrompt } from '../../../features/chat/sessionSystemPrompt';
+import { resolveThreadChatModel, resolveThreadSystemPrompt } from '../sessionSystemPrompt';
 import { apiContentForMessage } from '../attach/xmlAttach';
 import { useTxtChatAttachments } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
@@ -17,6 +19,7 @@ import {
   setIsStreaming,
   setPinnedToBottom,
 } from '../../../store/slices/chatUiSlice';
+import { selectChatModel } from '../../../store/slices/localStorageSlice';
 import { selectActiveSystemPrompt } from '../../../store/slices/promptsSlice';
 import {
   appendMessage,
@@ -39,6 +42,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   const isStreaming = useAppSelector(selectIsStreaming);
   const messages = useAppSelector(selectActiveMessages);
   const activeSystemPrompt = useAppSelector(selectActiveSystemPrompt);
+  const chatModel = useAppSelector(selectChatModel);
   const thread = useAppSelector(
     (state): Thread | undefined => state.thread.threads[threadId],
   );
@@ -104,6 +108,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     dispatch(setPinnedToBottom(true));
 
     const systemPrompt = await resolveThreadSystemPrompt(thread, activeSystemPrompt);
+    const model = resolveThreadChatModel(thread, chatModel);
 
     await streamChatTurn({
       systemPrompt,
@@ -112,6 +117,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         content: apiContentForMessage(message),
       })),
       userContent: apiContent,
+      model,
       signal: controller.signal,
       abortRef,
       controller,
@@ -155,6 +161,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     activeSystemPrompt,
     attach,
     begin,
+    chatModel,
     dispatch,
     draft,
     isStreaming,
@@ -189,6 +196,12 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         isStreaming={isStreaming}
         sendIcon="send"
         allowEmptySend={attach.attachments.length > 0}
+        actionsLeading={
+          <>
+            <ChatModelSelect disabled={isStreaming} />
+            <SystemPromptSelect threadId={threadId} disabled={isStreaming} />
+          </>
+        }
         placeholder="Type a message… (@ to attach)"
         textareaRef={attach.textareaRef}
         enableFileDrop
