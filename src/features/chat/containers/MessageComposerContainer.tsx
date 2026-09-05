@@ -68,10 +68,11 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     const controller = begin();
     const userMessageId = createId();
     const assistantMessageId = createId();
-    const chips = attach.attachments.map(({ assetId, name, mime }) => ({
-      assetId,
-      name,
-      mime,
+    const chips = attach.attachments.map((item) => ({
+      assetId: item.assetId,
+      name: item.name,
+      kind: item.kind,
+      mime: item.kind === 'text' ? item.mime : undefined,
     }));
     const apiContent = attach.buildApiContent(text);
 
@@ -205,6 +206,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         placeholder="Type a message… (@ to attach)"
         textareaRef={attach.textareaRef}
         enableFileDrop
+        dropLabel="Drop text files or library items here"
         attachments={
           <AttachmentChips items={attach.attachments} onRemove={attach.removeAttachment} />
         }
@@ -224,6 +226,9 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         }
         onFilesDrop={(files) => {
           void attach.addFiles(files);
+        }}
+        onLibraryDrop={(items) => {
+          void attach.addLibraryItems(items);
         }}
         onComposerKeyDown={(event) => attach.onComposerKeyDown(event, draft, setDraft)}
         onChange={setDraft}

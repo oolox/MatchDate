@@ -1,5 +1,10 @@
+import type { DragEvent } from 'react';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { LibraryItemMeta } from '../../../services/storage/types';
+import {
+  canDragLibraryItem,
+  setMatchDateLibraryDragData,
+} from '../../../utils/matchdateLibraryDrag';
 import { formatLibraryListDateTime } from './libraryListDateTime';
 import { getLibraryKindBadge, getLibraryKindLabel } from './libraryListLabels';
 import { LibraryAssetThumb } from './LibraryAssetThumb';
@@ -46,9 +51,25 @@ export function LibraryListItem({
   const displayName = isAsset ? truncateAssetName(item.name) : item.name;
 
   const assetSubtype = item.subtype ?? (isAsset ? 'image' : undefined);
+  const canDrag = canDragLibraryItem(item);
+
+  const handleDragStart = (event: DragEvent<HTMLElement>) => {
+    if (!canDrag) {
+      return;
+    }
+    setMatchDateLibraryDragData(event.dataTransfer, {
+      kind: item.kind,
+      id: item.id,
+      subtype: item.subtype,
+    });
+  };
 
   return (
-    <li className={[styles.item, selected ? styles.itemSelected : ''].filter(Boolean).join(' ')}>
+    <li
+      className={[styles.item, selected ? styles.itemSelected : ''].filter(Boolean).join(' ')}
+      draggable={canDrag}
+      onDragStart={canDrag ? handleDragStart : undefined}
+    >
       {item.kind === 'prompt' ? (
         <button
           type="button"

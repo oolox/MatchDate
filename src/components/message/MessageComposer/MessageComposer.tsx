@@ -3,6 +3,11 @@ import { useCallback, useState } from 'react';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { IconName } from '../../ui/Icon/icons';
 import { Spinner } from '../../ui/Spinner/Spinner';
+import {
+  dataTransferHasMatchDateLibrary,
+  readMatchDateLibraryDragPayload,
+  type MatchDateLibraryDragPayload,
+} from '../../../utils/matchdateLibraryDrag';
 import { MessageTextInput } from '../MessageTextInput/MessageTextInput';
 import styles from './MessageComposer.module.css';
 
@@ -29,7 +34,18 @@ export interface MessageComposerProps {
   onSend: () => void;
   onAbort?: () => void;
   onFilesDrop?: (files: File[]) => void;
+  onLibraryDrop?: (items: MatchDateLibraryDragPayload[]) => void;
   onComposerKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean;
+}
+
+function isAcceptedDrop(dataTransfer: DataTransfer | null | undefined): boolean {
+  if (!dataTransfer) {
+    return false;
+  }
+  return (
+    dataTransferHasMatchDateLibrary(dataTransfer) ||
+    Array.from(dataTransfer.types).includes('Files')
+  );
 }
 
 export function MessageComposer({
@@ -50,11 +66,12 @@ export function MessageComposer({
   mentionActiveId,
   textareaRef,
   enableFileDrop = false,
-  dropLabel = 'Drop text files here',
+  dropLabel = 'Drop text files or library items here',
   onChange,
   onSend,
   onAbort,
   onFilesDrop,
+  onLibraryDrop,
   onComposerKeyDown,
 }: MessageComposerProps) {
   const [dragActive, setDragActive] = useState(false);
@@ -83,13 +100,20 @@ export function MessageComposer({
 
   const handleDragOver = useCallback(
     (event: DragEvent) => {
-      if (!enableFileDrop || !onFilesDrop || disabled || isStreaming) {
+      if (!enableFileDrop || disabled || isStreaming) {
+        return;
+      }
+      if (!onFilesDrop && !onLibraryDrop) {
+        return;
+      }
+      if (!isAcceptedDrop(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
       setDragActive(true);
     },
-    [disabled, enableFileDrop, isStreaming, onFilesDrop],
+    [disabled, enableFileDrop, isStreaming, onFilesDrop, onLibraryDrop],
   );
 
   const handleDragLeave = useCallback(() => {
@@ -98,11 +122,27 @@ export function MessageComposer({
 
   const handleDrop = useCallback(
     (event: DragEvent) => {
-      if (!enableFileDrop || !onFilesDrop || disabled || isStreaming) {
+      if (!enableFileDrop || disabled || isStreaming) {
+        return;
+      }
+      if (!onFilesDrop && !onLibraryDrop) {
+        return;
+      }
+      if (!isAcceptedDrop(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
       setDragActive(false);
+
+      const libraryItem = readMatchDateLibraryDragPayload(event.dataTransfer);
+      if (libraryItem) {
+        onLibraryDrop?.([libraryItem]);
+        return;
+      }
+
+      if (!onFilesDrop) {
+        return;
+      }
       const files = Array.from(event.dataTransfer.files).filter(
         (file) =>
           file.type.startsWith('text/') ||
@@ -113,7 +153,7 @@ export function MessageComposer({
         onFilesDrop(files);
       }
     },
-    [disabled, enableFileDrop, isStreaming, onFilesDrop],
+    [disabled, enableFileDrop, isStreaming, onFilesDrop, onLibraryDrop],
   );
 
   if (showStreamingReplace) {

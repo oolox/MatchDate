@@ -4,18 +4,27 @@ export type MessageRole = 'system' | 'user' | 'assistant';
 
 export type MessageStatus = 'pending' | 'streaming' | 'complete' | 'error';
 
-export interface ChatTextAttachment {
+export type ChatAttachmentKind = 'text' | 'character';
+
+/** Chip / persisted attachment metadata (bodies live in apiContent). */
+export interface ChatAttachment {
   assetId: string;
   name: string;
-  mime: string;
+  /** Defaults to `text` when omitted (older session docs). */
+  kind?: ChatAttachmentKind;
+  /** Present for text attachments. */
+  mime?: string;
 }
+
+/** @deprecated Prefer ChatAttachment */
+export type ChatTextAttachment = ChatAttachment;
 
 export interface ThreadMessage {
   id: string;
   role: MessageRole;
   content: string;
   apiContent?: string;
-  attachments?: ChatTextAttachment[];
+  attachments?: ChatAttachment[];
   status?: MessageStatus;
   createdAt: string;
 }

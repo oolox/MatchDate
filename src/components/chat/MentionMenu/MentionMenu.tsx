@@ -19,7 +19,7 @@ export function MentionMenu({
   onSelect,
 }: MentionMenuProps) {
   return (
-    <ul className={styles.menu} role="listbox" aria-label="Attach file" id="txt-attach-listbox">
+    <ul className={styles.menu} role="listbox" aria-label="Attach" id="txt-attach-listbox">
       {items.map((item, index) => (
         <li key={item.id} role="none">
           <button

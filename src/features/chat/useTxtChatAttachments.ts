@@ -3,16 +3,20 @@ import { useNotification } from '../../components/notification/Notification/useN
 import { formatFailure } from '../../utils/formatFailure';
 import {
   listAssets,
+  listCharacters,
   loadAsset,
+  loadCharacter,
 } from '../../services/storage/persistenceService';
 import {
   loadTextContent,
   saveText,
   TEXT_UPLOAD_ACCEPT,
 } from '../../services/storage/textStorage';
+import type { Character } from '../../types/character';
+import type { ChatAttachment, ChatAttachmentKind } from '../../types/chat';
+import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDrag';
 import { bumpLibraryEpoch } from '../../store/slices/appShellSlice';
 import { useAppDispatch } from '../../store/hooks';
-import type { ChatTextAttachment } from '../../types/chat';
 import { findAtQuery, stripAtQuery } from './attach/atQuery';
 import {
   CHAT_ATTACH_WARN_CHARS,
@@ -24,9 +28,22 @@ import { composeAttachedUserContent } from './attach/xmlAttach';
 
 export const TXT_ATTACH_UPLOAD_ID = '__upload__';
 
-export interface DraftTextAttachment extends ChatTextAttachment {
-  body: string;
-}
+const TEXT_MENTION_PREFIX = 'text:';
+const CHARACTER_MENTION_PREFIX = 'character:';
+
+export type DraftAttachment =
+  | (ChatAttachment & { kind: 'text'; mime: string; body: string })
+  | (ChatAttachment & { kind: 'character'; character: Character });
+
+/** @deprecated Prefer DraftAttachment */
+export type DraftTextAttachment = Extract<DraftAttachment, { kind: 'text' }>;
+
+type LibraryMentionRow = {
+  id: string;
+  name: string;
+  kind: ChatAttachmentKind;
+  mime?: string;
+};
 
 function fuzzyMatch(name: string, query: string): boolean {
   if (!query) {
@@ -35,19 +52,39 @@ function fuzzyMatch(name: string, query: string): boolean {
   return name.toLowerCase().includes(query.toLowerCase());
 }
 
+function attachmentKey(kind: ChatAttachmentKind, assetId: string): string {
+  return `${kind}:${assetId}`;
+}
+
+function mentionIdFor(kind: ChatAttachmentKind, assetId: string): string {
+  return kind === 'character'
+    ? `${CHARACTER_MENTION_PREFIX}${assetId}`
+    : `${TEXT_MENTION_PREFIX}${assetId}`;
+}
+
+function parseMentionId(
+  id: string,
+): { kind: ChatAttachmentKind; assetId: string } | null {
+  if (id.startsWith(CHARACTER_MENTION_PREFIX)) {
+    return { kind: 'character', assetId: id.slice(CHARACTER_MENTION_PREFIX.length) };
+  }
+  if (id.startsWith(TEXT_MENTION_PREFIX)) {
+    return { kind: 'text', assetId: id.slice(TEXT_MENTION_PREFIX.length) };
+  }
+  return null;
+}
+
 export function useTxtChatAttachments(threadId: string) {
   const dispatch = useAppDispatch();
   const { notify } = useNotification();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [attachments, setAttachments] = useState<DraftTextAttachment[]>([]);
+  const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [libraryItems, setLibraryItems] = useState<
-    Array<{ id: string; name: string; mime: ChatTextAttachment['mime'] }>
-  >([]);
+  const [libraryItems, setLibraryItems] = useState<LibraryMentionRow[]>([]);
 
   useEffect(() => {
     setAttachments([]);
@@ -58,23 +95,38 @@ export function useTxtChatAttachments(threadId: string) {
 
   const refreshLibrary = useCallback(async () => {
     try {
-      const assets = await listAssets();
+      const [assets, characters] = await Promise.all([listAssets(), listCharacters()]);
       const textAssets = assets.filter((item) => item.subtype === 'text');
-      const rows = await Promise.all(
+      const textRows = await Promise.all(
         textAssets.map(async (item) => {
           try {
             const asset = await loadAsset(item.id);
             const mime =
               asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain';
-            return { id: item.id, name: item.name, mime };
+            return {
+              id: item.id,
+              name: item.name,
+              kind: 'text' as const,
+              mime,
+            };
           } catch {
-            return { id: item.id, name: item.name, mime: 'text/plain' as const };
+            return {
+              id: item.id,
+              name: item.name,
+              kind: 'text' as const,
+              mime: 'text/plain',
+            };
           }
         }),
       );
-      setLibraryItems(rows);
+      const characterRows = characters.map((item) => ({
+        id: item.id,
+        name: item.name,
+        kind: 'character' as const,
+      }));
+      setLibraryItems([...characterRows, ...textRows]);
     } catch (error) {
-      notify(formatFailure('list text files', undefined, error));
+      notify(formatFailure('list attachable library items', undefined, error));
     }
   }, [notify]);
 
@@ -86,11 +138,16 @@ export function useTxtChatAttachments(threadId: string) {
   }, [mentionOpen, refreshLibrary]);
 
   const mentionItems = useMemo(() => {
-    const attachedIds = new Set(attachments.map((attached) => attached.assetId));
+    const attachedKeys = new Set(
+      attachments.map((attached) => attachmentKey(attached.kind, attached.assetId)),
+    );
     const libraryFiles = libraryItems
       .filter((item) => fuzzyMatch(item.name, mentionQuery))
-      .filter((item) => !attachedIds.has(item.id))
-      .map((item) => ({ id: item.id, label: item.name }));
+      .filter((item) => !attachedKeys.has(attachmentKey(item.kind, item.id)))
+      .map((item) => ({
+        id: mentionIdFor(item.kind, item.id),
+        label: item.kind === 'character' ? `@${item.name}` : item.name,
+      }));
     return [
       { id: TXT_ATTACH_UPLOAD_ID, label: 'Upload file…' },
       ...libraryFiles.slice(0, 12),
@@ -102,19 +159,28 @@ export function useTxtChatAttachments(threadId: string) {
   }, [mentionItems]);
 
   const warnIfContextTight = useCallback(
-    (nextAttachments: DraftTextAttachment[]) => {
-      const attachedChars = nextAttachments.reduce((sum, item) => sum + item.body.length, 0);
+    (nextAttachments: DraftAttachment[]) => {
+      const attachedChars = nextAttachments.reduce((sum, item) => {
+        if (item.kind === 'text') {
+          return sum + item.body.length;
+        }
+        return sum + JSON.stringify(item.character).length;
+      }, 0);
       if (attachedChars >= CHAT_ATTACH_WARN_CHARS) {
-        notify('Attached text is large — it may not fit in smaller context windows');
+        notify('Attached content is large — it may not fit in smaller context windows');
       }
     },
     [notify],
   );
 
   const addDraft = useCallback(
-    (next: DraftTextAttachment) => {
+    (next: DraftAttachment) => {
       setAttachments((current) => {
-        if (current.some((item) => item.assetId === next.assetId)) {
+        if (
+          current.some(
+            (item) => item.assetId === next.assetId && item.kind === next.kind,
+          )
+        ) {
           return current;
         }
         const merged = [...current, next];
@@ -149,6 +215,7 @@ export function useTxtChatAttachments(threadId: string) {
           const saved = await saveText(file, file.name);
           dispatch(bumpLibraryEpoch());
           addDraft({
+            kind: 'text',
             assetId: saved.id,
             name: saved.metadata?.originalName ?? file.name,
             mime: saved.mimeType,
@@ -162,32 +229,92 @@ export function useTxtChatAttachments(threadId: string) {
     [addDraft, dispatch, notify],
   );
 
-  const addAssetIds = useCallback(
-    async (assetIds: string[]) => {
-      for (const assetId of assetIds) {
-        if (attachments.some((item) => item.assetId === assetId)) {
-          continue;
+  const addTextAsset = useCallback(
+    async (assetId: string) => {
+      if (attachments.some((item) => item.kind === 'text' && item.assetId === assetId)) {
+        return;
+      }
+      try {
+        const body = await loadTextContent(assetId);
+        const bodyError = validateTextAttachmentBody(body);
+        if (bodyError) {
+          notify(bodyError);
+          return;
         }
-        try {
-          const body = await loadTextContent(assetId);
-          const bodyError = validateTextAttachmentBody(body);
-          if (bodyError) {
-            notify(bodyError);
-            continue;
+        const item = libraryItems.find((row) => row.kind === 'text' && row.id === assetId);
+        let name = item?.name;
+        let mime = item?.mime;
+        if (!name || !mime) {
+          try {
+            const asset = await loadAsset(assetId);
+            name = name ?? asset.name;
+            mime =
+              mime ??
+              (asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain');
+          } catch {
+            // fall through to filename defaults
           }
-          const item = libraryItems.find((row) => row.id === assetId);
-          addDraft({
-            assetId,
-            name: item?.name ?? assetId,
-            mime: item?.mime ?? mimeFromFileName(item?.name ?? 'notes.txt'),
-            body,
-          });
-        } catch (error) {
-          notify(formatFailure('attach file', undefined, error));
         }
+        addDraft({
+          kind: 'text',
+          assetId,
+          name: name ?? assetId,
+          mime: mime ?? mimeFromFileName(name ?? 'notes.txt'),
+          body,
+        });
+      } catch (error) {
+        notify(formatFailure('attach file', undefined, error));
       }
     },
     [addDraft, attachments, libraryItems, notify],
+  );
+
+  const addCharacterAsset = useCallback(
+    async (characterId: string) => {
+      if (
+        attachments.some((item) => item.kind === 'character' && item.assetId === characterId)
+      ) {
+        return;
+      }
+      try {
+        const character = await loadCharacter(characterId);
+        const item = libraryItems.find(
+          (row) => row.kind === 'character' && row.id === characterId,
+        );
+        addDraft({
+          kind: 'character',
+          assetId: characterId,
+          name: character.name || item?.name || characterId,
+          character,
+        });
+      } catch (error) {
+        notify(formatFailure('attach character', undefined, error));
+      }
+    },
+    [addDraft, attachments, libraryItems, notify],
+  );
+
+  const addLibraryItems = useCallback(
+    async (items: MatchDateLibraryDragPayload[]) => {
+      for (const item of items) {
+        if (item.kind === 'character') {
+          await addCharacterAsset(item.id);
+          continue;
+        }
+        if (item.kind === 'asset' && (item.subtype == null || item.subtype === 'text')) {
+          await addTextAsset(item.id);
+        }
+      }
+    },
+    [addCharacterAsset, addTextAsset],
+  );
+
+  /** @deprecated Prefer addLibraryItems / addTextAsset */
+  const addAssetIds = useCallback(
+    async (assetIds: string[]) => {
+      await addLibraryItems(assetIds.map((id) => ({ kind: 'asset', id, subtype: 'text' })));
+    },
+    [addLibraryItems],
   );
 
   const removeAttachment = useCallback((assetId: string) => {
@@ -251,9 +378,17 @@ export function useTxtChatAttachments(threadId: string) {
         openFilePicker();
         return;
       }
-      void addAssetIds([id]);
+      const parsed = parseMentionId(id);
+      if (!parsed) {
+        return;
+      }
+      if (parsed.kind === 'character') {
+        void addCharacterAsset(parsed.assetId);
+        return;
+      }
+      void addTextAsset(parsed.assetId);
     },
-    [addAssetIds, consumeMentionToken, openFilePicker],
+    [addCharacterAsset, addTextAsset, consumeMentionToken, openFilePicker],
   );
 
   const onComposerKeyDown = useCallback(
@@ -306,11 +441,18 @@ export function useTxtChatAttachments(threadId: string) {
   );
 
   const buildApiContent = useCallback(
-    (userText: string) =>
-      composeAttachedUserContent(
-        userText,
-        attachments.map((item) => ({ name: item.name, mime: item.mime, body: item.body })),
-      ),
+    (userText: string) => {
+      const files = attachments
+        .filter((item): item is Extract<DraftAttachment, { kind: 'text' }> => item.kind === 'text')
+        .map((item) => ({ name: item.name, mime: item.mime, body: item.body }));
+      const characters = attachments
+        .filter(
+          (item): item is Extract<DraftAttachment, { kind: 'character' }> =>
+            item.kind === 'character',
+        )
+        .map((item) => ({ character: item.character, guid: item.assetId }));
+      return composeAttachedUserContent(userText, files, characters);
+    },
     [attachments],
   );
 
@@ -325,6 +467,7 @@ export function useTxtChatAttachments(threadId: string) {
     setActiveIndex,
     addFiles,
     addAssetIds,
+    addLibraryItems,
     removeAttachment,
     clearAttachments,
     syncMentionFromCaret,
