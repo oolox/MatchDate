@@ -2,12 +2,14 @@ import type {
   Character,
   CharacterDocument,
   CharacterHistoryEntry,
+  CharacterTrait,
 } from '../../types/character';
 import {
   BASIC_VALUES,
   createDefaultCharacter,
   isBasicValue,
   isCharacterHistoryEntry,
+  isCharacterTrait,
 } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { nowIso } from '../../utils/id';
@@ -32,6 +34,7 @@ export function characterDocumentFromCharacter(
     name: normalized.name.trim() || 'Untitled character',
     attributes: normalized.attributes,
     history: normalized.history,
+    traits: normalized.traits,
     createdAt: options.createdAt ?? now,
     updatedAt: now,
   };
@@ -42,6 +45,7 @@ export function characterFromDocument(document: CharacterDocument): Character {
     name: document.name,
     attributes: document.attributes,
     history: document.history ?? [],
+    traits: document.traits ?? [],
   });
 }
 
@@ -54,6 +58,53 @@ export function normalizeHistory(history: unknown): CharacterHistoryEntry[] {
     summary: entry.summary,
     ...(entry.source !== undefined ? { source: entry.source } : {}),
   }));
+}
+
+export function normalizeTraits(traits: unknown): CharacterTrait[] {
+  if (!Array.isArray(traits)) {
+    return [];
+  }
+  return traits.filter(isCharacterTrait).map((trait) => ({
+    at: trait.at,
+    name: trait.name.trim(),
+    value: trait.value.trim(),
+  }));
+}
+
+/** Upsert traits by name (case-insensitive); patch entries win. */
+export function mergeTraitPatches(
+  existing: CharacterTrait[],
+  patch: unknown,
+): { traits: CharacterTrait[]; changed: boolean } {
+  if (!Array.isArray(patch)) {
+    return { traits: existing, changed: false };
+  }
+
+  const normalizedPatch = normalizeTraits(patch);
+  if (normalizedPatch.length === 0) {
+    return { traits: existing, changed: false };
+  }
+
+  const byKey = new Map(
+    existing.map((trait) => [trait.name.trim().toLowerCase(), trait] as const),
+  );
+  let changed = false;
+
+  for (const trait of normalizedPatch) {
+    const key = trait.name.toLowerCase();
+    const previous = byKey.get(key);
+    if (
+      !previous ||
+      previous.value !== trait.value ||
+      previous.at !== trait.at ||
+      previous.name !== trait.name
+    ) {
+      changed = true;
+    }
+    byKey.set(key, trait);
+  }
+
+  return { traits: [...byKey.values()], changed };
 }
 
 export function normalizeCharacter(character: Character): Character {
@@ -69,6 +120,7 @@ export function normalizeCharacter(character: Character): Character {
       };
     }),
     history: normalizeHistory(character.history),
+    traits: normalizeTraits(character.traits),
   };
 }
 
@@ -102,6 +154,7 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
     name,
     attributes,
     history: normalizeHistory(value.history),
+    traits: normalizeTraits(value.traits),
   });
 }
 
@@ -140,6 +193,7 @@ export async function saveCharacterDocument(
     name: document.name,
     attributes: document.attributes,
     history: document.history ?? [],
+    traits: document.traits ?? [],
   });
 
   const saved: CharacterDocument = {
@@ -150,6 +204,7 @@ export async function saveCharacterDocument(
     name: normalized.name.trim() || 'Untitled character',
     attributes: normalized.attributes,
     history: normalized.history,
+    traits: normalized.traits,
     createdAt,
     updatedAt: now,
   };

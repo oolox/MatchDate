@@ -43,10 +43,21 @@ export interface CharacterHistoryEntry {
   source?: string;
 }
 
+/** Physical / appearance traits (hair color, eye color, weight, etc.). */
+export interface CharacterTrait {
+  /** When this trait was defined or last updated (ISO-8601). */
+  at: string;
+  /** Trait label, e.g. "hair color", "eye color", "weight". */
+  name: string;
+  /** Trait value, e.g. "dark brown", "blue", "180 lbs". */
+  value: string;
+}
+
 export interface Character {
   name: string;
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
+  traits: CharacterTrait[];
 }
 
 export interface CharacterDocument {
@@ -56,6 +67,7 @@ export interface CharacterDocument {
   name: string;
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
+  traits: CharacterTrait[];
   createdAt: string;
   updatedAt: string;
 }
@@ -73,6 +85,7 @@ export function createDefaultCharacter(name = ''): Character {
     name,
     attributes: createDefaultValueScores(),
     history: [],
+    traits: [],
   };
 }
 
@@ -89,5 +102,19 @@ export function isCharacterHistoryEntry(value: unknown): value is CharacterHisto
     typeof entry.at === 'string' &&
     typeof entry.summary === 'string' &&
     (entry.source === undefined || typeof entry.source === 'string')
+  );
+}
+
+export function isCharacterTrait(value: unknown): value is CharacterTrait {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const trait = value as Partial<CharacterTrait>;
+  return (
+    typeof trait.at === 'string' &&
+    typeof trait.name === 'string' &&
+    trait.name.trim().length > 0 &&
+    typeof trait.value === 'string' &&
+    trait.value.trim().length > 0
   );
 }

@@ -13,7 +13,7 @@ export type ProcessToolsResult = {
 
 /**
  * Process tool envelopes in order. Currently routes `character` tools to
- * {@link processCharacterTool} (update → merge history into library character).
+ * {@link processCharacterTool} (update / create → library).
  */
 export async function processTools(
   messages: CharacterToolMessage[],

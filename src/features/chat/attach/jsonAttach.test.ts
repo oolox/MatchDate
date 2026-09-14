@@ -23,6 +23,7 @@ describe('jsonAttach', () => {
       name: 'Alex',
       attributes: character.attributes,
       history: character.history,
+      traits: [],
     });
   });
 

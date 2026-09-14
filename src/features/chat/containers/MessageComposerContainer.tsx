@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ChatModelSelect } from '../../../components/chat/ChatModelSelect';
+import { CreateCharacterModal } from '../../../components/chat/CreateCharacterModal';
 import { SystemPromptSelect } from '../../../components/chat/SystemPromptSelect';
 import { AttachmentChips } from '../../../components/chat/AttachmentChips/AttachmentChips';
 import { MentionMenu } from '../../../components/chat/MentionMenu/MentionMenu';
@@ -8,6 +9,7 @@ import { useNotification } from '../../../components/notification/Notification/u
 import { useSessionPersistence } from '../../../features/session/SessionPersistenceContext';
 import { resolveThreadChatModel, resolveThreadSystemPrompt } from '../sessionSystemPrompt';
 import { apiContentForMessage } from '../attach/xmlAttach';
+import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
 import { useTxtChatAttachments } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
@@ -31,14 +33,22 @@ import {
 } from '../../../store/slices/threadSlice';
 import type { Thread, ThreadId } from '../../../types/chat';
 import {
+  characterFromCreateData,
   formatCharacterToolToast,
+  processCharacterTool,
   processTools,
 } from '../../../services/tools';
+import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { streamChatTurn } from '../streamChatTurn';
 
 export interface MessageComposerContainerProps {
   threadId: ThreadId;
 }
+
+type PendingCharacterCreate = {
+  tool: CharacterToolMessage;
+  name: string;
+};
 
 export function MessageComposerContainer({ threadId }: MessageComposerContainerProps) {
   const dispatch = useAppDispatch();
@@ -54,6 +64,10 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   const { persistAfterTurn } = useSessionPersistence();
   const { abortRef, begin, abort } = useAbortController(threadId);
   const attach = useTxtChatAttachments(threadId);
+  const [pendingCreates, setPendingCreates] = useState<PendingCharacterCreate[]>([]);
+  const [createBusy, setCreateBusy] = useState(false);
+
+  const pendingCreate = pendingCreates[0] ?? null;
 
   const setDraft = useCallback(
     (value: string) => {
@@ -63,6 +77,38 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     },
     [attach, dispatch],
   );
+
+  const dismissPendingCreate = useCallback(() => {
+    setPendingCreates((queue) => queue.slice(1));
+  }, []);
+
+  const handleRejectCreate = useCallback(() => {
+    if (createBusy) {
+      return;
+    }
+    dismissPendingCreate();
+  }, [createBusy, dismissPendingCreate]);
+
+  const handleAcceptCreate = useCallback(() => {
+    if (!pendingCreate || createBusy) {
+      return;
+    }
+    setCreateBusy(true);
+    void (async () => {
+      try {
+        const result = await processCharacterTool(pendingCreate.tool);
+        if (result.ok) {
+          notify(formatCharacterToolToast(result));
+          dispatch(bumpLibraryEpoch());
+        } else {
+          notify(result.message);
+        }
+      } finally {
+        setCreateBusy(false);
+        dismissPendingCreate();
+      }
+    })();
+  }, [createBusy, dismissPendingCreate, dispatch, notify, pendingCreate]);
 
   const handleSend = useCallback(async () => {
     const text = draft.trim();
@@ -147,17 +193,37 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         );
         dispatch(setIsStreaming(false));
         void (async () => {
-          const tools = parseCharacterToolMessages(accumulated).filter(
-            (tool) => tool.origin === 'agent' && tool.action === 'update',
+          const agentTools = parseCharacterToolMessages(accumulated).filter(
+            (tool) => tool.origin === 'agent',
           );
-          if (tools.length > 0) {
-            const { results } = await processTools(tools);
+          const updates = agentTools.filter((tool) => tool.action === 'update');
+          const creates = agentTools.filter((tool) => tool.action === 'create');
+
+          if (updates.length > 0) {
+            const { results } = await processTools(updates);
+            let applied = false;
             for (const result of results) {
               if (result.ok) {
+                applied = true;
                 notify(formatCharacterToolToast(result));
               }
             }
+            if (applied) {
+              dispatch(bumpLibraryEpoch());
+            }
           }
+
+          const nextCreates: PendingCharacterCreate[] = [];
+          for (const tool of creates) {
+            const character = characterFromCreateData(tool.data);
+            if (character) {
+              nextCreates.push({ tool, name: character.name });
+            }
+          }
+          if (nextCreates.length > 0) {
+            setPendingCreates((queue) => [...queue, ...nextCreates]);
+          }
+
           await persistAfterTurn();
         })();
       },
@@ -254,6 +320,13 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           void handleSend();
         }}
         onAbort={handleAbort}
+      />
+      <CreateCharacterModal
+        open={pendingCreate !== null}
+        characterName={pendingCreate?.name ?? 'character'}
+        busy={createBusy}
+        onAccept={handleAcceptCreate}
+        onReject={handleRejectCreate}
       />
     </>
   );

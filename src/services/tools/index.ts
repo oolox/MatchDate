@@ -1,5 +1,6 @@
 export {
   applyCharacterUpdatePatch,
+  characterFromCreateData,
   formatCharacterToolToast,
   processCharacterTool,
   type CharacterUpdateField,

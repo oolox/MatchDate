@@ -5,7 +5,7 @@ import { loadCharacter, saveCharacter } from '../../services/storage/persistence
 import type { BasicValue } from '../../types/character';
 import { formatFailure } from '../../utils/formatFailure';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { bumpLibraryEpoch } from '../../store/slices/appShellSlice';
+import { bumpLibraryEpoch, selectLibraryEpoch } from '../../store/slices/appShellSlice';
 import {
   markCharacterEditorSaved,
   replaceCharacterEditor,
@@ -30,18 +30,34 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   const dispatch = useAppDispatch();
   const { notify } = useNotification();
   const storageReady = useAppSelector(selectStorageReady);
+  const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const characterId = useAppSelector(selectCharacterEditorId);
   const character = useAppSelector(selectCharacterEditorCharacter);
   const isDirty = useAppSelector(selectCharacterEditorDirty);
 
   const [isBusy, setIsBusy] = useState(false);
   const loadSeqRef = useRef(0);
+  const lastLoadKeyRef = useRef<string | null>(null);
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+  const characterIdRef = useRef(characterId);
+  characterIdRef.current = characterId;
 
   useEffect(() => {
     if (!storageReady || !characterIdFromRoute) {
       return;
     }
-    if (characterIdFromRoute === characterId) {
+
+    const loadKey = `${characterIdFromRoute}:${libraryEpoch}`;
+    // Avoid clobbering in-progress edits when epoch bumps while this sheet is open.
+    if (
+      isDirtyRef.current &&
+      characterIdFromRoute === characterIdRef.current &&
+      lastLoadKeyRef.current !== null
+    ) {
+      return;
+    }
+    if (lastLoadKeyRef.current === loadKey) {
       return;
     }
 
@@ -50,15 +66,25 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     setIsBusy(true);
     void loadCharacter(characterIdFromRoute)
       .then((loaded) => {
-        if (!cancelled) {
-          dispatch(
-            replaceCharacterEditor({
-              characterId: characterIdFromRoute,
-              character: loaded,
-              isDirty: false,
-            }),
-          );
+        if (cancelled) {
+          return;
         }
+        // Skip apply if the user started editing this sheet while load was in flight.
+        if (
+          isDirtyRef.current &&
+          characterIdFromRoute === characterIdRef.current &&
+          lastLoadKeyRef.current !== null
+        ) {
+          return;
+        }
+        lastLoadKeyRef.current = loadKey;
+        dispatch(
+          replaceCharacterEditor({
+            characterId: characterIdFromRoute,
+            character: loaded,
+            isDirty: false,
+          }),
+        );
       })
       .catch((error) => {
         if (!cancelled) {
@@ -74,7 +100,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [characterId, characterIdFromRoute, dispatch, notify, storageReady]);
+  }, [characterIdFromRoute, dispatch, isDirty, libraryEpoch, notify, storageReady]);
 
   const setCharacterName = useCallback(
     (name: string) => {
@@ -102,6 +128,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   );
 
   const startNewCharacter = useCallback(() => {
+    lastLoadKeyRef.current = null;
     dispatch(resetCharacterEditor());
     navigate('/character');
   }, [dispatch, navigate]);
@@ -117,9 +144,12 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
           character: {
             name: saved.name,
             attributes: saved.attributes,
+            history: saved.history ?? [],
+            traits: saved.traits ?? [],
           },
         }),
       );
+      lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
       notify(`Saved ${saved.name}`);
       if (saved.id !== characterIdFromRoute) {
         navigate(`/character/${saved.id}`, { replace: true });
@@ -129,7 +159,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     } finally {
       setIsBusy(false);
     }
-  }, [character, characterId, characterIdFromRoute, dispatch, navigate, notify]);
+  }, [character, characterId, characterIdFromRoute, dispatch, libraryEpoch, navigate, notify]);
 
   const handleNew = useCallback(() => {
     startNewCharacter();
