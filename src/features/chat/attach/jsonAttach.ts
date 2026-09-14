@@ -1,27 +1,38 @@
 import type { Character } from '../../../types/character';
 
-export const CHARACTER_ATTACH_TOOL = 'MatchDate';
+export const CHARACTER_TOOL = 'character' as const;
 
-export interface CharacterAttachPayload extends Character {
-  type: 'character';
-  tool: typeof CHARACTER_ATTACH_TOOL;
-  guid: string;
+export type CharacterToolOrigin = 'user' | 'agent';
+export type CharacterToolAction = 'write' | 'update' | 'create' | 'read';
+
+/** Fenced JSON tool envelope for character attach / agent updates (see docs/MD-tools.md). */
+export interface CharacterToolMessage {
+  tool: typeof CHARACTER_TOOL;
+  origin: CharacterToolOrigin;
+  action: CharacterToolAction;
+  id?: string;
+  data?: unknown;
 }
 
-export function buildCharacterAttachPayload(
+export function buildCharacterWriteTool(
   character: Character,
-  guid: string,
-): CharacterAttachPayload {
+  id: string,
+): CharacterToolMessage {
   return {
-    ...character,
-    type: 'character',
-    tool: CHARACTER_ATTACH_TOOL,
-    guid,
+    tool: CHARACTER_TOOL,
+    origin: 'user',
+    action: 'write',
+    id,
+    data: {
+      name: character.name,
+      attributes: character.attributes,
+      history: character.history ?? [],
+    },
   };
 }
 
-/** Fence a character attachment as ```json for the LLM payload. */
+/** Fence a character attachment as a user write tool for the LLM payload. */
 export function wrapAttachedCharacter(character: Character, guid: string): string {
-  const payload = buildCharacterAttachPayload(character, guid);
+  const payload = buildCharacterWriteTool(character, guid);
   return `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``;
 }

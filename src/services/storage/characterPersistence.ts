@@ -1,8 +1,13 @@
-import type { Character, CharacterDocument } from '../../types/character';
+import type {
+  Character,
+  CharacterDocument,
+  CharacterHistoryEntry,
+} from '../../types/character';
 import {
   BASIC_VALUES,
   createDefaultCharacter,
   isBasicValue,
+  isCharacterHistoryEntry,
 } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { nowIso } from '../../utils/id';
@@ -26,6 +31,7 @@ export function characterDocumentFromCharacter(
     id,
     name: normalized.name.trim() || 'Untitled character',
     attributes: normalized.attributes,
+    history: normalized.history,
     createdAt: options.createdAt ?? now,
     updatedAt: now,
   };
@@ -35,7 +41,19 @@ export function characterFromDocument(document: CharacterDocument): Character {
   return normalizeCharacter({
     name: document.name,
     attributes: document.attributes,
+    history: document.history ?? [],
   });
+}
+
+export function normalizeHistory(history: unknown): CharacterHistoryEntry[] {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+  return history.filter(isCharacterHistoryEntry).map((entry) => ({
+    at: entry.at,
+    summary: entry.summary,
+    ...(entry.source !== undefined ? { source: entry.source } : {}),
+  }));
 }
 
 export function normalizeCharacter(character: Character): Character {
@@ -50,6 +68,7 @@ export function normalizeCharacter(character: Character): Character {
         value: clampScore(existing?.value ?? 0),
       };
     }),
+    history: normalizeHistory(character.history),
   };
 }
 
@@ -79,7 +98,11 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
       value: clampScore(attribute.value),
     }));
 
-  return normalizeCharacter({ name, attributes });
+  return normalizeCharacter({
+    name,
+    attributes,
+    history: normalizeHistory(value.history),
+  });
 }
 
 function clampScore(value: number): number {
@@ -113,16 +136,20 @@ export async function saveCharacterDocument(
     }
   }
 
+  const normalized = normalizeCharacter({
+    name: document.name,
+    attributes: document.attributes,
+    history: document.history ?? [],
+  });
+
   const saved: CharacterDocument = {
     ...document,
     schemaVersion: OPFS_SCHEMA_VERSION,
     type: 'character',
     id,
-    name: document.name.trim() || 'Untitled character',
-    attributes: normalizeCharacter({
-      name: document.name,
-      attributes: document.attributes,
-    }).attributes,
+    name: normalized.name.trim() || 'Untitled character',
+    attributes: normalized.attributes,
+    history: normalized.history,
     createdAt,
     updatedAt: now,
   };

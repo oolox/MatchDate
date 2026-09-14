@@ -32,11 +32,12 @@ describe('xmlAttach', () => {
     const next = composeAttachedUserContent(
       'Hi',
       [{ name: 'a.txt', mime: 'text/plain', body: 'body' }],
-      [{ character: { name: 'Alex', attributes: [] }, guid: 'c1' }],
+      [{ character: { name: 'Alex', attributes: [], history: [] }, guid: 'c1' }],
     );
     expect(next).toContain('<attached_file name="a.txt"');
     expect(next).toContain('```json');
-    expect(next).toContain('"guid": "c1"');
+    expect(next).toContain('"id": "c1"');
+    expect(next).toContain('"action": "write"');
     expect(next.indexOf('<attached_file')).toBeLessThan(next.indexOf('```json'));
   });
 
@@ -44,10 +45,11 @@ describe('xmlAttach', () => {
     const next = composeAttachedUserContent(
       '',
       [],
-      [{ character: { name: 'Alex', attributes: [] }, guid: 'c1' }],
+      [{ character: { name: 'Alex', attributes: [], history: [] }, guid: 'c1' }],
     );
     expect(next).not.toContain(ATTACHED_FILES_INSTRUCTION);
     expect(next).toContain('```json');
+    expect(next).toContain('"tool": "character"');
     expect(next).toContain('"name": "Alex"');
   });
 

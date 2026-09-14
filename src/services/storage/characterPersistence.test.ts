@@ -9,6 +9,7 @@ import {
 import { deleteCharacterDocument, loadCharacterDocument, saveCharacterDocument } from './characterPersistence';
 import { listLibraryItems } from './libraryIndex';
 import { loadCharacter, saveCharacter } from './persistenceService';
+import { characterDocumentPath } from './paths';
 import {
   defaultSubtypeForLoadableKinds,
   itemMatchesSubtypeTab,
@@ -32,6 +33,9 @@ describe('characterPersistence', () => {
       description: 'Loves autonomy',
       value: 72,
     };
+    character.history = [
+      { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', source: 'chat' },
+    ];
 
     const storage = getFileStorageService();
     const saved = await saveCharacterDocument(
@@ -41,15 +45,36 @@ describe('characterPersistence', () => {
 
     expect(saved.type).toBe('character');
     expect(saved.name).toBe('Alex');
+    expect(saved.history).toHaveLength(1);
 
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'char-1'));
     expect(loaded.name).toBe('Alex');
+    expect(loaded.history).toEqual(character.history);
     expect(loaded.attributes).toHaveLength(BASIC_VALUES.length);
     expect(loaded.attributes[0]).toEqual({
       name: 'Self-Direction',
       description: 'Loves autonomy',
       value: 72,
     });
+  });
+
+  it('migrates legacy character docs missing history to []', async () => {
+    const storage = getFileStorageService();
+    await storage.write(
+      characterDocumentPath('legacy'),
+      JSON.stringify({
+        schemaVersion: 2,
+        type: 'character',
+        id: 'legacy',
+        name: 'Legacy',
+        attributes: createDefaultCharacter('Legacy').attributes,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+
+    const loaded = characterFromDocument(await loadCharacterDocument(storage, 'legacy'));
+    expect(loaded.history).toEqual([]);
   });
 
   it('registers characters in library.json', async () => {

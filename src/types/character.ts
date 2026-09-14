@@ -37,9 +37,16 @@ export interface ValueScore {
   value: number;
 }
 
+export interface CharacterHistoryEntry {
+  at: string;
+  summary: string;
+  source?: string;
+}
+
 export interface Character {
   name: string;
   attributes: ValueScore[];
+  history: CharacterHistoryEntry[];
 }
 
 export interface CharacterDocument {
@@ -48,6 +55,7 @@ export interface CharacterDocument {
   id: string;
   name: string;
   attributes: ValueScore[];
+  history: CharacterHistoryEntry[];
   createdAt: string;
   updatedAt: string;
 }
@@ -64,9 +72,22 @@ export function createDefaultCharacter(name = ''): Character {
   return {
     name,
     attributes: createDefaultValueScores(),
+    history: [],
   };
 }
 
 export function isBasicValue(value: unknown): value is BasicValue {
   return typeof value === 'string' && (BASIC_VALUES as readonly string[]).includes(value);
+}
+
+export function isCharacterHistoryEntry(value: unknown): value is CharacterHistoryEntry {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const entry = value as Partial<CharacterHistoryEntry>;
+  return (
+    typeof entry.at === 'string' &&
+    typeof entry.summary === 'string' &&
+    (entry.source === undefined || typeof entry.source === 'string')
+  );
 }

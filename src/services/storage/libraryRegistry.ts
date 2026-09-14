@@ -82,6 +82,7 @@ export function parseCharacterDocument(raw: string, path: string): CharacterDocu
         id: value.id,
         name: value.name,
         attributes: value.attributes,
+        history: Array.isArray(value.history) ? value.history : [],
         createdAt: backfillCreatedAt(value.createdAt, updatedAt),
         updatedAt,
       };
