@@ -12,6 +12,7 @@ import starSvg from '../../../assets/icons/star.svg?raw';
 import starFilledSvg from '../../../assets/icons/star-filled.svg?raw';
 import tagSvg from '../../../assets/icons/tag.svg?raw';
 import textFileSvg from '../../../assets/icons/text-file.svg?raw';
+import toolSvg from '../../../assets/icons/tool.svg?raw';
 import videoSvg from '../../../assets/icons/video.svg?raw';
 
 export const iconSources = {
@@ -30,6 +31,7 @@ export const iconSources = {
   tag: tagSvg,
   model: modelSvg,
   prompt: promptSvg,
+  tool: toolSvg,
 } as const;
 
 export type IconName = keyof typeof iconSources;

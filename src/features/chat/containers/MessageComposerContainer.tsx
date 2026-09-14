@@ -8,6 +8,7 @@ import { useNotification } from '../../../components/notification/Notification/u
 import { useSessionPersistence } from '../../../features/session/SessionPersistenceContext';
 import { resolveThreadChatModel, resolveThreadSystemPrompt } from '../sessionSystemPrompt';
 import { apiContentForMessage } from '../attach/xmlAttach';
+import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
 import { useTxtChatAttachments } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -29,6 +30,10 @@ import {
   updateMessage,
 } from '../../../store/slices/threadSlice';
 import type { Thread, ThreadId } from '../../../types/chat';
+import {
+  formatCharacterToolToast,
+  processTools,
+} from '../../../services/tools';
 import { streamChatTurn } from '../streamChatTurn';
 
 export interface MessageComposerContainerProps {
@@ -132,7 +137,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           }),
         );
       },
-      onDone: () => {
+      onDone: (accumulated) => {
         dispatch(
           updateMessage({
             threadId,
@@ -141,7 +146,20 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           }),
         );
         dispatch(setIsStreaming(false));
-        void persistAfterTurn();
+        void (async () => {
+          const tools = parseCharacterToolMessages(accumulated).filter(
+            (tool) => tool.origin === 'agent' && tool.action === 'update',
+          );
+          if (tools.length > 0) {
+            const { results } = await processTools(tools);
+            for (const result of results) {
+              if (result.ok) {
+                notify(formatCharacterToolToast(result));
+              }
+            }
+          }
+          await persistAfterTurn();
+        })();
       },
       onError: (error) => {
         dispatch(
