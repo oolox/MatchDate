@@ -29,10 +29,12 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     setCharacterName,
     clearCharacterName,
     setAttributeValue,
+    removeHistoryEntry,
+    removeTrait,
     handleSave,
     handleNew,
   } = editor;
-  const [attributesExpanded, setAttributesExpanded] = useState(true);
+  const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [traitsExpanded, setTraitsExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
 
@@ -132,7 +134,11 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
             <ul className={styles.historyList}>
               {traitsNewestFirst.map((trait) => (
                 <li key={`${trait.name}-${trait.at}`} className={styles.historyItem}>
-                  <CharacterTraitEntry trait={trait} />
+                  <CharacterTraitEntry
+                    trait={trait}
+                    removeDisabled={isBusy}
+                    onRemove={() => removeTrait(trait.name)}
+                  />
                 </li>
               ))}
             </ul>
@@ -151,11 +157,22 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
             <p className={styles.emptyHistory}>No history yet.</p>
           ) : (
             <ul className={styles.historyList}>
-              {historyNewestFirst.map((entry, index) => (
-                <li key={`${entry.at}-${index}`} className={styles.historyItem}>
-                  <CharacterHistoryEntry entry={entry} />
-                </li>
-              ))}
+              {historyNewestFirst.map((entry) => {
+                const index = (character.history ?? []).indexOf(entry);
+                return (
+                  <li key={`${entry.at}-${index}`} className={styles.historyItem}>
+                    <CharacterHistoryEntry
+                      entry={entry}
+                      removeDisabled={isBusy || index < 0}
+                      onRemove={() => {
+                        if (index >= 0) {
+                          removeHistoryEntry(index);
+                        }
+                      }}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CharacterCollapsibleCard>

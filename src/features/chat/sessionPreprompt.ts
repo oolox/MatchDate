@@ -23,8 +23,9 @@ export function findDefaultPrepromptAssetId(
 /**
  * Resolve the dropdown / effective preprompt id.
  * - stored `none` → none
- * - stored valid id → that id
- * - unset or stale id → MD-ValueModel.md if available, else none
+ * - stored id → that id (even before the library list has loaded)
+ * - stored id missing after list loads → MD-ValueModel.md if available, else none
+ * - unset → MD-ValueModel.md if available, else none
  */
 export function resolvePrepromptSelectValue(
   stored: string | null,
@@ -33,17 +34,29 @@ export function resolvePrepromptSelectValue(
   if (stored === PREPROMPT_NONE_VALUE) {
     return PREPROMPT_NONE_VALUE;
   }
-  if (stored && texts.some((item) => item.id === stored)) {
-    return stored;
+  if (stored) {
+    if (texts.length === 0 || texts.some((item) => item.id === stored)) {
+      return stored;
+    }
+    return findDefaultPrepromptAssetId(texts) ?? PREPROMPT_NONE_VALUE;
   }
   return findDefaultPrepromptAssetId(texts) ?? PREPROMPT_NONE_VALUE;
 }
 
 export function prepromptSelectOptions(
   texts: ReadonlyArray<{ id: string; name: string }>,
+  selectedId?: string | null,
 ): Array<{ value: string; label: string }> {
-  return [
+  const options: Array<{ value: string; label: string }> = [
     { value: PREPROMPT_NONE_VALUE, label: 'None' },
     ...texts.map((item) => ({ value: item.id, label: item.name })),
   ];
+  if (
+    selectedId &&
+    selectedId !== PREPROMPT_NONE_VALUE &&
+    !texts.some((item) => item.id === selectedId)
+  ) {
+    options.push({ value: selectedId, label: 'Selected text' });
+  }
+  return options;
 }

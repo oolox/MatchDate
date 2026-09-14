@@ -14,6 +14,8 @@ import {
   selectCharacterEditorDirty,
   selectCharacterEditorId,
   setCharacterEditorAttributeValue,
+  removeCharacterEditorHistoryEntry,
+  removeCharacterEditorTrait,
   setCharacterEditorName,
 } from '../../store/slices/characterSlice';
 import { selectStorageReady } from '../../store/slices/promptsSlice';
@@ -120,6 +122,20 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     [dispatch],
   );
 
+  const removeHistoryEntry = useCallback(
+    (index: number) => {
+      dispatch(removeCharacterEditorHistoryEntry(index));
+    },
+    [dispatch],
+  );
+
+  const removeTrait = useCallback(
+    (name: string) => {
+      dispatch(removeCharacterEditorTrait(name));
+    },
+    [dispatch],
+  );
+
   const loadCharacterById = useCallback(
     (id: string) => {
       navigate(`/character/${id}`);
@@ -175,6 +191,8 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     setCharacterName,
     clearCharacterName,
     setAttributeValue,
+    removeHistoryEntry,
+    removeTrait,
     loadCharacterById,
     startNewCharacter,
     handleSave,

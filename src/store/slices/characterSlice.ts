@@ -45,6 +45,28 @@ const characterSlice = createSlice({
         state.isDirty = true;
       }
     },
+    removeCharacterEditorHistoryEntry: (state, action: PayloadAction<number>) => {
+      const index = action.payload;
+      if (index < 0 || index >= state.character.history.length) {
+        return;
+      }
+      state.character.history.splice(index, 1);
+      state.isDirty = true;
+    },
+    removeCharacterEditorTrait: (state, action: PayloadAction<string>) => {
+      const key = action.payload.trim().toLowerCase();
+      if (!key) {
+        return;
+      }
+      const next = state.character.traits.filter(
+        (trait) => trait.name.trim().toLowerCase() !== key,
+      );
+      if (next.length === state.character.traits.length) {
+        return;
+      }
+      state.character.traits = next;
+      state.isDirty = true;
+    },
     replaceCharacterEditor: (
       state,
       action: PayloadAction<{ characterId: string | null; character: Character; isDirty?: boolean }>,
@@ -73,6 +95,8 @@ export const {
   setCharacterEditorCharacter,
   setCharacterEditorName,
   setCharacterEditorAttributeValue,
+  removeCharacterEditorHistoryEntry,
+  removeCharacterEditorTrait,
   replaceCharacterEditor,
   markCharacterEditorSaved,
   setCharacterEditorDirty,

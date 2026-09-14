@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DropdownSelect } from '../../ui/DropdownSelect';
 import {
+  PREPROMPT_NONE_VALUE,
   prepromptSelectOptions,
   resolvePrepromptSelectValue,
 } from '../../../features/chat/sessionPreprompt';
 import { writePrepromptAssetId } from '../../../services/localStorage';
-import { listTextAssets, type TextAssetSummary } from '../../../services/storage/textStorage';
+import { listAssets } from '../../../services/storage/persistenceService';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
 import {
   selectPrepromptAssetId,
   setPrepromptAssetId,
 } from '../../../store/slices/localStorageSlice';
-import { selectStorageReady } from '../../../store/slices/promptsSlice';
 import styles from './PrepromptSelect.module.css';
 
 export interface PrepromptSelectProps {
@@ -25,23 +25,29 @@ export interface PrepromptSelectProps {
   className?: string;
 }
 
+type TextOption = { id: string; name: string };
+
+async function loadTextAssetOptions(): Promise<TextOption[]> {
+  const assets = await listAssets();
+  return assets
+    .filter((item) => item.subtype === 'text')
+    .map((item) => ({ id: item.id, name: item.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function PrepromptSelect({
   disabled = false,
   consumed = false,
   className,
 }: PrepromptSelectProps) {
   const dispatch = useAppDispatch();
-  const storageReady = useAppSelector(selectStorageReady);
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const storedPrepromptId = useAppSelector(selectPrepromptAssetId);
-  const [texts, setTexts] = useState<TextAssetSummary[]>([]);
+  const [texts, setTexts] = useState<TextOption[]>([]);
 
   useEffect(() => {
-    if (!storageReady) {
-      return;
-    }
     let cancelled = false;
-    void listTextAssets()
+    void loadTextAssetOptions()
       .then((items) => {
         if (!cancelled) {
           setTexts(items);
@@ -49,15 +55,17 @@ export function PrepromptSelect({
       })
       .catch((error) => {
         console.info('Could not list text assets for preprompt select', { error });
-        // Keep prior options so a failed refresh does not collapse to "None" only.
       });
     return () => {
       cancelled = true;
     };
-  }, [libraryEpoch, storageReady]);
+  }, [libraryEpoch]);
 
-  const options = useMemo(() => prepromptSelectOptions(texts), [texts]);
   const value = resolvePrepromptSelectValue(storedPrepromptId, texts);
+  const options = useMemo(
+    () => prepromptSelectOptions(texts, value),
+    [texts, value],
+  );
 
   const classes = [
     styles.select,
@@ -75,10 +83,10 @@ export function PrepromptSelect({
       menuPlacement="top"
       options={options}
       value={value}
-      disabled={disabled || !storageReady}
+      disabled={disabled}
       onChange={(next) => {
         const saved = writePrepromptAssetId(next);
-        dispatch(setPrepromptAssetId(saved));
+        dispatch(setPrepromptAssetId(saved === PREPROMPT_NONE_VALUE ? PREPROMPT_NONE_VALUE : saved));
       }}
     />
   );

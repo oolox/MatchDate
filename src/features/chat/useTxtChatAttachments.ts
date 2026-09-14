@@ -80,6 +80,8 @@ export function useTxtChatAttachments(threadId: string) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+  const attachmentsRef = useRef<DraftAttachment[]>([]);
+  const pendingAddsRef = useRef(new Set<Promise<void>>());
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
@@ -87,6 +89,7 @@ export function useTxtChatAttachments(threadId: string) {
   const [libraryItems, setLibraryItems] = useState<LibraryMentionRow[]>([]);
 
   useEffect(() => {
+    attachmentsRef.current = [];
     setAttachments([]);
     setMentionOpen(false);
     setMentionQuery('');
@@ -184,6 +187,7 @@ export function useTxtChatAttachments(threadId: string) {
           return current;
         }
         const merged = [...current, next];
+        attachmentsRef.current = merged;
         warnIfContextTight(merged);
         return merged;
       });
@@ -191,107 +195,135 @@ export function useTxtChatAttachments(threadId: string) {
     [warnIfContextTight],
   );
 
+  const trackPendingAdd = useCallback((work: Promise<void>) => {
+    pendingAddsRef.current.add(work);
+    void work.finally(() => {
+      pendingAddsRef.current.delete(work);
+    });
+    return work;
+  }, []);
+
+  /** Wait for in-flight @mention / drop / file attaches before building the send payload. */
+  const waitForPendingAttachments = useCallback(async () => {
+    while (pendingAddsRef.current.size > 0) {
+      await Promise.all([...pendingAddsRef.current]);
+    }
+  }, []);
+
   const addFiles = useCallback(
     async (files: File[]) => {
-      for (const file of files) {
-        const sizeError = validateTextAttachmentFile(file);
-        if (sizeError) {
-          notify(sizeError);
-          continue;
+      const work = (async () => {
+        for (const file of files) {
+          const sizeError = validateTextAttachmentFile(file);
+          if (sizeError) {
+            notify(sizeError);
+            continue;
+          }
+          let body: string;
+          try {
+            body = await file.text();
+          } catch {
+            notify(`Could not read ${file.name}`);
+            continue;
+          }
+          const bodyError = validateTextAttachmentBody(body);
+          if (bodyError) {
+            notify(bodyError);
+            continue;
+          }
+          try {
+            const saved = await saveText(file, file.name);
+            dispatch(bumpLibraryEpoch());
+            addDraft({
+              kind: 'text',
+              assetId: saved.id,
+              name: saved.metadata?.originalName ?? file.name,
+              mime: saved.mimeType,
+              body,
+            });
+          } catch (error) {
+            notify(formatFailure('attach file', file.name, error));
+          }
         }
-        let body: string;
-        try {
-          body = await file.text();
-        } catch {
-          notify(`Could not read ${file.name}`);
-          continue;
-        }
-        const bodyError = validateTextAttachmentBody(body);
-        if (bodyError) {
-          notify(bodyError);
-          continue;
-        }
-        try {
-          const saved = await saveText(file, file.name);
-          dispatch(bumpLibraryEpoch());
-          addDraft({
-            kind: 'text',
-            assetId: saved.id,
-            name: saved.metadata?.originalName ?? file.name,
-            mime: saved.mimeType,
-            body,
-          });
-        } catch (error) {
-          notify(formatFailure('attach file', file.name, error));
-        }
-      }
+      })();
+      return trackPendingAdd(work);
     },
-    [addDraft, dispatch, notify],
+    [addDraft, dispatch, notify, trackPendingAdd],
   );
 
   const addTextAsset = useCallback(
     async (assetId: string) => {
-      if (attachments.some((item) => item.kind === 'text' && item.assetId === assetId)) {
+      if (
+        attachmentsRef.current.some((item) => item.kind === 'text' && item.assetId === assetId)
+      ) {
         return;
       }
-      try {
-        const body = await loadTextContent(assetId);
-        const bodyError = validateTextAttachmentBody(body);
-        if (bodyError) {
-          notify(bodyError);
-          return;
-        }
-        const item = libraryItems.find((row) => row.kind === 'text' && row.id === assetId);
-        let name = item?.name;
-        let mime = item?.mime;
-        if (!name || !mime) {
-          try {
-            const asset = await loadAsset(assetId);
-            name = name ?? asset.name;
-            mime =
-              mime ??
-              (asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain');
-          } catch {
-            // fall through to filename defaults
+      const work = (async () => {
+        try {
+          const body = await loadTextContent(assetId);
+          const bodyError = validateTextAttachmentBody(body);
+          if (bodyError) {
+            notify(bodyError);
+            return;
           }
+          const item = libraryItems.find((row) => row.kind === 'text' && row.id === assetId);
+          let name = item?.name;
+          let mime = item?.mime;
+          if (!name || !mime) {
+            try {
+              const asset = await loadAsset(assetId);
+              name = name ?? asset.name;
+              mime =
+                mime ??
+                (asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain');
+            } catch {
+              // fall through to filename defaults
+            }
+          }
+          addDraft({
+            kind: 'text',
+            assetId,
+            name: name ?? assetId,
+            mime: mime ?? mimeFromFileName(name ?? 'notes.txt'),
+            body,
+          });
+        } catch (error) {
+          notify(formatFailure('attach file', undefined, error));
         }
-        addDraft({
-          kind: 'text',
-          assetId,
-          name: name ?? assetId,
-          mime: mime ?? mimeFromFileName(name ?? 'notes.txt'),
-          body,
-        });
-      } catch (error) {
-        notify(formatFailure('attach file', undefined, error));
-      }
+      })();
+      return trackPendingAdd(work);
     },
-    [addDraft, attachments, libraryItems, notify],
+    [addDraft, libraryItems, notify, trackPendingAdd],
   );
 
   const addCharacterAsset = useCallback(
     async (characterId: string) => {
       if (
-        attachments.some((item) => item.kind === 'character' && item.assetId === characterId)
+        attachmentsRef.current.some(
+          (item) => item.kind === 'character' && item.assetId === characterId,
+        )
       ) {
         return;
       }
-      try {
-        const character = await loadCharacter(characterId);
-        const item = libraryItems.find(
-          (row) => row.kind === 'character' && row.id === characterId,
-        );
-        addDraft({
-          kind: 'character',
-          assetId: characterId,
-          name: character.name || item?.name || characterId,
-          character,
-        });
-      } catch (error) {
-        notify(formatFailure('attach character', undefined, error));
-      }
+      const work = (async () => {
+        try {
+          const character = await loadCharacter(characterId);
+          const item = libraryItems.find(
+            (row) => row.kind === 'character' && row.id === characterId,
+          );
+          addDraft({
+            kind: 'character',
+            assetId: characterId,
+            name: character.name || item?.name || characterId,
+            character,
+          });
+        } catch (error) {
+          notify(formatFailure('attach character', undefined, error));
+        }
+      })();
+      return trackPendingAdd(work);
     },
-    [addDraft, attachments, libraryItems, notify],
+    [addDraft, libraryItems, notify, trackPendingAdd],
   );
 
   const addLibraryItems = useCallback(
@@ -318,10 +350,15 @@ export function useTxtChatAttachments(threadId: string) {
   );
 
   const removeAttachment = useCallback((assetId: string) => {
-    setAttachments((current) => current.filter((item) => item.assetId !== assetId));
+    setAttachments((current) => {
+      const next = current.filter((item) => item.assetId !== assetId);
+      attachmentsRef.current = next;
+      return next;
+    });
   }, []);
 
   const clearAttachments = useCallback(() => {
+    attachmentsRef.current = [];
     setAttachments([]);
   }, []);
 
@@ -440,21 +477,21 @@ export function useTxtChatAttachments(threadId: string) {
     [addFiles],
   );
 
-  const buildApiContent = useCallback(
-    (userText: string) => {
-      const files = attachments
-        .filter((item): item is Extract<DraftAttachment, { kind: 'text' }> => item.kind === 'text')
-        .map((item) => ({ name: item.name, mime: item.mime, body: item.body }));
-      const characters = attachments
-        .filter(
-          (item): item is Extract<DraftAttachment, { kind: 'character' }> =>
-            item.kind === 'character',
-        )
-        .map((item) => ({ character: item.character, guid: item.assetId }));
-      return composeAttachedUserContent(userText, files, characters);
-    },
-    [attachments],
-  );
+  const buildApiContent = useCallback((userText: string) => {
+    const current = attachmentsRef.current;
+    const files = current
+      .filter((item): item is Extract<DraftAttachment, { kind: 'text' }> => item.kind === 'text')
+      .map((item) => ({ name: item.name, mime: item.mime, body: item.body }));
+    const characters = current
+      .filter(
+        (item): item is Extract<DraftAttachment, { kind: 'character' }> =>
+          item.kind === 'character',
+      )
+      .map((item) => ({ character: item.character, guid: item.assetId }));
+    return composeAttachedUserContent(userText, files, characters);
+  }, []);
+
+  const getAttachmentSnapshot = useCallback(() => attachmentsRef.current.slice(), []);
 
   return {
     attachments,
@@ -470,6 +507,8 @@ export function useTxtChatAttachments(threadId: string) {
     addLibraryItems,
     removeAttachment,
     clearAttachments,
+    waitForPendingAttachments,
+    getAttachmentSnapshot,
     syncMentionFromCaret,
     onComposerKeyDown,
     selectMention,

@@ -1,11 +1,19 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: 2px;
   padding: var(--space-sm);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   background: var(--color-bg-panel, var(--color-bg-app));
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -15,26 +23,38 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.remove {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.remove:hover:not(:disabled),
+.remove:focus-visible:not(:disabled) {
+  opacity: 1;
+}
+
+.detail {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
   min-width: 0;
 }
 
 .name {
-  margin: 0;
-  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   text-transform: capitalize;
 }
 
+.sep {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
 .value {
-  margin: 0;
-  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: 1.35;
+  margin-left: 0.25em;
 }

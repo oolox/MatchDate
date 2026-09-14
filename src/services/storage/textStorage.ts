@@ -2,7 +2,6 @@ import type { SavedTextKind, SavedTextMetadata, SavedTextRef } from '../../types
 import { createId, nowIso } from '../../utils/id';
 import { ensureTextAsset, tryLoadAssetDocument } from './assetPersistence';
 import { getFileStorageService } from './index';
-import { listLibraryItems, reconcileLibraryIndex } from './libraryIndex';
 import { textMetaPath, textPath } from './paths';
 
 const EXCERPT_LENGTH = 200;
@@ -108,22 +107,18 @@ export async function deleteText(id: string): Promise<void> {
 }
 
 export async function listTextAssets(): Promise<TextAssetSummary[]> {
-  const storage = getFileStorageService();
-  await reconcileLibraryIndex(storage);
-  const items = await listLibraryItems(storage, 'asset');
+  const { listAssets } = await import('./persistenceService');
+  const items = await listAssets();
   const summaries: TextAssetSummary[] = [];
 
   for (const item of items) {
-    if (item.subtype !== 'text' && item.subtype !== undefined) {
+    if (item.subtype !== 'text') {
       continue;
     }
-    const asset = await tryLoadAssetDocument(storage, item.id);
-    const mimeType =
-      asset?.mimeType === 'text/markdown' ? 'text/markdown' : ('text/plain' as SavedTextKind);
     summaries.push({
       id: item.id,
       name: item.name,
-      mimeType,
+      mimeType: 'text/plain',
     });
   }
 

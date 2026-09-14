@@ -45,11 +45,22 @@ describe('sessionPreprompt', () => {
     expect(resolvePrepromptSelectValue('missing', texts)).toBe('vm');
   });
 
+  it('keeps stored id while the library list is still empty', () => {
+    expect(resolvePrepromptSelectValue('t1', [])).toBe('t1');
+  });
+
   it('builds select options with None first', () => {
     expect(prepromptSelectOptions(texts)).toEqual([
       { value: PREPROMPT_NONE_VALUE, label: 'None' },
       { value: 't1', label: 'notes.txt' },
       { value: 'vm', label: 'MD-ValueModel.md' },
+    ]);
+  });
+
+  it('includes a placeholder option for a selected id not yet in the list', () => {
+    expect(prepromptSelectOptions([], 'abc')).toEqual([
+      { value: PREPROMPT_NONE_VALUE, label: 'None' },
+      { value: 'abc', label: 'Selected text' },
     ]);
   });
 });

@@ -1,11 +1,19 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: 2px;
   padding: var(--space-sm);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   background: var(--color-bg-panel, var(--color-bg-app));
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -15,6 +23,17 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.remove {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.remove:hover:not(:disabled),
+.remove:focus-visible:not(:disabled) {
+  opacity: 1;
 }
 
 .summary {

@@ -13,7 +13,8 @@ import {
   PREPROMPT_NONE_VALUE,
   resolvePrepromptSelectValue,
 } from '../sessionPreprompt';
-import { listTextAssets, loadTextContent } from '../../../services/storage/textStorage';
+import { listAssets } from '../../../services/storage/persistenceService';
+import { loadTextContent } from '../../../services/storage/textStorage';
 import { apiContentForMessage } from '../attach/xmlAttach';
 import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
@@ -118,21 +119,29 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   }, [createBusy, dismissPendingCreate, dispatch, notify, pendingCreate]);
 
   const handleSend = useCallback(async () => {
-    const text = draft.trim();
-    if ((!text && attach.attachments.length === 0) || isStreaming) {
+    if (isStreaming) {
+      return;
+    }
+
+    // @mention attach loads OPFS async — wait so the payload includes them with preprompt.
+    await attach.waitForPendingAttachments();
+
+    const trimmed = draft.trim();
+    const snapshot = attach.getAttachmentSnapshot();
+    const apiContent = attach.buildApiContent(trimmed);
+    if (!trimmed && snapshot.length === 0) {
       return;
     }
 
     const controller = begin();
     const userMessageId = createId();
     const assistantMessageId = createId();
-    const chips = attach.attachments.map((item) => ({
+    const chips = snapshot.map((item) => ({
       assetId: item.assetId,
       name: item.name,
       kind: item.kind,
       mime: item.kind === 'text' ? item.mime : undefined,
     }));
-    const apiContent = attach.buildApiContent(text);
 
     dispatch(
       appendMessage({
@@ -140,7 +149,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         message: {
           id: userMessageId,
           role: 'user',
-          content: text,
+          content: trimmed,
           apiContent: chips.length > 0 ? apiContent : undefined,
           attachments: chips.length > 0 ? chips : undefined,
           status: 'complete',
@@ -170,7 +179,9 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     let systemPrompt = await resolveThreadSystemPrompt(thread, activeSystemPrompt);
     if (isFirstMessage) {
       try {
-        const texts = await listTextAssets();
+        const texts = (await listAssets())
+          .filter((item) => item.subtype === 'text')
+          .map((item) => ({ id: item.id, name: item.name }));
         const prepromptId = resolvePrepromptSelectValue(storedPrepromptId, texts);
         if (prepromptId !== PREPROMPT_NONE_VALUE) {
           const prepromptBody = (await loadTextContent(prepromptId)).trim();
