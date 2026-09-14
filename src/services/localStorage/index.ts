@@ -14,3 +14,9 @@ export {
   type LibrarySortPreference,
 } from './librarySort';
 export { readTxtModel, writeTxtModel } from './chatModel';
+export {
+  DEFAULT_PREPROMPT_ASSET_NAME,
+  PREPROMPT_NONE_VALUE,
+  readPrepromptAssetId,
+  writePrepromptAssetId,
+} from './preprompt';

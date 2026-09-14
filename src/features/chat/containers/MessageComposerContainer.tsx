@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ChatModelSelect } from '../../../components/chat/ChatModelSelect';
 import { CreateCharacterModal } from '../../../components/chat/CreateCharacterModal';
+import { PrepromptSelect } from '../../../components/chat/PrepromptSelect';
 import { SystemPromptSelect } from '../../../components/chat/SystemPromptSelect';
 import { AttachmentChips } from '../../../components/chat/AttachmentChips/AttachmentChips';
 import { MentionMenu } from '../../../components/chat/MentionMenu/MentionMenu';
@@ -8,6 +9,11 @@ import { MessageComposer } from '../../../components/message/MessageComposer/Mes
 import { useNotification } from '../../../components/notification/Notification/useNotification';
 import { useSessionPersistence } from '../../../features/session/SessionPersistenceContext';
 import { resolveThreadChatModel, resolveThreadSystemPrompt } from '../sessionSystemPrompt';
+import {
+  PREPROMPT_NONE_VALUE,
+  resolvePrepromptSelectValue,
+} from '../sessionPreprompt';
+import { listTextAssets, loadTextContent } from '../../../services/storage/textStorage';
 import { apiContentForMessage } from '../attach/xmlAttach';
 import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
@@ -22,7 +28,7 @@ import {
   setIsStreaming,
   setPinnedToBottom,
 } from '../../../store/slices/chatUiSlice';
-import { selectChatModel } from '../../../store/slices/localStorageSlice';
+import { selectChatModel, selectPrepromptAssetId } from '../../../store/slices/localStorageSlice';
 import { selectActiveSystemPrompt } from '../../../store/slices/promptsSlice';
 import {
   appendMessage,
@@ -58,6 +64,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   const messages = useAppSelector(selectActiveMessages);
   const activeSystemPrompt = useAppSelector(selectActiveSystemPrompt);
   const chatModel = useAppSelector(selectChatModel);
+  const storedPrepromptId = useAppSelector(selectPrepromptAssetId);
   const thread = useAppSelector(
     (state): Thread | undefined => state.thread.threads[threadId],
   );
@@ -159,7 +166,22 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     dispatch(setIsStreaming(true));
     dispatch(setPinnedToBottom(true));
 
-    const systemPrompt = await resolveThreadSystemPrompt(thread, activeSystemPrompt);
+    const isFirstMessage = messages.length === 0;
+    let systemPrompt = await resolveThreadSystemPrompt(thread, activeSystemPrompt);
+    if (isFirstMessage) {
+      try {
+        const texts = await listTextAssets();
+        const prepromptId = resolvePrepromptSelectValue(storedPrepromptId, texts);
+        if (prepromptId !== PREPROMPT_NONE_VALUE) {
+          const prepromptBody = (await loadTextContent(prepromptId)).trim();
+          if (prepromptBody) {
+            systemPrompt = `${systemPrompt.trim()}\n\n${prepromptBody}`;
+          }
+        }
+      } catch (error) {
+        console.info('Could not load preprompt text asset', { error });
+      }
+    }
     const model = resolveThreadChatModel(thread, chatModel);
 
     await streamChatTurn({
@@ -253,6 +275,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     messages,
     notify,
     persistAfterTurn,
+    storedPrepromptId,
     thread,
     threadId,
   ]);
@@ -285,6 +308,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           <>
             <ChatModelSelect disabled={isStreaming} />
             <SystemPromptSelect threadId={threadId} disabled={isStreaming} />
+            <PrepromptSelect disabled={isStreaming} consumed={messages.length > 0} />
           </>
         }
         placeholder="Type a message… (@ to attach)"

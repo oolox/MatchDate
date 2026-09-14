@@ -1,0 +1,16 @@
+.select {
+  flex: 0 0 8rem;
+  width: 8rem;
+  max-width: 8rem;
+}
+
+/* Already applied this session — muted like disabled, still interactive. */
+.consumed {
+  color: color-mix(in srgb, var(--color-text-muted) 55%, transparent);
+  opacity: 0.55;
+}
+
+.consumed:hover {
+  color: color-mix(in srgb, var(--color-text-muted) 70%, transparent);
+  opacity: 0.7;
+}

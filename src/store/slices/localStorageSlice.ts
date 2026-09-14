@@ -3,6 +3,7 @@ import { DEFAULT_CHAT_MODEL_ID } from '../../services/fal/models/chat';
 import {
   getDefaultLibrarySort,
   loadLibrarySortState,
+  readPrepromptAssetId,
   readTxtModel,
   type LibrarySortPreference,
 } from '../../services/localStorage';
@@ -10,6 +11,8 @@ import type { LibrarySortListKind } from '../../services/localStorage/keys';
 
 export interface LocalStorageState {
   txtModel: string;
+  /** `null` unset, `none` explicit none, else text asset id. */
+  prepromptAssetId: string | null;
   librarySidebarWidthPx: number | null;
   librarySortSession: LibrarySortPreference;
   librarySortPrompt: LibrarySortPreference;
@@ -20,6 +23,7 @@ export interface LocalStorageState {
 
 const initialState: LocalStorageState = {
   txtModel: DEFAULT_CHAT_MODEL_ID,
+  prepromptAssetId: null,
   librarySidebarWidthPx: null,
   librarySortSession: getDefaultLibrarySort('session'),
   librarySortPrompt: getDefaultLibrarySort('prompt'),
@@ -35,6 +39,9 @@ const localStorageSlice = createSlice({
     hydrateLocalStorage: (_state, action: PayloadAction<LocalStorageState>) => action.payload,
     setTxtModel: (state, action: PayloadAction<string>) => {
       state.txtModel = action.payload;
+    },
+    setPrepromptAssetId: (state, action: PayloadAction<string | null>) => {
+      state.prepromptAssetId = action.payload;
     },
     setLibrarySortPreference: (
       state,
@@ -62,8 +69,12 @@ const localStorageSlice = createSlice({
   },
 });
 
-export const { hydrateLocalStorage, setTxtModel, setLibrarySortPreference } =
-  localStorageSlice.actions;
+export const {
+  hydrateLocalStorage,
+  setTxtModel,
+  setPrepromptAssetId,
+  setLibrarySortPreference,
+} = localStorageSlice.actions;
 
 export const setChatModel = setTxtModel;
 
@@ -72,6 +83,9 @@ type LocalStorageRoot = { localStorage: LocalStorageState };
 export const selectTxtModel = (state: LocalStorageRoot) => state.localStorage.txtModel;
 
 export const selectChatModel = selectTxtModel;
+
+export const selectPrepromptAssetId = (state: LocalStorageRoot) =>
+  state.localStorage.prepromptAssetId;
 
 export function selectLibrarySortPreference(
   kind: LibrarySortListKind,
@@ -96,6 +110,7 @@ export function loadLocalStorageSliceState(): LocalStorageState {
   const sorts = loadLibrarySortState();
   return {
     txtModel: readTxtModel(),
+    prepromptAssetId: readPrepromptAssetId(),
     librarySidebarWidthPx: null,
     librarySortSession: sorts.session,
     librarySortPrompt: sorts.prompt,

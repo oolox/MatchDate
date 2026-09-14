@@ -1,5 +1,6 @@
 export const LOCAL_STORAGE_KEYS = {
   txtModel: 'matchdate.txtModel',
+  prepromptAssetId: 'matchdate.prepromptAssetId',
   librarySidebarWidthPx: 'matchdate.librarySidebarWidthPx',
   librarySortSession: 'matchdate.librarySort.session',
   librarySortPrompt: 'matchdate.librarySort.prompt',
