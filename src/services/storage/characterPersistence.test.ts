@@ -8,7 +8,7 @@ import {
 } from './characterPersistence';
 import { deleteCharacterDocument, loadCharacterDocument, saveCharacterDocument } from './characterPersistence';
 import { listLibraryItems } from './libraryIndex';
-import { loadCharacter, saveCharacter } from './persistenceService';
+import { duplicateCharacter, loadCharacter, saveCharacter } from './persistenceService';
 import { characterDocumentPath } from './paths';
 import {
   defaultSubtypeForLoadableKinds,
@@ -98,6 +98,16 @@ describe('characterPersistence', () => {
     await deleteCharacterDocument(storage, 'char-3');
     const items = await listLibraryItems(storage, 'character');
     expect(items.some((item) => item.id === 'char-3')).toBe(false);
+  });
+
+  it('duplicates a character with a new id and COPY name', async () => {
+    const original = await saveCharacter(createDefaultCharacter('Alex'), 'char-copy-src');
+    const copy = await duplicateCharacter(original.id);
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.name).toBe('Alex - COPY');
+    const loaded = await loadCharacter(copy.id);
+    expect(loaded.name).toBe('Alex - COPY');
+    expect(loaded.attributes).toHaveLength(BASIC_VALUES.length);
   });
 });
 

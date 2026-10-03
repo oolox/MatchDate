@@ -224,6 +224,16 @@ export async function deleteCharacter(id: string): Promise<void> {
   await deleteCharacterDocument(storage, id);
 }
 
+/** Deep-copy a character into a new id with name `"{name} - COPY"`. */
+export async function duplicateCharacter(id: string): Promise<CharacterDocument> {
+  const character = await loadCharacter(id);
+  const baseName = character.name.trim() || 'Untitled character';
+  return saveCharacter({
+    ...character,
+    name: `${baseName} - COPY`,
+  });
+}
+
 export async function listPresets() {
   const storage = getStorage();
   await ensureInitialized(storage);

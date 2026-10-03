@@ -12,6 +12,7 @@ export interface LibraryListProps {
   onSelect: (item: LibraryItemMeta) => void;
   onActivateType?: (item: LibraryItemMeta) => void;
   onToggleFavorite: (item: LibraryItemMeta) => void;
+  onCopy?: (item: LibraryItemMeta) => void;
   onDelete: (item: LibraryItemMeta) => void;
 }
 
@@ -25,6 +26,7 @@ export function LibraryList({
   onSelect,
   onActivateType,
   onToggleFavorite,
+  onCopy,
   onDelete,
 }: LibraryListProps) {
   if (items.length === 0) {
@@ -44,6 +46,7 @@ export function LibraryList({
           onSelect={onSelect}
           onActivateType={onActivateType}
           onToggleFavorite={onToggleFavorite}
+          onCopy={onCopy}
           onDelete={onDelete}
         />
       ))}

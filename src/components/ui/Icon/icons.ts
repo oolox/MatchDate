@@ -2,6 +2,7 @@ import promptSvg from '../../../assets/icons/prompt.svg?raw';
 import caretDownSvg from '../../../assets/icons/caret-down.svg?raw';
 import caretUpSvg from '../../../assets/icons/caret-up.svg?raw';
 import closeSvg from '../../../assets/icons/close.svg?raw';
+import copySvg from '../../../assets/icons/copy.svg?raw';
 import generateSvg from '../../../assets/icons/generate.svg?raw';
 import imageSvg from '../../../assets/icons/image.svg?raw';
 import modelSvg from '../../../assets/icons/model.svg?raw';
@@ -19,6 +20,7 @@ export const iconSources = {
   send: sendSvg,
   generate: generateSvg,
   close: closeSvg,
+  copy: copySvg,
   star: starSvg,
   'star-filled': starFilledSvg,
   search: searchSvg,

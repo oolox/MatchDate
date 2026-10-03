@@ -175,10 +175,13 @@ export function useTxtChatAttachments(threadId: string) {
         return sum + JSON.stringify(item.character).length;
       }, 0);
       if (attachedChars >= CHAT_ATTACH_WARN_CHARS) {
-        notify('Attached content is large — it may not fit in smaller context windows');
+        console.warn(
+          'Attached content is large — it may not fit in smaller context windows',
+          { attachedChars, warnAt: CHAT_ATTACH_WARN_CHARS },
+        );
       }
     },
-    [notify],
+    [],
   );
 
   const addDraft = useCallback(

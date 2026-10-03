@@ -30,6 +30,7 @@ export interface LibraryListItemProps {
   onSelect: (item: LibraryItemMeta) => void;
   onActivateType?: (item: LibraryItemMeta) => void;
   onToggleFavorite: (item: LibraryItemMeta) => void;
+  onCopy?: (item: LibraryItemMeta) => void;
   onDelete: (item: LibraryItemMeta) => void;
 }
 
@@ -42,6 +43,7 @@ export function LibraryListItem({
   onSelect,
   onActivateType,
   onToggleFavorite,
+  onCopy,
   onDelete,
 }: LibraryListItemProps) {
   const updated = formatLibraryListDateTime(item.updatedAt);
@@ -110,6 +112,17 @@ export function LibraryListItem({
           </span>
         ) : null}
       </button>
+      {item.kind === 'character' && onCopy ? (
+        <IconButton
+          className={styles.itemAction}
+          icon="copy"
+          label={`Copy ${item.name}`}
+          variant="secondary"
+          size="md"
+          disabled={disabled}
+          onClick={() => onCopy(item)}
+        />
+      ) : null}
       <IconButton
         className={item.isFavorite ? styles.favoriteActive : styles.itemAction}
         icon={item.isFavorite ? 'star-filled' : 'star'}

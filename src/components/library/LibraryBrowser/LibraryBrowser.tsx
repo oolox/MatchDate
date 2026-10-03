@@ -15,7 +15,11 @@ import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { selectIsStreaming } from '../../../store/slices/chatUiSlice';
 import { selectActiveSystemPresetSlug, setActiveSystemPreset } from '../../../store/slices/promptsSlice';
 import { selectIsActiveThreadDirty } from '../../../store/slices/sessionsSlice';
-import { setActivePrompt } from '../../../services/storage/persistenceService';
+import {
+  duplicateCharacter,
+  setActivePrompt,
+} from '../../../services/storage/persistenceService';
+import { formatFailure } from '../../../utils/formatFailure';
 import { LibrarySidebar } from '../LibraryList/LibrarySidebar';
 import {
   confirmAndDeleteLibraryItem,
@@ -221,6 +225,26 @@ export function LibraryBrowser({
     ],
   );
 
+  const handleCopy = useCallback(
+    async (item: LibraryItemMeta) => {
+      if (isBusy || item.kind !== 'character') {
+        return;
+      }
+      setActionBusy(true);
+      try {
+        const saved = await duplicateCharacter(item.id);
+        dispatch(bumpLibraryEpoch());
+        onCatalogMutated?.();
+        notify(`Copied as ${saved.name}`);
+      } catch (error) {
+        notify(formatFailure('copy character', item.name, error));
+      } finally {
+        setActionBusy(false);
+      }
+    },
+    [dispatch, isBusy, notify, onCatalogMutated],
+  );
+
   const handleDelete = useCallback(
     async (item: LibraryItemMeta) => {
       if (isBusy) {
@@ -305,6 +329,7 @@ export function LibraryBrowser({
       onSelect={handleSelect}
       onActivateType={handleActivateType}
       onToggleFavorite={handleToggleFavorite}
+      onCopy={handleCopy}
       onDelete={handleDelete}
     />
   );

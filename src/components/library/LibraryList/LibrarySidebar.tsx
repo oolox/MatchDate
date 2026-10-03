@@ -33,6 +33,7 @@ export interface LibrarySidebarProps {
   onSelect: (item: LibraryItemMeta) => void;
   onActivateType?: (item: LibraryItemMeta) => void;
   onToggleFavorite: (item: LibraryItemMeta) => void;
+  onCopy?: (item: LibraryItemMeta) => void;
   onDelete: (item: LibraryItemMeta) => void;
 }
 
@@ -54,6 +55,7 @@ export function LibrarySidebar({
   onSelect,
   onActivateType,
   onToggleFavorite,
+  onCopy,
   onDelete,
 }: LibrarySidebarProps) {
   const labels = getLibraryListLabels(kind);
@@ -116,6 +118,7 @@ export function LibrarySidebar({
           onSelect={onSelect}
           onActivateType={onActivateType}
           onToggleFavorite={onToggleFavorite}
+          onCopy={onCopy}
           onDelete={onDelete}
         />
       </div>
