@@ -1,0 +1,63 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.editor {
+  width: 100%;
+  min-height: var(--composer-min-height);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.editor:focus {
+  outline: none;
+}
+
+.editor:empty:before,
+.editor.empty:before {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.editor :global(.md-mention) {
+  display: inline;
+  padding: 0.05em 0.35em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-panel);
+  font-size: 0.95em;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+.editor :global(.md-mention-link) {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.editor :global(.md-mention-link:hover),
+.editor :global(.md-mention-link:focus-visible) {
+  color: var(--color-text);
+  border-color: var(--color-border-strong, var(--color-border));
+  outline: none;
+}

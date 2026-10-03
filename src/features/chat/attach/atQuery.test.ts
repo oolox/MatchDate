@@ -21,4 +21,14 @@ describe('findAtQuery', () => {
   it('strips the active token', () => {
     expect(stripAtQuery('see @no thanks', 4, 7)).toBe('see  thanks');
   });
+
+  it('skips completed inline mention tokens', () => {
+    const token = '@[[character:c1|Man-4]]';
+    expect(findAtQuery(`${token} more`, token.length + 5)).toBeNull();
+    expect(findAtQuery(token, 5)).toBeNull();
+    expect(findAtQuery(`${token} @no`, token.length + 4)).toEqual({
+      start: token.length + 1,
+      query: 'no',
+    });
+  });
 });

@@ -15,10 +15,15 @@ import {
 } from '../sessionPreprompt';
 import { listAssets } from '../../../services/storage/persistenceService';
 import { loadTextContent } from '../../../services/storage/textStorage';
+import {
+  appendMentionToken,
+  hasMentionToken,
+  removeMentionToken,
+} from '../attach/mentionToken';
 import { apiContentForMessage } from '../attach/xmlAttach';
 import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
-import { useTxtChatAttachments } from '../useTxtChatAttachments';
+import { useTxtChatAttachments, type DraftAttachment } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -84,6 +89,48 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
       attach.syncMentionFromCaret(value, caret);
     },
     [attach, dispatch],
+  );
+
+  const handleCaretChange = useCallback(
+    (value: string, caret: number) => {
+      attach.syncMentionFromCaret(value, caret);
+    },
+    [attach],
+  );
+
+  const insertMentionTokens = useCallback(
+    (items: DraftAttachment[]) => {
+      if (items.length === 0) {
+        return;
+      }
+      const current = attach.textareaRef.current?.value ?? draft;
+      let next = current;
+      for (const item of items) {
+        if (hasMentionToken(next, item.kind, item.assetId)) {
+          continue;
+        }
+        next = appendMentionToken(next, item.kind, item.assetId, item.name);
+      }
+      if (next !== current) {
+        attach.textareaRef.current?.syncExternal();
+        setDraft(next);
+      }
+    },
+    [attach.textareaRef, draft, setDraft],
+  );
+
+  const handleRemoveAttachment = useCallback(
+    (assetId: string) => {
+      const item = attach.attachments.find((entry) => entry.assetId === assetId);
+      attach.removeAttachment(assetId);
+      if (!item) {
+        return;
+      }
+      const current = attach.textareaRef.current?.value ?? draft;
+      attach.textareaRef.current?.syncExternal();
+      setDraft(removeMentionToken(current, item.kind, item.assetId));
+    },
+    [attach, draft, setDraft],
   );
 
   const dismissPendingCreate = useCallback(() => {
@@ -308,7 +355,18 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         hidden
         aria-hidden="true"
         tabIndex={-1}
-        onChange={(event) => attach.onFileInputChange(event.target.files)}
+        onChange={(event) => {
+          const files = event.target.files;
+          void (async () => {
+            if (files && files.length > 0) {
+              const added = await attach.addFiles(Array.from(files));
+              insertMentionTokens(added);
+            }
+            if (attach.fileInputRef.current) {
+              attach.fileInputRef.current.value = '';
+            }
+          })();
+        }}
       />
       <MessageComposer
         value={draft}
@@ -327,7 +385,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         enableFileDrop
         dropLabel="Drop text files or library items here"
         attachments={
-          <AttachmentChips items={attach.attachments} onRemove={attach.removeAttachment} />
+          <AttachmentChips items={attach.attachments} onRemove={handleRemoveAttachment} />
         }
         mentionOpen={attach.mentionOpen}
         mentionActiveId={
@@ -344,13 +402,14 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           ) : null
         }
         onFilesDrop={(files) => {
-          void attach.addFiles(files);
+          void attach.addFiles(files).then(insertMentionTokens);
         }}
         onLibraryDrop={(items) => {
-          void attach.addLibraryItems(items);
+          void attach.addLibraryItems(items).then(insertMentionTokens);
         }}
         onComposerKeyDown={(event) => attach.onComposerKeyDown(event, draft, setDraft)}
         onChange={setDraft}
+        onCaretChange={handleCaretChange}
         onSend={() => {
           void handleSend();
         }}

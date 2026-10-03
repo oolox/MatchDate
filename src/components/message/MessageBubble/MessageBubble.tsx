@@ -1,7 +1,7 @@
 import { memo } from 'react';
-import { AttachmentChips } from '../../chat/AttachmentChips/AttachmentChips';
 import type { ThreadMessage } from '../../../types/chat';
 import { AssistantMessageContent } from '../AssistantMessageContent/AssistantMessageContent';
+import { UserMessageContent } from '../UserMessageContent/UserMessageContent';
 import { Spinner } from '../../ui/Spinner/Spinner';
 import styles from './MessageBubble.module.css';
 
@@ -32,14 +32,11 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
       <header className={styles.header}>{roleLabel}</header>
       <div className={styles.bubble}>
         <div className={styles.content}>
-          {isUser && message.attachments && message.attachments.length > 0 ? (
-            <AttachmentChips items={message.attachments} />
-          ) : null}
           {isWaitingForResponse ? (
             <Spinner size={CHAT_WAITING_SPINNER_SIZE} label="" className={styles.waitingSpinner} />
           ) : displayContent ? (
             isUser ? (
-              <p className={styles.userText}>{displayContent}</p>
+              <UserMessageContent content={displayContent} />
             ) : (
               <AssistantMessageContent
                 content={displayContent}
@@ -58,6 +55,5 @@ export const MessageBubble = memo(
   (prev, next) =>
     prev.message.id === next.message.id &&
     prev.message.content === next.message.content &&
-    prev.message.status === next.message.status &&
-    prev.message.attachments?.length === next.message.attachments?.length,
+    prev.message.status === next.message.status,
 );

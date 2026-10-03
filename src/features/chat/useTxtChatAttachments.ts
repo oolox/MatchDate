@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import type { MentionComposerInputHandle } from '../../components/message/MentionComposerInput/MentionComposerInput';
 import { useNotification } from '../../components/notification/Notification/useNotification';
 import { formatFailure } from '../../utils/formatFailure';
 import {
@@ -18,6 +19,10 @@ import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDr
 import { bumpLibraryEpoch } from '../../store/slices/appShellSlice';
 import { useAppDispatch } from '../../store/hooks';
 import { findAtQuery, stripAtQuery } from './attach/atQuery';
+import {
+  humanizeMentions,
+  replaceAtQueryWithMention,
+} from './attach/mentionToken';
 import {
   CHAT_ATTACH_WARN_CHARS,
   mimeFromFileName,
@@ -77,7 +82,7 @@ function parseMentionId(
 export function useTxtChatAttachments(threadId: string) {
   const dispatch = useAppDispatch();
   const { notify } = useNotification();
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<MentionComposerInputHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const attachmentsRef = useRef<DraftAttachment[]>([]);
@@ -211,7 +216,8 @@ export function useTxtChatAttachments(threadId: string) {
   }, []);
 
   const addFiles = useCallback(
-    async (files: File[]) => {
+    async (files: File[]): Promise<DraftAttachment[]> => {
+      const added: DraftAttachment[] = [];
       const work = (async () => {
         for (const file of files) {
           const sizeError = validateTextAttachmentFile(file);
@@ -234,30 +240,35 @@ export function useTxtChatAttachments(threadId: string) {
           try {
             const saved = await saveText(file, file.name);
             dispatch(bumpLibraryEpoch());
-            addDraft({
+            const draftItem: DraftAttachment = {
               kind: 'text',
               assetId: saved.id,
               name: saved.metadata?.originalName ?? file.name,
               mime: saved.mimeType,
               body,
-            });
+            };
+            addDraft(draftItem);
+            added.push(draftItem);
           } catch (error) {
             notify(formatFailure('attach file', file.name, error));
           }
         }
       })();
-      return trackPendingAdd(work);
+      await trackPendingAdd(work);
+      return added;
     },
     [addDraft, dispatch, notify, trackPendingAdd],
   );
 
   const addTextAsset = useCallback(
-    async (assetId: string) => {
-      if (
-        attachmentsRef.current.some((item) => item.kind === 'text' && item.assetId === assetId)
-      ) {
-        return;
+    async (assetId: string): Promise<DraftAttachment | null> => {
+      const existing = attachmentsRef.current.find(
+        (item) => item.kind === 'text' && item.assetId === assetId,
+      );
+      if (existing) {
+        return existing;
       }
+      let added: DraftAttachment | null = null;
       const work = (async () => {
         try {
           const body = await loadTextContent(assetId);
@@ -280,63 +291,77 @@ export function useTxtChatAttachments(threadId: string) {
               // fall through to filename defaults
             }
           }
-          addDraft({
+          const draftItem: DraftAttachment = {
             kind: 'text',
             assetId,
             name: name ?? assetId,
             mime: mime ?? mimeFromFileName(name ?? 'notes.txt'),
             body,
-          });
+          };
+          addDraft(draftItem);
+          added = draftItem;
         } catch (error) {
           notify(formatFailure('attach file', undefined, error));
         }
       })();
-      return trackPendingAdd(work);
+      await trackPendingAdd(work);
+      return added;
     },
     [addDraft, libraryItems, notify, trackPendingAdd],
   );
 
   const addCharacterAsset = useCallback(
-    async (characterId: string) => {
-      if (
-        attachmentsRef.current.some(
-          (item) => item.kind === 'character' && item.assetId === characterId,
-        )
-      ) {
-        return;
+    async (characterId: string): Promise<DraftAttachment | null> => {
+      const existing = attachmentsRef.current.find(
+        (item) => item.kind === 'character' && item.assetId === characterId,
+      );
+      if (existing) {
+        return existing;
       }
+      let added: DraftAttachment | null = null;
       const work = (async () => {
         try {
           const character = await loadCharacter(characterId);
           const item = libraryItems.find(
             (row) => row.kind === 'character' && row.id === characterId,
           );
-          addDraft({
+          const draftItem: DraftAttachment = {
             kind: 'character',
             assetId: characterId,
             name: character.name || item?.name || characterId,
             character,
-          });
+          };
+          addDraft(draftItem);
+          added = draftItem;
         } catch (error) {
           notify(formatFailure('attach character', undefined, error));
         }
       })();
-      return trackPendingAdd(work);
+      await trackPendingAdd(work);
+      return added;
     },
     [addDraft, libraryItems, notify, trackPendingAdd],
   );
 
   const addLibraryItems = useCallback(
-    async (items: MatchDateLibraryDragPayload[]) => {
+    async (items: MatchDateLibraryDragPayload[]): Promise<DraftAttachment[]> => {
+      const added: DraftAttachment[] = [];
       for (const item of items) {
         if (item.kind === 'character') {
-          await addCharacterAsset(item.id);
+          const next = await addCharacterAsset(item.id);
+          if (next) {
+            added.push(next);
+          }
           continue;
         }
         if (item.kind === 'asset' && (item.subtype == null || item.subtype === 'text')) {
-          await addTextAsset(item.id);
+          const next = await addTextAsset(item.id);
+          if (next) {
+            added.push(next);
+          }
         }
       }
+      return added;
     },
     [addCharacterAsset, addTextAsset],
   );
@@ -382,55 +407,80 @@ export function useTxtChatAttachments(threadId: string) {
     [closeMention],
   );
 
-  const consumeMentionToken = useCallback(
-    (draft: string, onDraftChange: (next: string) => void) => {
-      const caret = textareaRef.current?.selectionStart ?? draft.length;
-      const start = mentionStart ?? findAtQuery(draft, caret)?.start;
-      if (start == null) {
-        closeMention();
-        return;
-      }
-      const next = stripAtQuery(draft, start, caret);
-      onDraftChange(next);
-      closeMention();
-      requestAnimationFrame(() => {
-        const node = textareaRef.current;
-        if (node) {
-          node.focus();
-          node.setSelectionRange(start, start);
-        }
-      });
-    },
-    [closeMention, mentionStart],
-  );
-
   const openFilePicker = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
   const selectMention = useCallback(
     (id: string, draft: string, onDraftChange: (next: string) => void) => {
-      consumeMentionToken(draft, onDraftChange);
+      const caret = textareaRef.current?.selectionStart ?? draft.length;
+      const start = mentionStart ?? findAtQuery(draft, caret)?.start;
+
       if (id === TXT_ATTACH_UPLOAD_ID) {
+        if (start != null) {
+          const next = stripAtQuery(draft, start, caret);
+          // Caret is applied once via layout sync — do not re-set in rAF (races with typing).
+          textareaRef.current?.setSelectionRange(start, start);
+          onDraftChange(next);
+          requestAnimationFrame(() => {
+            textareaRef.current?.focus();
+          });
+        }
+        closeMention();
         openFilePicker();
         return;
       }
+
       const parsed = parseMentionId(id);
       if (!parsed) {
+        closeMention();
         return;
       }
+
+      const row = libraryItems.find(
+        (item) => item.kind === parsed.kind && item.id === parsed.assetId,
+      );
+      const label = row?.name ?? parsed.assetId;
+
+      if (start != null) {
+        const { next, caret: nextCaret } = replaceAtQueryWithMention(
+          draft,
+          start,
+          caret,
+          parsed.kind,
+          parsed.assetId,
+          label,
+        );
+        // Caret is applied once via layout sync — do not re-set in rAF (races with typing).
+        textareaRef.current?.setSelectionRange(nextCaret, nextCaret);
+        onDraftChange(next);
+        closeMention();
+        requestAnimationFrame(() => {
+          textareaRef.current?.focus();
+        });
+      } else {
+        closeMention();
+      }
+
       if (parsed.kind === 'character') {
         void addCharacterAsset(parsed.assetId);
         return;
       }
       void addTextAsset(parsed.assetId);
     },
-    [addCharacterAsset, addTextAsset, consumeMentionToken, openFilePicker],
+    [
+      addCharacterAsset,
+      addTextAsset,
+      closeMention,
+      libraryItems,
+      mentionStart,
+      openFilePicker,
+    ],
   );
 
   const onComposerKeyDown = useCallback(
     (
-      event: KeyboardEvent<HTMLTextAreaElement>,
+      event: KeyboardEvent<HTMLDivElement>,
       draft: string,
       onDraftChange: (next: string) => void,
     ): boolean => {
@@ -488,7 +538,7 @@ export function useTxtChatAttachments(threadId: string) {
           item.kind === 'character',
       )
       .map((item) => ({ character: item.character, guid: item.assetId }));
-    return composeAttachedUserContent(userText, files, characters);
+    return composeAttachedUserContent(humanizeMentions(userText), files, characters);
   }, []);
 
   const getAttachmentSnapshot = useCallback(() => attachmentsRef.current.slice(), []);

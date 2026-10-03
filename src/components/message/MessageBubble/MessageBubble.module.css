@@ -60,13 +60,6 @@
   overflow-wrap: anywhere;
 }
 
-.userText {
-  margin: 0;
-  white-space: pre-wrap;
-  font-size: var(--font-size-md);
-  line-height: 1.6;
-}
-
 .waitingSpinner {
   display: block;
 }

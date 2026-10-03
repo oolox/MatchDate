@@ -8,7 +8,10 @@ import {
   readMatchDateLibraryDragPayload,
   type MatchDateLibraryDragPayload,
 } from '../../../utils/matchdateLibraryDrag';
-import { MessageTextInput } from '../MessageTextInput/MessageTextInput';
+import {
+  MentionComposerInput,
+  type MentionComposerInputHandle,
+} from '../MentionComposerInput/MentionComposerInput';
 import styles from './MessageComposer.module.css';
 
 export interface MessageComposerProps {
@@ -27,7 +30,7 @@ export interface MessageComposerProps {
   mentionMenu?: ReactNode;
   mentionOpen?: boolean;
   mentionActiveId?: string;
-  textareaRef?: Ref<HTMLTextAreaElement>;
+  textareaRef?: Ref<MentionComposerInputHandle>;
   enableFileDrop?: boolean;
   dropLabel?: string;
   onChange: (value: string) => void;
@@ -35,7 +38,8 @@ export interface MessageComposerProps {
   onAbort?: () => void;
   onFilesDrop?: (files: File[]) => void;
   onLibraryDrop?: (items: MatchDateLibraryDragPayload[]) => void;
-  onComposerKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean;
+  onComposerKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => boolean;
+  onCaretChange?: (value: string, caret: number) => void;
 }
 
 function isAcceptedDrop(dataTransfer: DataTransfer | null | undefined): boolean {
@@ -73,6 +77,7 @@ export function MessageComposer({
   onFilesDrop,
   onLibraryDrop,
   onComposerKeyDown,
+  onCaretChange,
 }: MessageComposerProps) {
   const [dragActive, setDragActive] = useState(false);
   const canSend =
@@ -86,7 +91,7 @@ export function MessageComposer({
     }
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (onComposerKeyDown?.(event)) {
       return;
     }
@@ -194,7 +199,7 @@ export function MessageComposer({
       {attachments}
       <div className={styles.fieldWrap}>
         {mentionMenu}
-        <MessageTextInput
+        <MentionComposerInput
           ref={textareaRef}
           label={label}
           value={value}
@@ -208,6 +213,7 @@ export function MessageComposer({
           aria-activedescendant={mentionActiveId}
           onChange={onChange}
           onKeyDown={handleKeyDown}
+          onCaretChange={onCaretChange}
         />
       </div>
       <div className={styles.actions}>
