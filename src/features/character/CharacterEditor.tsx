@@ -66,7 +66,6 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
           title="Attributes"
           expanded={attributesExpanded}
           onExpandedChange={setAttributesExpanded}
-          fill
           bodyClassName={styles.attributesBody}
         >
           <ul
@@ -124,7 +123,6 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
           title="Traits"
           expanded={traitsExpanded}
           onExpandedChange={setTraitsExpanded}
-          fill
           hideBodyWhenCollapsed
           bodyClassName={styles.traitsBody}
         >
@@ -149,7 +147,6 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
           title="History"
           expanded={historyExpanded}
           onExpandedChange={setHistoryExpanded}
-          fill
           hideBodyWhenCollapsed
           bodyClassName={styles.historyBody}
         >

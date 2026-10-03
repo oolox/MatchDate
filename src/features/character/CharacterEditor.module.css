@@ -22,9 +22,9 @@
 }
 
 .list {
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -164,7 +164,7 @@
   margin: 0;
   padding: var(--space-sm);
   list-style: none;
-  overflow: auto;
+  overflow: visible;
   min-height: 0;
 }
 
