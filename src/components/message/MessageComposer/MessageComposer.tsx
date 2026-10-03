@@ -2,7 +2,6 @@ import type { DragEvent, FormEvent, KeyboardEvent, ReactNode, Ref } from 'react'
 import { useCallback, useState } from 'react';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { IconName } from '../../ui/Icon/icons';
-import { Spinner } from '../../ui/Spinner/Spinner';
 import {
   dataTransferHasMatchDateLibrary,
   readMatchDateLibraryDragPayload,
@@ -21,7 +20,6 @@ export interface MessageComposerProps {
   label?: string;
   placeholder?: string;
   rows?: number;
-  streamingLabel?: string;
   sendIcon?: IconName;
   allowEmptySend?: boolean;
   actionsLeading?: ReactNode;
@@ -59,7 +57,6 @@ export function MessageComposer({
   label = 'Message',
   placeholder = 'Type a message…',
   rows = 3,
-  streamingLabel = 'Generating response…',
   sendIcon = 'send',
   allowEmptySend = false,
   actionsLeading,
@@ -82,7 +79,6 @@ export function MessageComposer({
   const [dragActive, setDragActive] = useState(false);
   const canSend =
     !disabled && !isStreaming && (allowEmptySend || value.trim().length > 0);
-  const showStreamingReplace = Boolean(isStreaming && streamingLabel);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -105,7 +101,7 @@ export function MessageComposer({
 
   const handleDragOver = useCallback(
     (event: DragEvent) => {
-      if (!enableFileDrop || disabled || isStreaming) {
+      if (!enableFileDrop || disabled) {
         return;
       }
       if (!onFilesDrop && !onLibraryDrop) {
@@ -118,7 +114,7 @@ export function MessageComposer({
       event.dataTransfer.dropEffect = 'copy';
       setDragActive(true);
     },
-    [disabled, enableFileDrop, isStreaming, onFilesDrop, onLibraryDrop],
+    [disabled, enableFileDrop, onFilesDrop, onLibraryDrop],
   );
 
   const handleDragLeave = useCallback(() => {
@@ -127,7 +123,7 @@ export function MessageComposer({
 
   const handleDrop = useCallback(
     (event: DragEvent) => {
-      if (!enableFileDrop || disabled || isStreaming) {
+      if (!enableFileDrop || disabled) {
         return;
       }
       if (!onFilesDrop && !onLibraryDrop) {
@@ -158,28 +154,8 @@ export function MessageComposer({
         onFilesDrop(files);
       }
     },
-    [disabled, enableFileDrop, isStreaming, onFilesDrop, onLibraryDrop],
+    [disabled, enableFileDrop, onFilesDrop, onLibraryDrop],
   );
-
-  if (showStreamingReplace) {
-    return (
-      <div className={styles.composer} role="status" aria-live="polite">
-        <div className={styles.streaming}>
-          <p className={styles.streamingLabel}>{streamingLabel}</p>
-          <Spinner size={64} label={streamingLabel} className={styles.streamingSpinner} />
-          {onAbort ? (
-            <IconButton
-              icon="close"
-              label="Stop generating"
-              variant="secondary"
-              size="md"
-              onClick={onAbort}
-            />
-          ) : null}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form
@@ -205,7 +181,7 @@ export function MessageComposer({
           value={value}
           placeholder={placeholder}
           rows={rows}
-          disabled={disabled || isStreaming}
+          disabled={disabled}
           aria-describedby={mentionOpen ? 'txt-attach-listbox' : undefined}
           aria-autocomplete={mentionOpen ? 'list' : undefined}
           aria-controls={mentionOpen ? 'txt-attach-listbox' : undefined}
@@ -221,6 +197,15 @@ export function MessageComposer({
           <div className={styles.actionsLeading}>{actionsLeading}</div>
         ) : null}
         {actionsTrailing}
+        {isStreaming && onAbort ? (
+          <IconButton
+            icon="close"
+            label="Stop generating"
+            variant="secondary"
+            size="md"
+            onClick={onAbort}
+          />
+        ) : null}
         <IconButton
           type="submit"
           icon={sendIcon}

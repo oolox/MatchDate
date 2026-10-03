@@ -108,9 +108,11 @@ export function SessionLibraryPanel({ sessionId, routePrefix }: SessionLibraryPa
       onDeleteLoadable={handleDeleteLoadable}
       onToggleFavoriteLoadable={handleToggleFavorite}
       headerActions={
-        <button type="button" className={styles.newChatButton} onClick={handleNew}>
-          {routePrefix === 'character' ? 'New character' : 'New chat'}
-        </button>
+        routePrefix === 'character' ? (
+          <button type="button" className={styles.newChatButton} onClick={handleNew}>
+            New character
+          </button>
+        ) : undefined
       }
     />
   );

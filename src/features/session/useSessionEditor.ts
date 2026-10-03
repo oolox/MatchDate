@@ -12,7 +12,11 @@ import {
   markSessionSaved,
   setSelectedSessionId,
 } from '../../store/slices/sessionsSlice';
-import { loadThread, selectActiveThread } from '../../store/slices/threadSlice';
+import {
+  loadThread,
+  selectActiveThread,
+  setThreadTitle,
+} from '../../store/slices/threadSlice';
 import {
   applyThreadToSession,
   createEmptySession,
@@ -27,6 +31,7 @@ export function useSessionEditor(sessionId: string) {
     createEmptySession({ id: sessionId }),
   );
   const [ready, setReady] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,5 +84,28 @@ export function useSessionEditor(sessionId: string) {
     dispatch(bumpLibraryEpoch());
   }, [dispatch, sessionDoc, sessionId, store]);
 
-  return { ready, persistAfterTurn, sessionDoc };
+  const saveSessionName = useCallback(
+    async (name: string) => {
+      const title = name.trim() || 'New chat';
+      dispatch(setThreadTitle({ threadId: sessionId, title }));
+      const thread = selectActiveThread(store.getState());
+      if (!thread || thread.id !== sessionId) {
+        return;
+      }
+      setIsSavingName(true);
+      try {
+        const merged = applyThreadToSession(sessionDoc, { ...thread, title });
+        const saved = await saveSessionDocument(merged);
+        setSessionDoc(saved);
+        dispatch(markSessionSaved({ id: saved.id, updatedAt: saved.updatedAt }));
+        dispatch(setSelectedSessionId(saved.id));
+        dispatch(bumpLibraryEpoch());
+      } finally {
+        setIsSavingName(false);
+      }
+    },
+    [dispatch, sessionDoc, sessionId, store],
+  );
+
+  return { ready, persistAfterTurn, saveSessionName, isSavingName, sessionDoc };
 }

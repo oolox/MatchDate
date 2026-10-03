@@ -119,6 +119,18 @@ const threadSlice = createSlice({
       }
       thread.updatedAt = nowIso();
     },
+    setThreadTitle: (
+      state,
+      action: PayloadAction<{ threadId: ThreadId; title: string }>,
+    ) => {
+      const { threadId, title } = action.payload;
+      const thread = state.threads[threadId];
+      if (!thread) {
+        return;
+      }
+      thread.title = title.trim() || 'New chat';
+      thread.updatedAt = nowIso();
+    },
   },
 });
 
@@ -130,6 +142,7 @@ export const {
   startNewChat,
   loadThread,
   setThreadSystemPromptSlug,
+  setThreadTitle,
 } = threadSlice.actions;
 
 export const selectActiveThreadId = (state: { thread: ThreadState }) =>

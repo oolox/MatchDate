@@ -63,36 +63,3 @@
   align-items: center;
   min-width: 0;
 }
-
-.streaming {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  min-height: 4.5rem;
-  padding: var(--space-sm) 0;
-}
-
-.streamingLabel {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-
-.streamingCaption {
-  margin: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-.streamingSpinner {
-  color: var(--color-accent);
-}
