@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { DEFAULT_THREAD_ID } from '../../features/chat/constants';
+import { humanizeMentions } from '../../features/chat/attach/mentionToken';
 import type { Thread, ThreadId, ThreadMessage } from '../../types/chat';
 import { createId, nowIso, truncateTitle } from '../../utils/id';
 
@@ -57,7 +58,9 @@ const threadSlice = createSlice({
       thread.messages.push(message);
       thread.updatedAt = nowIso();
       if (message.role === 'user' && (!thread.title.trim() || thread.title === 'New chat')) {
-        thread.title = truncateTitle(message.content.trim() || 'New chat');
+        thread.title = truncateTitle(
+          humanizeMentions(message.content).trim() || 'New chat',
+        );
       }
     },
     updateMessage: (state, action: PayloadAction<UpdateMessagePayload>) => {
