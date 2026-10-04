@@ -6,16 +6,40 @@ export interface SpinnerProps {
   label?: string;
 }
 
-const STROKE = 2.5;
-const VIEWBOX_WIDTH = 96;
-const VIEWBOX_HEIGHT = 20;
-const DOTS = [
-  { cx: 28, className: styles.dot1 },
-  { cx: 48, className: styles.dot2 },
-  { cx: 68, className: styles.dot3 },
+/**
+ * Heart geometry authored at 4× (large pulse state).
+ * Animation scales to 0.5 for the 2× (small) state — viewBox fits the 4× bounds.
+ */
+const R = 14;
+const TIP_Y = R * 2.2;
+const PAD = 2;
+/** Diameter line Y; peak at HEART_Y - R stays inside the viewBox. */
+const HEART_Y = R + PAD;
+const VIEWBOX_WIDTH = 200;
+const VIEWBOX_HEIGHT = Math.ceil(HEART_Y + TIP_Y + PAD);
+
+function HeartShape() {
+  const left = -2 * R;
+  const mid = 0;
+  const right = 2 * R;
+  const leftLobe = `M ${left} 0 A ${R} ${R} 0 0 1 ${-R} ${-R} A ${R} ${R} 0 0 1 ${mid} 0 Z`;
+  const rightLobe = `M ${mid} 0 A ${R} ${R} 0 0 1 ${R} ${-R} A ${R} ${R} 0 0 1 ${right} 0 Z`;
+  return (
+    <>
+      <path d={leftLobe} fill="currentColor" />
+      <path d={rightLobe} fill="currentColor" />
+      <polygon points={`${left},-1 ${right},-1 0,${TIP_Y - 1}`} fill="currentColor" />
+    </>
+  );
+}
+
+const HEARTS = [
+  { x: 50, className: styles.heart1 },
+  { x: 100, className: styles.heart2 },
+  { x: 150, className: styles.heart3 },
 ] as const;
 
-export function Spinner({ size = 96, className, label = 'Loading' }: SpinnerProps) {
+export function Spinner({ size = VIEWBOX_WIDTH, className, label = 'Loading' }: SpinnerProps) {
   const classes = [styles.spinner, className].filter(Boolean).join(' ');
   const hasLabel = Boolean(label);
   const width = size;
@@ -27,22 +51,19 @@ export function Spinner({ size = 96, className, label = 'Loading' }: SpinnerProp
       width={width}
       height={height}
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+      overflow="visible"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role={hasLabel ? 'img' : undefined}
       aria-label={hasLabel ? label : undefined}
       aria-hidden={hasLabel ? undefined : true}
     >
-      {DOTS.map(({ cx, className: dotClassName }) => (
-        <circle
-          key={cx}
-          className={dotClassName}
-          cx={cx}
-          cy="10"
-          r="7"
-          stroke="currentColor"
-          strokeWidth={STROKE}
-        />
+      {HEARTS.map(({ x, className: heartClassName }) => (
+        <g key={x} transform={`translate(${x} ${HEART_Y})`}>
+          <g className={heartClassName}>
+            <HeartShape />
+          </g>
+        </g>
       ))}
     </svg>
   );

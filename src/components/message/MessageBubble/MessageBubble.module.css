@@ -19,6 +19,9 @@
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  min-height: 1.25rem;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   font-weight: 600;
@@ -58,6 +61,13 @@
   max-width: 100%;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+
+.waiting {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: var(--space-lg);
 }
 
 .waitingSpinner {

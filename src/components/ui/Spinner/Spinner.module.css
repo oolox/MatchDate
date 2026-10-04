@@ -1,35 +1,37 @@
 .spinner {
   display: block;
   flex-shrink: 0;
+  overflow: visible;
   color: var(--color-accent);
 }
 
-.dot1,
-.dot2,
-.dot3 {
+.heart1,
+.heart2,
+.heart3 {
   transform-box: fill-box;
   transform-origin: center;
-  animation: dotPulse 3.6s ease-in-out infinite;
+  animation: heartPulse 3.6s ease-in-out infinite;
 }
 
-.dot2 {
+.heart2 {
   animation-delay: -1.2s;
 }
 
-.dot3 {
+.heart3 {
   animation-delay: -2.4s;
 }
 
-@keyframes dotPulse {
+/* Hearts are authored at 4×; scale(0.5)=2×, scale(1)=4×. */
+@keyframes heartPulse {
   0%,
   28%,
   100% {
     opacity: 0.35;
-    transform: scale(0.82);
+    transform: scale(0.5);
   }
 
   14% {
     opacity: 1;
-    transform: scale(1.12);
+    transform: scale(1);
   }
 }

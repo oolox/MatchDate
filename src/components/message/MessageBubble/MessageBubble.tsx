@@ -9,7 +9,7 @@ export interface MessageBubbleProps {
   message: ThreadMessage;
 }
 
-const CHAT_WAITING_SPINNER_SIZE = 48;
+const CHAT_WAITING_SPINNER_SIZE = 200;
 
 function MessageBubbleComponent({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
@@ -17,24 +17,35 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
   const isWaitingForResponse =
     !isUser && message.status === 'streaming' && message.content.trim().length === 0;
 
-  const roleLabel = isUser ? 'You' : 'Assistant';
+  const roleLabel = isUser ? 'You' : 'MatchDate';
   const displayContent = message.content;
   const messageClass = [
     styles.message,
     isUser ? styles.user : styles.assistant,
     isError ? styles.error : '',
+    isWaitingForResponse ? styles.waiting : '',
   ]
     .filter(Boolean)
     .join(' ');
+
+  if (isWaitingForResponse) {
+    return (
+      <article className={messageClass} aria-label="MatchDate is generating">
+        <Spinner
+          size={CHAT_WAITING_SPINNER_SIZE}
+          label="MatchDate is generating"
+          className={styles.waitingSpinner}
+        />
+      </article>
+    );
+  }
 
   return (
     <article className={messageClass} aria-label={`${roleLabel} message`}>
       <header className={styles.header}>{roleLabel}</header>
       <div className={styles.bubble}>
         <div className={styles.content}>
-          {isWaitingForResponse ? (
-            <Spinner size={CHAT_WAITING_SPINNER_SIZE} label="" className={styles.waitingSpinner} />
-          ) : displayContent ? (
+          {displayContent ? (
             isUser ? (
               <UserMessageContent content={displayContent} />
             ) : (
