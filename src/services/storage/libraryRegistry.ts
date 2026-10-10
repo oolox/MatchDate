@@ -84,6 +84,7 @@ export function parseCharacterDocument(raw: string, path: string): CharacterDocu
         attributes: value.attributes,
         history: Array.isArray(value.history) ? value.history : [],
         traits: Array.isArray(value.traits) ? value.traits : [],
+        images: Array.isArray(value.images) ? value.images : [],
         createdAt: backfillCreatedAt(value.createdAt, updatedAt),
         updatedAt,
       };

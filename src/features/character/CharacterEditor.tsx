@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { CharacterEditorApi } from './CharacterEditorContext';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
 import { CharacterHistoryEntry } from './CharacterHistoryEntry';
+import { CharacterImagesSection } from './CharacterImagesSection';
 import { CharacterTraitEntry } from './CharacterTraitEntry';
 import { CharacterSubHeader } from './CharacterSubHeader';
 import styles from './CharacterEditor.module.css';
@@ -31,11 +32,15 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     setAttributeValue,
     removeHistoryEntry,
     removeTrait,
+    addImagesFromFiles,
+    addImagesFromLibrary,
+    removeImage,
     handleSave,
     handleNew,
   } = editor;
   const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [traitsExpanded, setTraitsExpanded] = useState(true);
+  const [imagesExpanded, setImagesExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
 
   const historyNewestFirst = useMemo(
@@ -62,6 +67,28 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
       />
 
       <div className={styles.listBody}>
+        <CharacterCollapsibleCard
+          title="Images"
+          expanded={imagesExpanded}
+          onExpandedChange={setImagesExpanded}
+          hideBodyWhenCollapsed
+          bodyClassName={styles.imagesBody}
+        >
+          <CharacterImagesSection
+            images={character.images ?? []}
+            disabled={isBusy}
+            onFilesDrop={(files) => {
+              void addImagesFromFiles(files);
+            }}
+            onLibraryDrop={(items) => {
+              void addImagesFromLibrary(items);
+            }}
+            onRemove={(imageId) => {
+              void removeImage(imageId);
+            }}
+          />
+        </CharacterCollapsibleCard>
+
         <CharacterCollapsibleCard
           title="Attributes"
           expanded={attributesExpanded}

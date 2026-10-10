@@ -93,7 +93,9 @@ export function LibraryListItem({
         </span>
       ) : null}
       {isAsset && assetSubtype === 'text' ? <LibraryTextThumb name={item.name} /> : null}
-      {isAsset && assetSubtype === 'image' ? <LibraryAssetThumb name={item.name} /> : null}
+      {isAsset && assetSubtype === 'image' ? (
+        <LibraryAssetThumb assetId={item.id} name={item.name} />
+      ) : null}
       {isAsset && assetSubtype === 'video' ? <LibraryVideoThumb name={item.name} /> : null}
       <button
         type="button"

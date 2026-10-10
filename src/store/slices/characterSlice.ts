@@ -1,6 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { BasicValue, Character } from '../../types/character';
 import { createDefaultCharacter } from '../../types/character';
+import type { SavedImageRef } from '../../types/savedImage';
+import { normalizeSavedImageRefs } from '../../types/savedImage';
 
 export interface CharacterEditorState {
   characterId: string | null;
@@ -67,12 +69,42 @@ const characterSlice = createSlice({
       state.character.traits = next;
       state.isDirty = true;
     },
+    /** Prepend image refs (dedupe by id); marks dirty. */
+    prependCharacterEditorImages: (state, action: PayloadAction<SavedImageRef[]>) => {
+      const incoming = normalizeSavedImageRefs(action.payload);
+      if (incoming.length === 0) {
+        return;
+      }
+      const existingIds = new Set(state.character.images.map((image) => image.id));
+      const fresh = incoming.filter((image) => !existingIds.has(image.id));
+      if (fresh.length === 0) {
+        return;
+      }
+      state.character.images = [...fresh, ...state.character.images];
+      state.isDirty = true;
+    },
+    /** Unlink image from sheet only (does not delete library asset). */
+    removeCharacterEditorImage: (state, action: PayloadAction<string>) => {
+      const id = action.payload.trim();
+      if (!id) {
+        return;
+      }
+      const next = state.character.images.filter((image) => image.id !== id);
+      if (next.length === state.character.images.length) {
+        return;
+      }
+      state.character.images = next;
+      state.isDirty = true;
+    },
     replaceCharacterEditor: (
       state,
       action: PayloadAction<{ characterId: string | null; character: Character; isDirty?: boolean }>,
     ) => {
       state.characterId = action.payload.characterId;
-      state.character = action.payload.character;
+      state.character = {
+        ...action.payload.character,
+        images: normalizeSavedImageRefs(action.payload.character.images),
+      };
       state.isDirty = action.payload.isDirty ?? false;
     },
     markCharacterEditorSaved: (
@@ -80,7 +112,10 @@ const characterSlice = createSlice({
       action: PayloadAction<{ characterId: string; character: Character }>,
     ) => {
       state.characterId = action.payload.characterId;
-      state.character = action.payload.character;
+      state.character = {
+        ...action.payload.character,
+        images: normalizeSavedImageRefs(action.payload.character.images),
+      };
       state.isDirty = false;
     },
     setCharacterEditorDirty: (state, action: PayloadAction<boolean>) => {
@@ -97,6 +132,8 @@ export const {
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
+  prependCharacterEditorImages,
+  removeCharacterEditorImage,
   replaceCharacterEditor,
   markCharacterEditorSaved,
   setCharacterEditorDirty,

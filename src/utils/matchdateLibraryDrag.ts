@@ -16,7 +16,7 @@ export function canDragLibraryItem(item: {
   if (item.kind === 'character') {
     return true;
   }
-  return item.kind === 'asset' && item.subtype === 'text';
+  return item.kind === 'asset' && (item.subtype === 'text' || item.subtype === 'image');
 }
 
 export function setMatchDateLibraryDragData(

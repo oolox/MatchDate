@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DropdownSelect } from '../../ui/DropdownSelect';
 import { Tabs } from '../../ui/Tabs';
@@ -15,6 +15,7 @@ import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { selectIsStreaming } from '../../../store/slices/chatUiSlice';
 import { selectActiveSystemPresetSlug, setActiveSystemPreset } from '../../../store/slices/promptsSlice';
 import { selectIsActiveThreadDirty } from '../../../store/slices/sessionsSlice';
+import { saveImage } from '../../../services/storage/imageStorage';
 import {
   duplicateCharacter,
   setActivePrompt,
@@ -85,6 +86,7 @@ export function LibraryBrowser({
     return subtypes ? defaultSubtypeForLoadableKinds(folder, subtypes) : 'all';
   });
   const [actionBusy, setActionBusy] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const isBusy = editorBusy || isStreaming || isRefreshing || actionBusy;
 
@@ -277,7 +279,41 @@ export function LibraryBrowser({
     ],
   );
 
+  const handleUploadImages = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0 || isBusy) {
+        return;
+      }
+      setActionBusy(true);
+      let savedCount = 0;
+      try {
+        for (const file of Array.from(files)) {
+          if (!file.type.startsWith('image/')) {
+            notify(`Skipped non-image file: ${file.name}`);
+            continue;
+          }
+          await saveImage(file, { name: file.name });
+          savedCount += 1;
+        }
+        if (savedCount > 0) {
+          dispatch(bumpLibraryEpoch());
+          onCatalogMutated?.();
+          notify(savedCount === 1 ? 'Image uploaded' : `Uploaded ${savedCount} images`);
+        }
+      } catch (error) {
+        notify(formatFailure('upload image', undefined, error));
+      } finally {
+        setActionBusy(false);
+        if (imageInputRef.current) {
+          imageInputRef.current.value = '';
+        }
+      }
+    },
+    [dispatch, isBusy, notify, onCatalogMutated],
+  );
+
   const chromeKey = `${activeTab}:${activeSubtype}`;
+  const showImageUpload = activeTab === 'assets' || activeTab === 'all';
 
   return (
     <LibrarySidebar
@@ -290,7 +326,35 @@ export function LibraryBrowser({
       isBusy={isBusy}
       chromeKey={chromeKey}
       showKindLabels={showKindLabels}
-      headerActions={headerActions}
+      headerActions={
+        <>
+          {showImageUpload ? (
+            <>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                aria-hidden="true"
+                tabIndex={-1}
+                onChange={(event) => {
+                  void handleUploadImages(event.target.files);
+                }}
+              />
+              <button
+                type="button"
+                className={styles.uploadButton}
+                disabled={isBusy}
+                onClick={() => imageInputRef.current?.click()}
+              >
+                Upload image
+              </button>
+            </>
+          ) : null}
+          {headerActions}
+        </>
+      }
       sortSelectClassName={styles.sortSelect}
       searchInputClassName={styles.searchInput}
       header={

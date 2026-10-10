@@ -141,6 +141,7 @@ export function characterFromCreateData(data: unknown): Character | null {
     attributes: mergeAttributePatches(base.attributes, patch.attributes),
     history: normalizeHistory(patch.history),
     traits: traitsMerged.traits,
+    images: [],
   };
 }
 
@@ -206,6 +207,7 @@ export function applyCharacterUpdatePatch(
       attributes: nextAttributes,
       history: [...existing.history, ...historyAdditions],
       traits: traitsMerged.traits,
+      images: existing.images ?? [],
     },
     appendedHistoryCount: historyAdditions.length,
     updatedFields,

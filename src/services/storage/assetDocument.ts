@@ -1,6 +1,6 @@
 import type { AssetDocument } from '../../types/opfsDoc';
 import { OPFS_SCHEMA_VERSION, type OpfsAssetSubtype } from '../../types/opfsDoc';
-import type { SavedImageRef } from '../../types/savedImage';
+import type { SavedImageMetadata, SavedImageRef } from '../../types/savedImage';
 import type { SavedVideoRef } from '../../types/savedVideo';
 import type { SavedTextMetadata, SavedTextRef } from '../../types/savedText';
 import { imagePath, textPath, videoPath } from './paths';
@@ -96,5 +96,24 @@ export function savedTextRefFromAsset(asset: AssetDocument): SavedTextRef {
     createdAt: asset.createdAt,
     mimeType: asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain',
     ...(meta ? { metadata: meta } : {}),
+  };
+}
+
+/** IMAGE (and FRAME posters) are image-shaped for thumbs / character attach. */
+export function isImageLikeAssetSubtype(value: unknown): value is 'image' | 'frame' {
+  return value === 'image' || value === 'frame';
+}
+
+export function savedImageRefFromAsset(asset: AssetDocument): SavedImageRef {
+  const metadata =
+    isImageLikeAssetSubtype(asset.subtype) && asset.metadata
+      ? (asset.metadata as SavedImageMetadata)
+      : undefined;
+  return {
+    id: asset.id,
+    fileName: asset.fileName,
+    path: asset.blobPath,
+    createdAt: asset.createdAt,
+    ...(metadata ? { metadata } : {}),
   };
 }

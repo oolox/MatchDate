@@ -11,6 +11,7 @@ import {
   isCharacterHistoryEntry,
   isCharacterTrait,
 } from '../../types/character';
+import { normalizeSavedImageRefs } from '../../types/savedImage';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { nowIso } from '../../utils/id';
 import { removeLibraryItem, upsertLibraryItem } from './libraryIndex';
@@ -35,6 +36,7 @@ export function characterDocumentFromCharacter(
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
+    images: normalized.images,
     createdAt: options.createdAt ?? now,
     updatedAt: now,
   };
@@ -46,6 +48,7 @@ export function characterFromDocument(document: CharacterDocument): Character {
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
+    images: document.images ?? [],
   });
 }
 
@@ -121,6 +124,7 @@ export function normalizeCharacter(character: Character): Character {
     }),
     history: normalizeHistory(character.history),
     traits: normalizeTraits(character.traits),
+    images: normalizeSavedImageRefs(character.images),
   };
 }
 
@@ -155,6 +159,7 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
     attributes,
     history: normalizeHistory(value.history),
     traits: normalizeTraits(value.traits),
+    images: normalizeSavedImageRefs(value.images),
   });
 }
 
@@ -194,6 +199,7 @@ export async function saveCharacterDocument(
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
+    images: document.images ?? [],
   });
 
   const saved: CharacterDocument = {
@@ -205,6 +211,7 @@ export async function saveCharacterDocument(
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
+    images: normalized.images,
     createdAt,
     updatedAt: now,
   };

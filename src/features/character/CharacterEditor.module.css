@@ -157,6 +157,10 @@
   min-height: 0;
 }
 
+.imagesBody {
+  min-height: 0;
+}
+
 .historyList {
   display: flex;
   flex-direction: column;

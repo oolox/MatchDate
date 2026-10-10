@@ -36,6 +36,15 @@ describe('characterPersistence', () => {
     character.history = [
       { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', source: 'chat' },
     ];
+    character.images = [
+      {
+        id: 'img-1',
+        fileName: 'matchDate-img-img-1.png',
+        path: '/matchdate/assets/img/matchDate-img-img-1.png',
+        createdAt: '2026-09-13T17:00:00.000Z',
+        metadata: { originalName: 'portrait.png' },
+      },
+    ];
 
     const storage = getFileStorageService();
     const saved = await saveCharacterDocument(
@@ -46,10 +55,13 @@ describe('characterPersistence', () => {
     expect(saved.type).toBe('character');
     expect(saved.name).toBe('Alex');
     expect(saved.history).toHaveLength(1);
+    expect(saved.images).toHaveLength(1);
+    expect(saved.images?.[0]?.id).toBe('img-1');
 
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'char-1'));
     expect(loaded.name).toBe('Alex');
     expect(loaded.history).toEqual(character.history);
+    expect(loaded.images).toEqual(character.images);
     expect(loaded.attributes).toHaveLength(BASIC_VALUES.length);
     expect(loaded.attributes[0]).toEqual({
       name: 'Self-Direction',
@@ -58,7 +70,7 @@ describe('characterPersistence', () => {
     });
   });
 
-  it('migrates legacy character docs missing history to []', async () => {
+  it('migrates legacy character docs missing history/images to []', async () => {
     const storage = getFileStorageService();
     await storage.write(
       characterDocumentPath('legacy'),
@@ -75,6 +87,7 @@ describe('characterPersistence', () => {
 
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'legacy'));
     expect(loaded.history).toEqual([]);
+    expect(loaded.images).toEqual([]);
   });
 
   it('registers characters in library.json', async () => {

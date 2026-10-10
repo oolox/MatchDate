@@ -1,3 +1,5 @@
+import type { SavedImageRef } from './savedImage';
+
 export const BASIC_VALUES = [
   'Self-Direction',
   'Stimulation',
@@ -58,6 +60,8 @@ export interface Character {
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
+  /** Image asset refs (by guid / `SavedImageRef.id`), LuxNova-style. */
+  images: SavedImageRef[];
 }
 
 export interface CharacterDocument {
@@ -68,6 +72,8 @@ export interface CharacterDocument {
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
+  /** Image asset refs keyed by asset id. */
+  images?: SavedImageRef[];
   createdAt: string;
   updatedAt: string;
 }
@@ -86,6 +92,7 @@ export function createDefaultCharacter(name = ''): Character {
     attributes: createDefaultValueScores(),
     history: [],
     traits: [],
+    images: [],
   };
 }
 
