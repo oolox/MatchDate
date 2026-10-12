@@ -99,6 +99,45 @@
   background: var(--color-bg-elevated);
 }
 
+.characterThumbWrap {
+  flex-shrink: 0;
+  height: 64px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+}
+
+.characterThumbImg {
+  display: block;
+  height: 64px;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+}
+
+.characterThumbPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  color: var(--color-text-muted);
+}
+
+.characterThumbIcon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.characterThumbIcon svg {
+  width: 2rem;
+  height: 2rem;
+}
+
 .assetThumbImg {
   display: block;
   width: 100%;

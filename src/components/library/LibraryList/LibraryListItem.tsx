@@ -8,6 +8,7 @@ import {
 import { formatLibraryListDateTime } from './libraryListDateTime';
 import { getLibraryKindBadge, getLibraryKindLabel } from './libraryListLabels';
 import { LibraryAssetThumb } from './LibraryAssetThumb';
+import { LibraryCharacterThumb } from './LibraryCharacterThumb';
 import { LibraryTextThumb } from './LibraryTextThumb';
 import { LibraryVideoThumb } from './LibraryVideoThumb';
 import styles from './LibraryList.module.css';
@@ -91,6 +92,9 @@ export function LibraryListItem({
         <span className={styles.kindBadge} aria-hidden="true">
           {kindLabel}
         </span>
+      ) : null}
+      {item.kind === 'character' ? (
+        <LibraryCharacterThumb characterId={item.id} name={item.name} />
       ) : null}
       {isAsset && assetSubtype === 'text' ? <LibraryTextThumb name={item.name} /> : null}
       {isAsset && assetSubtype === 'image' ? (
