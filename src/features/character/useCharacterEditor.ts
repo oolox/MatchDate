@@ -26,6 +26,7 @@ import {
   removeCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
   setCharacterEditorName,
+  upsertCharacterEditorTrait,
 } from '../../store/slices/characterSlice';
 import { selectStorageReady } from '../../store/slices/promptsSlice';
 
@@ -165,6 +166,13 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   const removeTrait = useCallback(
     (name: string) => {
       dispatch(removeCharacterEditorTrait(name));
+    },
+    [dispatch],
+  );
+
+  const upsertTrait = useCallback(
+    (trait: { at: string; name: string; value: string }) => {
+      dispatch(upsertCharacterEditorTrait(trait));
     },
     [dispatch],
   );
@@ -354,6 +362,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     setAttributeValue,
     removeHistoryEntry,
     removeTrait,
+    upsertTrait,
     addImagesFromFiles,
     addImagesFromLibrary,
     removeImage,

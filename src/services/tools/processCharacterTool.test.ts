@@ -19,14 +19,22 @@ describe('characterFromCreateData', () => {
   });
 
   it('builds a character with defaults and optional fields', () => {
-    const character = characterFromCreateData({
-      name: 'Mary\'s husband',
-      traits: [{ at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'hazel' }],
-    });
+    const character = characterFromCreateData(
+      {
+        name: 'Mary\'s husband',
+        traits: [{ at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'hazel' }],
+      },
+      { sessionId: 'sess-create' },
+    );
     expect(character?.name).toBe("Mary's husband");
     expect(character?.attributes).toHaveLength(10);
     expect(character?.traits).toEqual([
-      { at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'hazel' },
+      {
+        at: '2026-01-01T00:00:00.000Z',
+        name: 'eye color',
+        value: 'hazel',
+        sessionId: 'sess-create',
+      },
     ]);
     expect(character?.history).toEqual([]);
   });
@@ -36,38 +44,60 @@ describe('applyCharacterUpdatePatch', () => {
   it('appends history and keeps existing entries', () => {
     const existing = createDefaultCharacter('Alex');
     existing.history = [
-      { at: '2026-01-01T00:00:00.000Z', summary: 'Introduced', source: 'chat' },
+      { at: '2026-01-01T00:00:00.000Z', summary: 'Introduced', sessionId: 'sess-old' },
     ];
 
-    const merged = applyCharacterUpdatePatch(existing, {
-      name: 'Alex',
-      history: [
-        { at: '2026-09-13T18:00:00.000Z', summary: 'Went on a first date', source: 'chat' },
-      ],
-    });
+    const merged = applyCharacterUpdatePatch(
+      existing,
+      {
+        name: 'Alex',
+        history: [
+          { at: '2026-09-13T18:00:00.000Z', summary: 'Went on a first date' },
+        ],
+      },
+      { sessionId: 'sess-new' },
+    );
 
     expect(merged?.appendedHistoryCount).toBe(1);
     expect(merged?.updatedFields).toEqual(['history']);
     expect(merged?.character.history).toHaveLength(2);
-    expect(merged?.character.history[1]?.summary).toBe('Went on a first date');
+    expect(merged?.character.history[1]).toEqual({
+      at: '2026-09-13T18:00:00.000Z',
+      summary: 'Went on a first date',
+      sessionId: 'sess-new',
+    });
   });
 
   it('upserts traits by name', () => {
     const existing = createDefaultCharacter('Alex');
     existing.traits = [
-      { at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'brown' },
+      { at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'brown', sessionId: 'sess-old' },
     ];
-    const merged = applyCharacterUpdatePatch(existing, {
-      name: 'Alex',
-      traits: [
-        { at: '2026-09-13T18:00:00.000Z', name: 'eye color', value: 'green' },
-        { at: '2026-09-13T18:00:00.000Z', name: 'hair color', value: 'black' },
-      ],
-    });
+    const merged = applyCharacterUpdatePatch(
+      existing,
+      {
+        name: 'Alex',
+        traits: [
+          { at: '2026-09-13T18:00:00.000Z', name: 'eye color', value: 'green' },
+          { at: '2026-09-13T18:00:00.000Z', name: 'hair color', value: 'black' },
+        ],
+      },
+      { sessionId: 'sess-new' },
+    );
     expect(merged?.updatedFields).toEqual(['traits']);
     expect(merged?.character.traits).toEqual([
-      { at: '2026-09-13T18:00:00.000Z', name: 'eye color', value: 'green' },
-      { at: '2026-09-13T18:00:00.000Z', name: 'hair color', value: 'black' },
+      {
+        at: '2026-09-13T18:00:00.000Z',
+        name: 'eye color',
+        value: 'green',
+        sessionId: 'sess-new',
+      },
+      {
+        at: '2026-09-13T18:00:00.000Z',
+        name: 'hair color',
+        value: 'black',
+        sessionId: 'sess-new',
+      },
     ]);
   });
 
@@ -169,13 +199,12 @@ describe('processCharacterTool', () => {
           {
             at: '2026-09-13T18:30:00.000Z',
             summary: 'Told story of last date at a quiet bar',
-            source: 'chat',
           },
         ],
       },
     };
 
-    const result = await processCharacterTool(tool);
+    const result = await processCharacterTool(tool, { sessionId: 'sess-toast' });
     expect(result.ok).toBe(true);
     if (!result.ok) {
       return;
@@ -191,7 +220,7 @@ describe('processCharacterTool', () => {
       {
         at: '2026-09-13T18:30:00.000Z',
         summary: 'Told story of last date at a quiet bar',
-        source: 'chat',
+        sessionId: 'sess-toast',
       },
     ]);
   });
@@ -211,22 +240,26 @@ describe('processCharacterTool', () => {
   });
 
   it('creates a library character from character.create', async () => {
-    const result = await processCharacterTool({
-      tool: 'character',
-      origin: 'agent',
-      action: 'create',
-      data: {
-        name: 'Lumberjack',
-        history: [
-          {
-            at: '2026-09-13T18:00:00.000Z',
-            summary: 'Introduced as a rugged lumberjack',
-            source: 'chat',
-          },
-        ],
-        traits: [{ at: '2026-09-13T18:00:00.000Z', name: 'build', value: 'broad-shouldered' }],
+    const result = await processCharacterTool(
+      {
+        tool: 'character',
+        origin: 'agent',
+        action: 'create',
+        data: {
+          name: 'Lumberjack',
+          history: [
+            {
+              at: '2026-09-13T18:00:00.000Z',
+              summary: 'Introduced as a rugged lumberjack',
+            },
+          ],
+          traits: [
+            { at: '2026-09-13T18:00:00.000Z', name: 'build', value: 'broad-shouldered' },
+          ],
+        },
       },
-    });
+      { sessionId: 'sess-create' },
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) {
       return;
@@ -236,9 +269,20 @@ describe('processCharacterTool', () => {
     expect(formatCharacterToolToast(result)).toBe('Created Lumberjack');
     const loaded = await loadCharacter(result.id);
     expect(loaded.name).toBe('Lumberjack');
-    expect(loaded.history).toHaveLength(1);
+    expect(loaded.history).toEqual([
+      {
+        at: '2026-09-13T18:00:00.000Z',
+        summary: 'Introduced as a rugged lumberjack',
+        sessionId: 'sess-create',
+      },
+    ]);
     expect(loaded.traits).toEqual([
-      { at: '2026-09-13T18:00:00.000Z', name: 'build', value: 'broad-shouldered' },
+      {
+        at: '2026-09-13T18:00:00.000Z',
+        name: 'build',
+        value: 'broad-shouldered',
+        sessionId: 'sess-create',
+      },
     ]);
   });
 
@@ -273,18 +317,21 @@ describe('processTools', () => {
 
   it('processes a batch of character updates', async () => {
     await saveCharacter(createDefaultCharacter('A'), 'a-toast-batch');
-    const result = await processTools([
-      {
-        tool: 'character',
-        origin: 'agent',
-        action: 'update',
-        id: 'a-toast-batch',
-        data: {
-          name: 'A',
-          history: [{ at: '2026-09-13T00:00:00.000Z', summary: 'Beat one' }],
+    const result = await processTools(
+      [
+        {
+          tool: 'character',
+          origin: 'agent',
+          action: 'update',
+          id: 'a-toast-batch',
+          data: {
+            name: 'A',
+            history: [{ at: '2026-09-13T00:00:00.000Z', summary: 'Beat one' }],
+          },
         },
-      },
-    ]);
+      ],
+      { sessionId: 'sess-batch' },
+    );
     expect(result.applied).toBe(1);
     expect(result.failed).toBe(0);
     expect((await loadCharacter('a-toast-batch')).history).toHaveLength(1);

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
+import { IconButton } from '../../components/ui/IconButton/IconButton';
 import type { CharacterEditorApi } from './CharacterEditorContext';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
 import { CharacterHistoryEntry } from './CharacterHistoryEntry';
 import { CharacterImagesSection } from './CharacterImagesSection';
+import { CharacterTraitAddCard } from './CharacterTraitAddCard';
 import { CharacterTraitEntry } from './CharacterTraitEntry';
 import { CharacterSubHeader } from './CharacterSubHeader';
 import styles from './CharacterEditor.module.css';
@@ -32,6 +34,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     setAttributeValue,
     removeHistoryEntry,
     removeTrait,
+    upsertTrait,
     addImagesFromFiles,
     addImagesFromLibrary,
     removeImage,
@@ -42,6 +45,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   const [traitsExpanded, setTraitsExpanded] = useState(true);
   const [imagesExpanded, setImagesExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [addingTrait, setAddingTrait] = useState(false);
 
   const historyNewestFirst = useMemo(
     () => sortByAtDesc(character.history ?? []),
@@ -152,10 +156,35 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
           onExpandedChange={setTraitsExpanded}
           hideBodyWhenCollapsed
           bodyClassName={styles.traitsBody}
+          headerLeading={
+            <IconButton
+              icon="plus"
+              label="Add a trait"
+              variant="secondary"
+              size="sm"
+              disabled={isBusy || addingTrait}
+              onClick={() => {
+                setTraitsExpanded(true);
+                setAddingTrait(true);
+              }}
+            />
+          }
         >
-          {traitsNewestFirst.length === 0 ? (
+          {addingTrait ? (
+            <div className={styles.addCardWrap}>
+              <CharacterTraitAddCard
+                disabled={isBusy}
+                onAdd={(trait) => {
+                  upsertTrait(trait);
+                  setAddingTrait(false);
+                }}
+                onCancel={() => setAddingTrait(false)}
+              />
+            </div>
+          ) : null}
+          {traitsNewestFirst.length === 0 && !addingTrait ? (
             <p className={styles.emptyHistory}>No traits yet.</p>
-          ) : (
+          ) : traitsNewestFirst.length > 0 ? (
             <ul className={styles.historyList}>
               {traitsNewestFirst.map((trait) => (
                 <li key={`${trait.name}-${trait.at}`} className={styles.historyItem}>
@@ -167,7 +196,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </CharacterCollapsibleCard>
 
         <CharacterCollapsibleCard
@@ -176,6 +205,15 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
           onExpandedChange={setHistoryExpanded}
           hideBodyWhenCollapsed
           bodyClassName={styles.historyBody}
+          headerLeading={
+            <IconButton
+              icon="plus"
+              label="Add history"
+              variant="secondary"
+              size="sm"
+              disabled={isBusy}
+            />
+          }
         >
           {historyNewestFirst.length === 0 ? (
             <p className={styles.emptyHistory}>No history yet.</p>

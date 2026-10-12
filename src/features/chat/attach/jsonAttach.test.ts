@@ -12,7 +12,7 @@ describe('jsonAttach', () => {
     character.history.push({
       at: '2026-09-13T17:00:00.000Z',
       summary: 'Met at a cafe',
-      source: 'chat',
+      sessionId: 'sess-1',
     });
     const payload = buildCharacterWriteTool(character, 'char-1');
     expect(payload.tool).toBe(CHARACTER_TOOL);

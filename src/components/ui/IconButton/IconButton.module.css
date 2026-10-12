@@ -62,7 +62,7 @@
   width: calc(1.25rem + 2px);
   height: calc(1.25rem + 2px);
   border: none;
-  box-shadow: 0 2px 2px rgb(0 0 0 / 50%);
+  box-shadow: none;
 }
 
 .iconButton.sm,
@@ -73,13 +73,13 @@
 }
 
 .sm .icon {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.9375rem;
+  height: 0.9375rem;
 }
 
 .sm .icon svg {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.9375rem;
+  height: 0.9375rem;
 }
 
 .md {

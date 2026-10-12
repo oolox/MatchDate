@@ -5,6 +5,7 @@ export {
   processCharacterTool,
   type CharacterUpdateField,
   type ProcessCharacterToolFailure,
+  type ProcessCharacterToolOptions,
   type ProcessCharacterToolResult,
   type ProcessCharacterToolSuccess,
 } from './processCharacterTool';

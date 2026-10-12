@@ -9,11 +9,17 @@ import {
   mergeTraitPatches,
   normalizeHistory,
   saveCharacterDocument,
+  stampSessionId,
   tryLoadCharacterDocument,
 } from '../storage/characterPersistence';
 import { getFileStorageService } from '../storage';
 
 export type CharacterUpdateField = 'history' | 'attributes' | 'traits' | 'name';
+
+export type ProcessCharacterToolOptions = {
+  /** Current chat session id; stamped onto new history/trait rows. */
+  sessionId?: string;
+};
 
 export type ProcessCharacterToolSuccess = {
   ok: true;
@@ -116,7 +122,10 @@ export function formatCharacterToolToast(result: ProcessCharacterToolSuccess): s
  * Build a Character from an agent `character.create` data payload.
  * Requires a non-empty name; fills default ValueScores and merges any patch fields.
  */
-export function characterFromCreateData(data: unknown): Character | null {
+export function characterFromCreateData(
+  data: unknown,
+  options?: ProcessCharacterToolOptions,
+): Character | null {
   if (!data || typeof data !== 'object') {
     return null;
   }
@@ -134,12 +143,14 @@ export function characterFromCreateData(data: unknown): Character | null {
   }
 
   const base = createDefaultCharacter(name);
-  const traitsMerged = mergeTraitPatches([], patch.traits);
+  const traitsMerged = mergeTraitPatches([], patch.traits, {
+    sessionId: options?.sessionId,
+  });
 
   return {
     name,
     attributes: mergeAttributePatches(base.attributes, patch.attributes),
-    history: normalizeHistory(patch.history),
+    history: stampSessionId(normalizeHistory(patch.history), options?.sessionId),
     traits: traitsMerged.traits,
     images: [],
   };
@@ -149,6 +160,7 @@ export function characterFromCreateData(data: unknown): Character | null {
 export function applyCharacterUpdatePatch(
   existing: Character,
   data: unknown,
+  options?: ProcessCharacterToolOptions,
 ): {
   character: Character;
   appendedHistoryCount: number;
@@ -165,7 +177,10 @@ export function applyCharacterUpdatePatch(
     traits?: unknown;
   };
 
-  const historyAdditions = normalizeHistory(patch.history);
+  const historyAdditions = stampSessionId(
+    normalizeHistory(patch.history),
+    options?.sessionId,
+  );
   const nextAttributes = mergeAttributePatches(existing.attributes, patch.attributes);
   const attributesChanged = nextAttributes.some((attribute, index) => {
     const prev = existing.attributes[index];
@@ -175,7 +190,9 @@ export function applyCharacterUpdatePatch(
       prev.description !== attribute.description
     );
   });
-  const traitsMerged = mergeTraitPatches(existing.traits ?? [], patch.traits);
+  const traitsMerged = mergeTraitPatches(existing.traits ?? [], patch.traits, {
+    sessionId: options?.sessionId,
+  });
 
   const nextName =
     typeof patch.name === 'string' && patch.name.trim()
@@ -216,8 +233,9 @@ export function applyCharacterUpdatePatch(
 
 async function processCharacterCreate(
   message: CharacterToolMessage,
+  options?: ProcessCharacterToolOptions,
 ): Promise<ProcessCharacterToolResult> {
-  const character = characterFromCreateData(message.data);
+  const character = characterFromCreateData(message.data, options);
   if (!character) {
     return {
       ok: false,
@@ -258,6 +276,7 @@ async function processCharacterCreate(
 
 async function processCharacterUpdate(
   message: CharacterToolMessage,
+  options?: ProcessCharacterToolOptions,
 ): Promise<ProcessCharacterToolResult> {
   const id = message.id?.trim();
   if (!id) {
@@ -295,7 +314,7 @@ async function processCharacterUpdate(
   }
 
   const existing = characterFromDocument(existingDoc);
-  const merged = applyCharacterUpdatePatch(existing, message.data);
+  const merged = applyCharacterUpdatePatch(existing, message.data, options);
   if (!merged) {
     return {
       ok: false,
@@ -334,6 +353,7 @@ async function processCharacterUpdate(
  */
 export async function processCharacterTool(
   message: CharacterToolMessage,
+  options?: ProcessCharacterToolOptions,
 ): Promise<ProcessCharacterToolResult> {
   if (message.tool !== CHARACTER_TOOL) {
     return {
@@ -347,11 +367,11 @@ export async function processCharacterTool(
   }
 
   if (message.action === 'create') {
-    return processCharacterCreate(message);
+    return processCharacterCreate(message, options);
   }
 
   if (message.action === 'update') {
-    return processCharacterUpdate(message);
+    return processCharacterUpdate(message, options);
   }
 
   return {

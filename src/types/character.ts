@@ -42,7 +42,8 @@ export interface ValueScore {
 export interface CharacterHistoryEntry {
   at: string;
   summary: string;
-  source?: string;
+  /** Session that created this beat (when known). */
+  sessionId?: string;
 }
 
 /** Physical / appearance traits (hair color, eye color, weight, etc.). */
@@ -53,6 +54,8 @@ export interface CharacterTrait {
   name: string;
   /** Trait value, e.g. "dark brown", "blue", "180 lbs". */
   value: string;
+  /** Session that created or last updated this trait (when known). */
+  sessionId?: string;
 }
 
 export interface Character {
@@ -108,7 +111,7 @@ export function isCharacterHistoryEntry(value: unknown): value is CharacterHisto
   return (
     typeof entry.at === 'string' &&
     typeof entry.summary === 'string' &&
-    (entry.source === undefined || typeof entry.source === 'string')
+    (entry.sessionId === undefined || typeof entry.sessionId === 'string')
   );
 }
 
@@ -122,6 +125,7 @@ export function isCharacterTrait(value: unknown): value is CharacterTrait {
     typeof trait.name === 'string' &&
     trait.name.trim().length > 0 &&
     typeof trait.value === 'string' &&
-    trait.value.trim().length > 0
+    trait.value.trim().length > 0 &&
+    (trait.sessionId === undefined || typeof trait.sessionId === 'string')
   );
 }

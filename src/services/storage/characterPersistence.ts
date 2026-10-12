@@ -52,38 +52,58 @@ export function characterFromDocument(document: CharacterDocument): Character {
   });
 }
 
+/** Stamp `sessionId` onto newly created history/trait rows (no-op when empty). */
+export function stampSessionId<T extends { sessionId?: string }>(
+  items: T[],
+  sessionId?: string | null,
+): T[] {
+  const id = sessionId?.trim();
+  if (!id || items.length === 0) {
+    return items;
+  }
+  return items.map((item) => ({ ...item, sessionId: id }));
+}
+
 export function normalizeHistory(history: unknown): CharacterHistoryEntry[] {
   if (!Array.isArray(history)) {
     return [];
   }
-  return history.filter(isCharacterHistoryEntry).map((entry) => ({
-    at: entry.at,
-    summary: entry.summary,
-    ...(entry.source !== undefined ? { source: entry.source } : {}),
-  }));
+  return history.filter(isCharacterHistoryEntry).map((entry) => {
+    const sessionId = entry.sessionId?.trim();
+    return {
+      at: entry.at,
+      summary: entry.summary,
+      ...(sessionId ? { sessionId } : {}),
+    };
+  });
 }
 
 export function normalizeTraits(traits: unknown): CharacterTrait[] {
   if (!Array.isArray(traits)) {
     return [];
   }
-  return traits.filter(isCharacterTrait).map((trait) => ({
-    at: trait.at,
-    name: trait.name.trim(),
-    value: trait.value.trim(),
-  }));
+  return traits.filter(isCharacterTrait).map((trait) => {
+    const sessionId = trait.sessionId?.trim();
+    return {
+      at: trait.at,
+      name: trait.name.trim(),
+      value: trait.value.trim(),
+      ...(sessionId ? { sessionId } : {}),
+    };
+  });
 }
 
 /** Upsert traits by name (case-insensitive); patch entries win. */
 export function mergeTraitPatches(
   existing: CharacterTrait[],
   patch: unknown,
+  options?: { sessionId?: string | null },
 ): { traits: CharacterTrait[]; changed: boolean } {
   if (!Array.isArray(patch)) {
     return { traits: existing, changed: false };
   }
 
-  const normalizedPatch = normalizeTraits(patch);
+  const normalizedPatch = stampSessionId(normalizeTraits(patch), options?.sessionId);
   if (normalizedPatch.length === 0) {
     return { traits: existing, changed: false };
   }
@@ -100,7 +120,8 @@ export function mergeTraitPatches(
       !previous ||
       previous.value !== trait.value ||
       previous.at !== trait.at ||
-      previous.name !== trait.name
+      previous.name !== trait.name ||
+      previous.sessionId !== trait.sessionId
     ) {
       changed = true;
     }

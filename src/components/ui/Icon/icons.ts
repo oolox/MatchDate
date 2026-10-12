@@ -6,6 +6,7 @@ import copySvg from '../../../assets/icons/copy.svg?raw';
 import generateSvg from '../../../assets/icons/generate.svg?raw';
 import imageSvg from '../../../assets/icons/image.svg?raw';
 import modelSvg from '../../../assets/icons/model.svg?raw';
+import plusSvg from '../../../assets/icons/plus.svg?raw';
 import searchSvg from '../../../assets/icons/search.svg?raw';
 import sendSvg from '../../../assets/icons/send.svg?raw';
 import sortSvg from '../../../assets/icons/sort.svg?raw';
@@ -21,6 +22,7 @@ export const iconSources = {
   generate: generateSvg,
   close: closeSvg,
   copy: copySvg,
+  plus: plusSvg,
   star: starSvg,
   'star-filled': starFilledSvg,
   search: searchSvg,

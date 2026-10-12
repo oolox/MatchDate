@@ -34,7 +34,7 @@ describe('characterPersistence', () => {
       value: 72,
     };
     character.history = [
-      { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', source: 'chat' },
+      { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', sessionId: 'sess-1' },
     ];
     character.images = [
       {

@@ -151,7 +151,9 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     setCreateBusy(true);
     void (async () => {
       try {
-        const result = await processCharacterTool(pendingCreate.tool);
+        const result = await processCharacterTool(pendingCreate.tool, {
+          sessionId: threadId,
+        });
         if (result.ok) {
           notify(formatCharacterToolToast(result));
           dispatch(bumpLibraryEpoch());
@@ -163,7 +165,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         dismissPendingCreate();
       }
     })();
-  }, [createBusy, dismissPendingCreate, dispatch, notify, pendingCreate]);
+  }, [createBusy, dismissPendingCreate, dispatch, notify, pendingCreate, threadId]);
 
   const handleSend = useCallback(async () => {
     if (isStreaming) {
@@ -280,7 +282,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           const creates = agentTools.filter((tool) => tool.action === 'create');
 
           if (updates.length > 0) {
-            const { results } = await processTools(updates);
+            const { results } = await processTools(updates, { sessionId: threadId });
             let applied = false;
             for (const result of results) {
               if (result.ok) {
@@ -295,7 +297,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
 
           const nextCreates: PendingCharacterCreate[] = [];
           for (const tool of creates) {
-            const character = characterFromCreateData(tool.data);
+            const character = characterFromCreateData(tool.data, { sessionId: threadId });
             if (character) {
               nextCreates.push({ tool, name: character.name });
             }

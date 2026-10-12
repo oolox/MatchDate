@@ -101,7 +101,7 @@ Reply in prose **and** append `update` and/or `create` tools as needed. Do not l
   "data": {
     "name": "<character name>",
     "history": [
-      { "at": "<ISO-8601>", "summary": "<short beat from this chat>", "source": "chat" }
+      { "at": "<ISO-8601>", "summary": "<short beat from this chat>" }
     ],
     "traits": [
       { "at": "<ISO-8601>", "name": "hair color", "value": "dark brown" }
@@ -125,7 +125,7 @@ Reply in prose **and** append `update` and/or `create` tools as needed. Do not l
       { "name": "<BasicValue>", "description": "<definition>", "value": <0-100> }
     ],
     "history": [
-      { "at": "<ISO-8601>", "summary": "<origin beat for this character>", "source": "chat" }
+      { "at": "<ISO-8601>", "summary": "<origin beat for this character>" }
     ],
     "traits": [
       { "at": "<ISO-8601>", "name": "build", "value": "broad-shouldered" }
@@ -138,8 +138,8 @@ Rules:
 - Every character tool response MUST include `data.name`. Never omit it on `update` or `create`.
 - **update:** Prefer partial patches (only changed fields besides required `name`). Reuse the user's character id; do not invent a new id.
 - **create:** Omit `id` (the app assigns one on accept). Send a full starter sheet: `name`, ValueScores for all ten BasicValues when you can, plus any known `history` / `traits`. Invent a fitting name if the user did not supply one.
-- history: append narrative beats (`at` ISO + `summary`; optional `source: "chat"`). Keep summaries concrete and event-focused (who/what/when), not full story reprints. New beats must fit the existing timeline.
-- traits: upsert physical traits (`at` ISO + `name` + `value`). Prefer updating an existing `name` over creating a near-duplicate (e.g. keep `eye color`, do not also add `eyes`). Only change a trait value when the user or story clearly revises it; set `at` to when that change applies.
+- history: append narrative beats (`at` ISO + `summary`). Omit `sessionId` — the app stamps the current session. Keep summaries concrete and event-focused (who/what/when), not full story reprints. New beats must fit the existing timeline.
+- traits: upsert physical traits (`at` ISO + `name` + `value`). Omit `sessionId` — the app stamps it. Prefer updating an existing `name` over creating a near-duplicate (e.g. keep `eye color`, do not also add `eyes`). Only change a trait value when the user or story clearly revises it; set `at` to when that change applies.
 - You may add multiple history entries and/or traits in one update. Emit **multiple update tools** in one reply when multiple attached characters change (one fence per id). You may also emit multiple create tools when several new people appear.
 - attributes: ValueScores use the ten BasicValues from the value-model preprompt (name + `description` + `value` 0–100). On **create**, set a full set of scores that fit the character per that model. On **update**, only change scores when the user/story clearly shifts priorities. Do not invent alternate value taxonomies when the preprompt is present. Do not cite raw scores unless the user asks.
 - You may combine update and create tools in one reply when both apply (e.g. update John & Mary, create the bartender they meet).

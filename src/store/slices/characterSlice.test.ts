@@ -6,6 +6,8 @@ import characterReducer, {
   replaceCharacterEditor,
   resetCharacterEditor,
   setCharacterEditorName,
+  USER_TRAIT_SESSION_ID,
+  upsertCharacterEditorTrait,
 } from './characterSlice';
 import { createDefaultCharacter } from '../../types/character';
 
@@ -70,6 +72,51 @@ describe('characterSlice', () => {
     state = characterReducer(state, removeCharacterEditorTrait('Eye Color'));
     expect(state.character.traits).toEqual([
       { at: '2026-01-01T00:00:00.000Z', name: 'hair color', value: 'black' },
+    ]);
+  });
+
+  it('upserts traits with sessionId user', () => {
+    let state = characterReducer(
+      undefined,
+      replaceCharacterEditor({
+        characterId: 'c1',
+        character: createDefaultCharacter('Alex'),
+        isDirty: false,
+      }),
+    );
+    state = characterReducer(
+      state,
+      upsertCharacterEditorTrait({
+        at: '2026-09-13T18:00:00.000Z',
+        name: 'eye color',
+        value: 'green',
+      }),
+    );
+    expect(state.character.traits).toEqual([
+      {
+        at: '2026-09-13T18:00:00.000Z',
+        name: 'eye color',
+        value: 'green',
+        sessionId: USER_TRAIT_SESSION_ID,
+      },
+    ]);
+    expect(state.isDirty).toBe(true);
+
+    state = characterReducer(
+      state,
+      upsertCharacterEditorTrait({
+        at: '2026-09-14T18:00:00.000Z',
+        name: 'Eye Color',
+        value: 'hazel',
+      }),
+    );
+    expect(state.character.traits).toEqual([
+      {
+        at: '2026-09-14T18:00:00.000Z',
+        name: 'Eye Color',
+        value: 'hazel',
+        sessionId: USER_TRAIT_SESSION_ID,
+      },
     ]);
   });
 });

@@ -7,6 +7,8 @@ export interface CharacterCollapsibleCardProps {
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   children: ReactNode;
+  /** Optional control rendered to the left of the title (e.g. add). */
+  headerLeading?: ReactNode;
   /** When true, card grows to fill remaining vertical space while expanded. */
   fill?: boolean;
   /** When true, hide body content while collapsed (History). Attributes keep compact body. */
@@ -20,6 +22,7 @@ export function CharacterCollapsibleCard({
   expanded,
   onExpandedChange,
   children,
+  headerLeading,
   fill = false,
   hideBodyWhenCollapsed = false,
   className,
@@ -43,6 +46,7 @@ export function CharacterCollapsibleCard({
   return (
     <section className={cardClass} aria-label={title}>
       <header className={styles.header}>
+        {headerLeading}
         <h2 className={styles.title}>{title}</h2>
         <IconButton
           icon={caretIcon}

@@ -34,7 +34,7 @@ An optional behavioral model attachment may guide how values map to motives, dia
 
 ## Character data (for reasoning)
 - attributes: ten Schwartz ValueScores (name, description, value 0–100).
-- history: prior narrative beats (at, summary, optional source).
+- history: prior narrative beats (at, summary; sessionId filled by the app).
 
 Interpret scores relatively within a character, then comparatively across characters when asked.
 Do not cite raw scores, attribute tables, or numeric dumps in your prose unless the user directly asks for them. Speak in motives, behavior, and relationship dynamics.
@@ -53,7 +53,7 @@ Pure Q&A that does not add story/events may stay prose-only.
   "id": "<same UUID as the user write>",
   "data": {
     "history": [
-      { "at": "<ISO-8601>", "summary": "<short beat from this chat>", "source": "chat" }
+      { "at": "<ISO-8601>", "summary": "<short beat from this chat>" }
     ],
     "attributes": [
       { "name": "<BasicValue>", "description": "<definition>", "value": <0-100> }
@@ -65,7 +65,7 @@ Pure Q&A that does not add story/events may stay prose-only.
 Rules for updates:
 - Prefer partial patches: include only fields that change.
 - After a story about a character, reply with the story in prose AND a history update tool for that id (one short summary of the story beat is enough).
-- history: append narrative beats from this conversation (at ISO + summary; optional source: "chat").
+- history: append narrative beats from this conversation (at ISO + summary). Omit sessionId — the app stamps the current session.
 - attributes: change ValueScores only when the user or story clearly shifts priorities; keep values in 0–100; include description with each score you send.
 - You may send history and attributes together in one update, or either alone.
 - Reuse the user's character id. Do not invent a new id for an existing character.

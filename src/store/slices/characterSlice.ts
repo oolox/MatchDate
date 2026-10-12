@@ -1,8 +1,11 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { BasicValue, Character } from '../../types/character';
+import type { BasicValue, Character, CharacterTrait } from '../../types/character';
 import { createDefaultCharacter } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
+
+/** Session id stamped on traits added from the character sheet UI. */
+export const USER_TRAIT_SESSION_ID = 'user';
 
 export interface CharacterEditorState {
   characterId: string | null;
@@ -69,6 +72,34 @@ const characterSlice = createSlice({
       state.character.traits = next;
       state.isDirty = true;
     },
+    /** Upsert trait by name (case-insensitive); stamps sessionId `user`. */
+    upsertCharacterEditorTrait: (
+      state,
+      action: PayloadAction<{ at: string; name: string; value: string }>,
+    ) => {
+      const name = action.payload.name.trim();
+      const value = action.payload.value.trim();
+      const at = action.payload.at.trim();
+      if (!name || !value || !at) {
+        return;
+      }
+      const nextTrait: CharacterTrait = {
+        at,
+        name,
+        value,
+        sessionId: USER_TRAIT_SESSION_ID,
+      };
+      const key = name.toLowerCase();
+      const index = state.character.traits.findIndex(
+        (trait) => trait.name.trim().toLowerCase() === key,
+      );
+      if (index >= 0) {
+        state.character.traits[index] = nextTrait;
+      } else {
+        state.character.traits.push(nextTrait);
+      }
+      state.isDirty = true;
+    },
     /** Prepend image refs (dedupe by id); marks dirty. */
     prependCharacterEditorImages: (state, action: PayloadAction<SavedImageRef[]>) => {
       const incoming = normalizeSavedImageRefs(action.payload);
@@ -132,6 +163,7 @@ export const {
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
+  upsertCharacterEditorTrait,
   prependCharacterEditorImages,
   removeCharacterEditorImage,
   replaceCharacterEditor,
