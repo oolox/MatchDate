@@ -10,8 +10,6 @@ import {
 import type { LibraryItemKind, LibraryItemMeta } from '../../services/storage/types';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { bumpLibraryEpoch, selectLibraryEpoch } from '../../store/slices/appShellSlice';
-import { createId } from '../../store/slices/threadSlice';
-import styles from './SessionLibraryPanel.module.css';
 
 export type SessionRoutePrefix = 'session' | 'character';
 
@@ -81,14 +79,6 @@ export function SessionLibraryPanel({ sessionId, routePrefix }: SessionLibraryPa
     [bumpCatalog],
   );
 
-  const handleNew = useCallback(() => {
-    if (routePrefix === 'character') {
-      characterEditor?.startNewCharacter();
-      return;
-    }
-    navigate(sessionPath(routePrefix, createId()));
-  }, [characterEditor, navigate, routePrefix]);
-
   const selectedId =
     routePrefix === 'session' ? (sessionId ?? null) : (characterEditor?.characterId ?? null);
 
@@ -107,13 +97,6 @@ export function SessionLibraryPanel({ sessionId, routePrefix }: SessionLibraryPa
       onLoad={handleLoad}
       onDeleteLoadable={handleDeleteLoadable}
       onToggleFavoriteLoadable={handleToggleFavorite}
-      headerActions={
-        routePrefix === 'character' ? (
-          <button type="button" className={styles.newChatButton} onClick={handleNew}>
-            New character
-          </button>
-        ) : undefined
-      }
     />
   );
 }
