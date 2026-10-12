@@ -68,18 +68,29 @@
 .iconButton.sm,
 .iconButton.sm:hover:not(:disabled),
 .iconButton.sm:focus-visible:not(:disabled),
-.iconButton.sm:active:not(:disabled) {
+.iconButton.sm:active:not(:disabled),
+.iconButton.sm.current {
   border: none;
+  padding: 0;
+  box-shadow: none;
 }
 
 .sm .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 0.9375rem;
   height: 0.9375rem;
 }
 
 .sm .icon svg {
+  display: block;
   width: 0.9375rem;
   height: 0.9375rem;
+}
+
+.iconButton.sm.current {
+  color: var(--color-text-primary);
 }
 
 .md {

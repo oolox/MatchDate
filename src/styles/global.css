@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './dayPicker.css';
 
 :root {
   font-family: var(--font-sans);

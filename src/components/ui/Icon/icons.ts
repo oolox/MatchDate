@@ -1,4 +1,5 @@
 import promptSvg from '../../../assets/icons/prompt.svg?raw';
+import calendarSvg from '../../../assets/icons/calendar.svg?raw';
 import caretDownSvg from '../../../assets/icons/caret-down.svg?raw';
 import caretUpSvg from '../../../assets/icons/caret-up.svg?raw';
 import closeSvg from '../../../assets/icons/close.svg?raw';
@@ -14,6 +15,7 @@ import starSvg from '../../../assets/icons/star.svg?raw';
 import starFilledSvg from '../../../assets/icons/star-filled.svg?raw';
 import tagSvg from '../../../assets/icons/tag.svg?raw';
 import textFileSvg from '../../../assets/icons/text-file.svg?raw';
+import timeSvg from '../../../assets/icons/time.svg?raw';
 import toolSvg from '../../../assets/icons/tool.svg?raw';
 import videoSvg from '../../../assets/icons/video.svg?raw';
 
@@ -23,6 +25,8 @@ export const iconSources = {
   close: closeSvg,
   copy: copySvg,
   plus: plusSvg,
+  calendar: calendarSvg,
+  time: timeSvg,
   star: starSvg,
   'star-filled': starFilledSvg,
   search: searchSvg,
