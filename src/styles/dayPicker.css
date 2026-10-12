@@ -30,6 +30,48 @@
   fill: var(--color-text-secondary);
 }
 
+.rdp-root .rdp-dropdowns {
+  gap: var(--space-xs);
+}
+
+.rdp-root .rdp-dropdown_root {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-input);
+  overflow: visible;
+}
+
+.rdp-root .rdp-dropdown {
+  color: var(--color-text-primary);
+  background: var(--color-bg-input);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color-scheme: dark;
+}
+
+/* Expanded month/year listbox (native popup height is not styleable). */
+.rdp-root .rdp-dropdown.rdp-dropdown--open,
+.rdp-root .rdp-dropdown[size]:not([size='1']) {
+  opacity: 1;
+  position: absolute;
+  inset: auto;
+  top: 100%;
+  left: 0;
+  z-index: 6;
+  width: max-content;
+  min-width: 100%;
+  height: 6rem;
+  max-height: 6rem;
+  overflow-y: auto;
+  margin: 2px 0 0;
+  padding: 0.15rem 0.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
 .rdp-root .rdp-button_previous:hover:not(:disabled),
 .rdp-root .rdp-button_next:hover:not(:disabled),
 .rdp-root .rdp-day_button:hover:not([disabled]):not([aria-selected='true']) {

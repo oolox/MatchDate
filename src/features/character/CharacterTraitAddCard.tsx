@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { DayPicker } from '@daypicker/react';
 import { Button } from '../../components/ui/Button';
+import { DayPickerBoundedSelect } from '../../components/ui/DayPickerBoundedSelect/DayPickerBoundedSelect';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import styles from './CharacterTraitAddCard.module.css';
 
@@ -16,6 +17,9 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) =>
 const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, minute) =>
   String(minute).padStart(2, '0'),
 );
+
+const CALENDAR_START_MONTH = new Date(1900, 0);
+const CALENDAR_END_MONTH = new Date(new Date().getFullYear() + 5, 11);
 
 function formatDateLabel(date: Date): string {
   return date.toLocaleDateString(undefined, {
@@ -95,6 +99,10 @@ export function CharacterTraitAddCard({
             {calendarOpen ? (
               <DayPicker
                 mode="single"
+                captionLayout="dropdown"
+                hideNavigation
+                startMonth={CALENDAR_START_MONTH}
+                endMonth={CALENDAR_END_MONTH}
                 selected={selectedDay}
                 onSelect={(day) => {
                   if (day) {
@@ -103,6 +111,7 @@ export function CharacterTraitAddCard({
                 }}
                 disabled={disabled}
                 aria-label="Trait date"
+                components={{ Select: DayPickerBoundedSelect }}
               />
             ) : (
               <span className={styles.dateLabel} aria-label="Trait date">
