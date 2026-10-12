@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import type { CharacterEditorApi } from './CharacterEditorContext';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
+import { CharacterHistoryAddCard } from './CharacterHistoryAddCard';
 import { CharacterHistoryEntry } from './CharacterHistoryEntry';
 import { CharacterImagesSection } from './CharacterImagesSection';
 import { CharacterTraitAddCard } from './CharacterTraitAddCard';
@@ -33,8 +34,11 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     clearCharacterName,
     setAttributeValue,
     removeHistoryEntry,
+    appendHistoryEntry,
+    updateHistoryEntry,
     removeTrait,
     upsertTrait,
+    updateTrait,
     addImagesFromFiles,
     addImagesFromLibrary,
     removeImage,
@@ -46,6 +50,14 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   const [imagesExpanded, setImagesExpanded] = useState(true);
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [addingTrait, setAddingTrait] = useState(false);
+  const [addingHistory, setAddingHistory] = useState(false);
+  const [editingTraitOriginalName, setEditingTraitOriginalName] = useState<string | null>(
+    null,
+  );
+  const [editingHistoryIndex, setEditingHistoryIndex] = useState<number | null>(null);
+
+  const sheetEntryActionsDisabled =
+    isBusy || addingTrait || addingHistory || editingTraitOriginalName !== null || editingHistoryIndex !== null;
 
   const historyNewestFirst = useMemo(
     () => sortByAtDesc(character.history ?? []),
@@ -162,10 +174,11 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
               label="Add a trait"
               variant="secondary"
               size="sm"
-              disabled={isBusy || addingTrait}
+              disabled={isBusy || addingTrait || editingTraitOriginalName !== null}
               onClick={() => {
                 setTraitsExpanded(true);
                 setAddingTrait(true);
+                setEditingTraitOriginalName(null);
               }}
             />
           }
@@ -174,7 +187,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
             <div className={styles.addCardWrap}>
               <CharacterTraitAddCard
                 disabled={isBusy}
-                onAdd={(trait) => {
+                onSubmit={(trait) => {
                   upsertTrait(trait);
                   setAddingTrait(false);
                 }}
@@ -186,15 +199,50 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
             <p className={styles.emptyHistory}>No traits yet.</p>
           ) : traitsNewestFirst.length > 0 ? (
             <ul className={styles.historyList}>
-              {traitsNewestFirst.map((trait) => (
-                <li key={`${trait.name}-${trait.at}`} className={styles.historyItem}>
-                  <CharacterTraitEntry
-                    trait={trait}
-                    removeDisabled={isBusy}
-                    onRemove={() => removeTrait(trait.name)}
-                  />
-                </li>
-              ))}
+              {traitsNewestFirst.map((trait) => {
+                const isEditing =
+                  editingTraitOriginalName !== null &&
+                  trait.name.trim().toLowerCase() ===
+                    editingTraitOriginalName.trim().toLowerCase();
+                if (isEditing) {
+                  return (
+                    <li key={`edit-trait-${editingTraitOriginalName}`} className={styles.historyItem}>
+                      <CharacterTraitAddCard
+                        key={editingTraitOriginalName}
+                        mode="edit"
+                        disabled={isBusy}
+                        initial={{
+                          at: trait.at,
+                          name: trait.name,
+                          value: trait.value,
+                        }}
+                        onSubmit={(values) => {
+                          updateTrait({
+                            originalName: editingTraitOriginalName,
+                            ...values,
+                          });
+                          setEditingTraitOriginalName(null);
+                        }}
+                        onCancel={() => setEditingTraitOriginalName(null)}
+                      />
+                    </li>
+                  );
+                }
+                return (
+                  <li key={`${trait.name}-${trait.at}`} className={styles.historyItem}>
+                    <CharacterTraitEntry
+                      trait={trait}
+                      editDisabled={sheetEntryActionsDisabled}
+                      removeDisabled={sheetEntryActionsDisabled}
+                      onEdit={() => {
+                        setAddingTrait(false);
+                        setEditingTraitOriginalName(trait.name);
+                      }}
+                      onRemove={() => removeTrait(trait.name)}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </CharacterCollapsibleCard>
@@ -211,21 +259,65 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
               label="Add history"
               variant="secondary"
               size="sm"
-              disabled={isBusy}
+              disabled={isBusy || addingHistory || editingHistoryIndex !== null}
+              onClick={() => {
+                setHistoryExpanded(true);
+                setAddingHistory(true);
+                setEditingHistoryIndex(null);
+              }}
             />
           }
         >
-          {historyNewestFirst.length === 0 ? (
+          {addingHistory ? (
+            <div className={styles.addCardWrap}>
+              <CharacterHistoryAddCard
+                disabled={isBusy}
+                onSubmit={(entry) => {
+                  appendHistoryEntry(entry);
+                  setAddingHistory(false);
+                }}
+                onCancel={() => setAddingHistory(false)}
+              />
+            </div>
+          ) : null}
+          {historyNewestFirst.length === 0 && !addingHistory ? (
             <p className={styles.emptyHistory}>No history yet.</p>
-          ) : (
+          ) : historyNewestFirst.length > 0 ? (
             <ul className={styles.historyList}>
               {historyNewestFirst.map((entry) => {
                 const index = (character.history ?? []).indexOf(entry);
+                if (index >= 0 && editingHistoryIndex === index) {
+                  return (
+                    <li key={`edit-history-${index}`} className={styles.historyItem}>
+                      <CharacterHistoryAddCard
+                        key={index}
+                        mode="edit"
+                        disabled={isBusy}
+                        initial={{
+                          at: entry.at,
+                          summary: entry.summary,
+                        }}
+                        onSubmit={(values) => {
+                          updateHistoryEntry({ index, ...values });
+                          setEditingHistoryIndex(null);
+                        }}
+                        onCancel={() => setEditingHistoryIndex(null)}
+                      />
+                    </li>
+                  );
+                }
                 return (
                   <li key={`${entry.at}-${index}`} className={styles.historyItem}>
                     <CharacterHistoryEntry
                       entry={entry}
-                      removeDisabled={isBusy || index < 0}
+                      editDisabled={sheetEntryActionsDisabled || index < 0}
+                      removeDisabled={sheetEntryActionsDisabled || index < 0}
+                      onEdit={() => {
+                        if (index >= 0) {
+                          setAddingHistory(false);
+                          setEditingHistoryIndex(index);
+                        }
+                      }}
                       onRemove={() => {
                         if (index >= 0) {
                           removeHistoryEntry(index);
@@ -236,7 +328,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
                 );
               })}
             </ul>
-          )}
+          ) : null}
         </CharacterCollapsibleCard>
       </div>
     </section>

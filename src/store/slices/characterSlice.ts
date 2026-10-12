@@ -1,11 +1,18 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { BasicValue, Character, CharacterTrait } from '../../types/character';
+import type {
+  BasicValue,
+  Character,
+  CharacterHistoryEntry,
+  CharacterTrait,
+} from '../../types/character';
 import { createDefaultCharacter } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 
-/** Session id stamped on traits added from the character sheet UI. */
-export const USER_TRAIT_SESSION_ID = 'user';
+/** Session id stamped on sheet UI adds (traits / history). */
+export const USER_EDITOR_SESSION_ID = 'user';
+/** @deprecated Prefer {@link USER_EDITOR_SESSION_ID}. */
+export const USER_TRAIT_SESSION_ID = USER_EDITOR_SESSION_ID;
 
 export interface CharacterEditorState {
   characterId: string | null;
@@ -58,6 +65,45 @@ const characterSlice = createSlice({
       state.character.history.splice(index, 1);
       state.isDirty = true;
     },
+    /** Append a history beat; stamps sessionId `user`. */
+    appendCharacterEditorHistoryEntry: (
+      state,
+      action: PayloadAction<{ at: string; summary: string }>,
+    ) => {
+      const at = action.payload.at.trim();
+      const summary = action.payload.summary.trim();
+      if (!at || !summary) {
+        return;
+      }
+      const entry: CharacterHistoryEntry = {
+        at,
+        summary,
+        sessionId: USER_EDITOR_SESSION_ID,
+      };
+      state.character.history.push(entry);
+      state.isDirty = true;
+    },
+    updateCharacterEditorHistoryEntry: (
+      state,
+      action: PayloadAction<{ index: number; at: string; summary: string }>,
+    ) => {
+      const index = action.payload.index;
+      if (index < 0 || index >= state.character.history.length) {
+        return;
+      }
+      const at = action.payload.at.trim();
+      const summary = action.payload.summary.trim();
+      if (!at || !summary) {
+        return;
+      }
+      const previous = state.character.history[index];
+      state.character.history[index] = {
+        at,
+        summary,
+        sessionId: previous.sessionId ?? USER_EDITOR_SESSION_ID,
+      };
+      state.isDirty = true;
+    },
     removeCharacterEditorTrait: (state, action: PayloadAction<string>) => {
       const key = action.payload.trim().toLowerCase();
       if (!key) {
@@ -87,7 +133,7 @@ const characterSlice = createSlice({
         at,
         name,
         value,
-        sessionId: USER_TRAIT_SESSION_ID,
+        sessionId: USER_EDITOR_SESSION_ID,
       };
       const key = name.toLowerCase();
       const index = state.character.traits.findIndex(
@@ -97,6 +143,55 @@ const characterSlice = createSlice({
         state.character.traits[index] = nextTrait;
       } else {
         state.character.traits.push(nextTrait);
+      }
+      state.isDirty = true;
+    },
+    /** Update trait by original name (case-insensitive); renames when name changes. */
+    updateCharacterEditorTrait: (
+      state,
+      action: PayloadAction<{
+        originalName: string;
+        at: string;
+        name: string;
+        value: string;
+      }>,
+    ) => {
+      const originalKey = action.payload.originalName.trim().toLowerCase();
+      const name = action.payload.name.trim();
+      const value = action.payload.value.trim();
+      const at = action.payload.at.trim();
+      if (!originalKey || !name || !value || !at) {
+        return;
+      }
+      const index = state.character.traits.findIndex(
+        (trait) => trait.name.trim().toLowerCase() === originalKey,
+      );
+      if (index < 0) {
+        return;
+      }
+      const previous = state.character.traits[index];
+      const nextTrait: CharacterTrait = {
+        at,
+        name,
+        value,
+        sessionId: USER_EDITOR_SESSION_ID,
+      };
+      const newKey = name.toLowerCase();
+      if (newKey === originalKey) {
+        state.character.traits[index] = {
+          ...nextTrait,
+          sessionId: previous.sessionId ?? USER_EDITOR_SESSION_ID,
+        };
+      } else {
+        state.character.traits.splice(index, 1);
+        const conflictIndex = state.character.traits.findIndex(
+          (trait) => trait.name.trim().toLowerCase() === newKey,
+        );
+        if (conflictIndex >= 0) {
+          state.character.traits[conflictIndex] = nextTrait;
+        } else {
+          state.character.traits.push(nextTrait);
+        }
       }
       state.isDirty = true;
     },
@@ -162,8 +257,11 @@ export const {
   setCharacterEditorName,
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
+  appendCharacterEditorHistoryEntry,
+  updateCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
   upsertCharacterEditorTrait,
+  updateCharacterEditorTrait,
   prependCharacterEditorImages,
   removeCharacterEditorImage,
   replaceCharacterEditor,

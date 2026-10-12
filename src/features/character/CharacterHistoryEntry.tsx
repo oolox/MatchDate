@@ -4,6 +4,8 @@ import styles from './CharacterHistoryEntry.module.css';
 
 export interface CharacterHistoryEntryProps {
   entry: CharacterHistoryEntryData;
+  onEdit?: () => void;
+  editDisabled?: boolean;
   onRemove?: () => void;
   removeDisabled?: boolean;
 }
@@ -21,6 +23,8 @@ function formatHistoryWhen(at: string): string {
 
 export function CharacterHistoryEntry({
   entry,
+  onEdit,
+  editDisabled = false,
   onRemove,
   removeDisabled = false,
 }: CharacterHistoryEntryProps) {
@@ -31,16 +35,31 @@ export function CharacterHistoryEntry({
         <time className={styles.when} dateTime={entry.at}>
           {when}
         </time>
-        {onRemove ? (
-          <IconButton
-            icon="close"
-            label="Remove history entry"
-            variant="secondary"
-            size="xs"
-            className={styles.remove}
-            disabled={removeDisabled}
-            onClick={onRemove}
-          />
+        {onEdit || onRemove ? (
+          <div className={styles.entryActions}>
+            {onEdit ? (
+              <IconButton
+                icon="edit"
+                label="Edit history entry"
+                variant="secondary"
+                size="md"
+                className={styles.entryAction}
+                disabled={editDisabled}
+                onClick={onEdit}
+              />
+            ) : null}
+            {onRemove ? (
+              <IconButton
+                icon="close"
+                label="Remove history entry"
+                variant="secondary"
+                size="md"
+                className={styles.entryAction}
+                disabled={removeDisabled}
+                onClick={onRemove}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
       <p className={styles.summary}>{entry.summary}</p>

@@ -4,6 +4,8 @@ import styles from './CharacterTraitEntry.module.css';
 
 export interface CharacterTraitEntryProps {
   trait: CharacterTraitData;
+  onEdit?: () => void;
+  editDisabled?: boolean;
   onRemove?: () => void;
   removeDisabled?: boolean;
 }
@@ -21,6 +23,8 @@ function formatTraitWhen(at: string): string {
 
 export function CharacterTraitEntry({
   trait,
+  onEdit,
+  editDisabled = false,
   onRemove,
   removeDisabled = false,
 }: CharacterTraitEntryProps) {
@@ -31,16 +35,31 @@ export function CharacterTraitEntry({
         <time className={styles.when} dateTime={trait.at}>
           {when}
         </time>
-        {onRemove ? (
-          <IconButton
-            icon="close"
-            label={`Remove trait ${trait.name}`}
-            variant="secondary"
-            size="xs"
-            className={styles.remove}
-            disabled={removeDisabled}
-            onClick={onRemove}
-          />
+        {onEdit || onRemove ? (
+          <div className={styles.entryActions}>
+            {onEdit ? (
+              <IconButton
+                icon="edit"
+                label={`Edit trait ${trait.name}`}
+                variant="secondary"
+                size="md"
+                className={styles.entryAction}
+                disabled={editDisabled}
+                onClick={onEdit}
+              />
+            ) : null}
+            {onRemove ? (
+              <IconButton
+                icon="close"
+                label={`Remove trait ${trait.name}`}
+                variant="secondary"
+                size="md"
+                className={styles.entryAction}
+                disabled={removeDisabled}
+                onClick={onRemove}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
       <p className={styles.detail}>

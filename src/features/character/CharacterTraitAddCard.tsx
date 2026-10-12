@@ -1,193 +1,66 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { DayPicker } from '@daypicker/react';
+import { useCallback, useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/Button';
-import { DayPickerBoundedSelect } from '../../components/ui/DayPickerBoundedSelect/DayPickerBoundedSelect';
-import { IconButton } from '../../components/ui/IconButton/IconButton';
+import { CharacterAtDateTimeFields } from './CharacterAtDateTimeFields';
 import styles from './CharacterTraitAddCard.module.css';
+
+export interface CharacterTraitFormValues {
+  at: string;
+  name: string;
+  value: string;
+}
 
 export interface CharacterTraitAddCardProps {
   disabled?: boolean;
-  onAdd: (trait: { at: string; name: string; value: string }) => void;
+  mode?: 'add' | 'edit';
+  initial?: CharacterTraitFormValues;
+  onSubmit: (trait: CharacterTraitFormValues) => void;
   onCancel: () => void;
-}
-
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) =>
-  String(hour).padStart(2, '0'),
-);
-const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, minute) =>
-  String(minute).padStart(2, '0'),
-);
-
-const CALENDAR_START_MONTH = new Date(1900, 0);
-const CALENDAR_END_MONTH = new Date(new Date().getFullYear() + 5, 11);
-
-function formatDateLabel(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function combineDateAndTime(date: Date, hours: string, minutes: string): Date {
-  const next = new Date(date);
-  next.setHours(Number(hours) || 0, Number(minutes) || 0, 0, 0);
-  return next;
 }
 
 export function CharacterTraitAddCard({
   disabled = false,
-  onAdd,
+  mode = 'add',
+  initial,
+  onSubmit,
   onCancel,
 }: CharacterTraitAddCardProps) {
-  const [selectedDay, setSelectedDay] = useState<Date>(() => new Date());
-  const [hours, setHours] = useState(() => String(new Date().getHours()).padStart(2, '0'));
-  const [minutes, setMinutes] = useState(() =>
-    String(new Date().getMinutes()).padStart(2, '0'),
-  );
-  const [hoursOpen, setHoursOpen] = useState(false);
-  const [minutesOpen, setMinutesOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [timeOpen, setTimeOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [value, setValue] = useState('');
+  const [at, setAt] = useState(initial?.at ?? '');
+  const [name, setName] = useState(initial?.name ?? '');
+  const [value, setValue] = useState(initial?.value ?? '');
+  const handleAtChange = useCallback((next: string) => {
+    setAt(next);
+  }, []);
 
-  const atIso = useMemo(() => {
-    if (!selectedDay) {
-      return '';
-    }
-    return combineDateAndTime(selectedDay, hours, minutes).toISOString();
-  }, [hours, minutes, selectedDay]);
-
-  const dateLabel = formatDateLabel(selectedDay);
-  const timeLabel = `${hours}:${minutes}`;
   const canSubmit =
-    name.trim().length > 0 && value.trim().length > 0 && Boolean(selectedDay) && Boolean(atIso);
+    name.trim().length > 0 && value.trim().length > 0 && at.trim().length > 0;
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    if (!canSubmit || disabled || !atIso) {
+    if (!canSubmit || disabled) {
       return;
     }
-    onAdd({
-      at: atIso,
+    onSubmit({
+      at: at.trim(),
       name: name.trim(),
       value: value.trim(),
     });
   };
 
+  const isEdit = mode === 'edit';
+
   return (
-    <form className={styles.card} aria-label="Add trait" onSubmit={handleSubmit}>
+    <form
+      className={styles.card}
+      aria-label={isEdit ? 'Edit trait' : 'Add trait'}
+      onSubmit={handleSubmit}
+    >
       <div className={styles.field}>
-        <div
-          className={[styles.atRow, calendarOpen ? styles.atRowCalendarOpen : '']
-            .filter(Boolean)
-            .join(' ')}
-        >
-          <IconButton
-            icon="calendar"
-            label={calendarOpen ? 'Hide calendar' : 'Show calendar'}
-            variant="secondary"
-            size="sm"
-            disabled={disabled}
-            current={calendarOpen}
-            aria-expanded={calendarOpen}
-            aria-controls="trait-at-calendar"
-            onClick={() => setCalendarOpen((open) => !open)}
-          />
-          <div id="trait-at-calendar" className={styles.datePanel}>
-            {calendarOpen ? (
-              <DayPicker
-                mode="single"
-                captionLayout="dropdown"
-                hideNavigation
-                startMonth={CALENDAR_START_MONTH}
-                endMonth={CALENDAR_END_MONTH}
-                selected={selectedDay}
-                onSelect={(day) => {
-                  if (day) {
-                    setSelectedDay(day);
-                  }
-                }}
-                disabled={disabled}
-                aria-label="Trait date"
-                components={{ Select: DayPickerBoundedSelect }}
-              />
-            ) : (
-              <span className={styles.dateLabel} aria-label="Trait date">
-                {dateLabel}
-              </span>
-            )}
-          </div>
-          <IconButton
-            icon="time"
-            label={timeOpen ? 'Hide time picker' : 'Show time picker'}
-            variant="secondary"
-            size="sm"
-            disabled={disabled}
-            current={timeOpen}
-            aria-expanded={timeOpen}
-            aria-controls="trait-at-time"
-            onClick={() => setTimeOpen((open) => !open)}
-          />
-          <div id="trait-at-time" className={styles.datePanel}>
-            {timeOpen ? (
-              <div className={styles.timeRow} role="group" aria-label="Trait time">
-                <select
-                  className={[styles.timeSelect, hoursOpen ? styles.timeSelectOpen : '']
-                    .filter(Boolean)
-                    .join(' ')}
-                  value={hours}
-                  disabled={disabled}
-                  aria-label="Hours"
-                  size={hoursOpen ? 24 : 1}
-                  onFocus={() => setHoursOpen(true)}
-                  onBlur={() => setHoursOpen(false)}
-                  onChange={(event) => {
-                    setHours(event.target.value);
-                    setHoursOpen(false);
-                    event.currentTarget.blur();
-                  }}
-                >
-                  {HOUR_OPTIONS.map((hour) => (
-                    <option key={hour} value={hour}>
-                      {hour}
-                    </option>
-                  ))}
-                </select>
-                <span className={styles.timeSep} aria-hidden="true">
-                  :
-                </span>
-                <select
-                  className={[styles.timeSelect, minutesOpen ? styles.timeSelectOpen : '']
-                    .filter(Boolean)
-                    .join(' ')}
-                  value={minutes}
-                  disabled={disabled}
-                  aria-label="Minutes"
-                  size={minutesOpen ? 60 : 1}
-                  onFocus={() => setMinutesOpen(true)}
-                  onBlur={() => setMinutesOpen(false)}
-                  onChange={(event) => {
-                    setMinutes(event.target.value);
-                    setMinutesOpen(false);
-                    event.currentTarget.blur();
-                  }}
-                >
-                  {MINUTE_OPTIONS.map((minute) => (
-                    <option key={minute} value={minute}>
-                      {minute}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <span className={styles.dateLabel} aria-label="Trait time">
-                {timeLabel}
-              </span>
-            )}
-          </div>
-        </div>
+        <CharacterAtDateTimeFields
+          disabled={disabled}
+          idPrefix="trait-at"
+          initialAtIso={initial?.at}
+          onAtChange={handleAtChange}
+        />
       </div>
       <label className={styles.field}>
         <span className={styles.label}>Name</span>
@@ -215,7 +88,7 @@ export function CharacterTraitAddCard({
       </label>
       <div className={styles.actions}>
         <Button type="submit" variant="tab" disabled={disabled || !canSubmit}>
-          Add
+          {isEdit ? 'Update' : 'Add'}
         </Button>
         <Button type="button" variant="tab" disabled={disabled} onClick={onCancel}>
           Cancel

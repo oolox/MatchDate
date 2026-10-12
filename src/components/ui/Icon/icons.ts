@@ -4,6 +4,7 @@ import caretDownSvg from '../../../assets/icons/caret-down.svg?raw';
 import caretUpSvg from '../../../assets/icons/caret-up.svg?raw';
 import closeSvg from '../../../assets/icons/close.svg?raw';
 import copySvg from '../../../assets/icons/copy.svg?raw';
+import editSvg from '../../../assets/icons/edit.svg?raw';
 import generateSvg from '../../../assets/icons/generate.svg?raw';
 import imageSvg from '../../../assets/icons/image.svg?raw';
 import modelSvg from '../../../assets/icons/model.svg?raw';
@@ -24,6 +25,7 @@ export const iconSources = {
   generate: generateSvg,
   close: closeSvg,
   copy: copySvg,
+  edit: editSvg,
   plus: plusSvg,
   calendar: calendarSvg,
   time: timeSvg,

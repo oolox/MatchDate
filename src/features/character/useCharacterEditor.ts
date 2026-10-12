@@ -14,6 +14,9 @@ import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDr
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { bumpLibraryEpoch, selectLibraryEpoch } from '../../store/slices/appShellSlice';
 import {
+  appendCharacterEditorHistoryEntry,
+  updateCharacterEditorHistoryEntry,
+  updateCharacterEditorTrait,
   markCharacterEditorSaved,
   prependCharacterEditorImages,
   replaceCharacterEditor,
@@ -163,6 +166,20 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     [dispatch],
   );
 
+  const appendHistoryEntry = useCallback(
+    (entry: { at: string; summary: string }) => {
+      dispatch(appendCharacterEditorHistoryEntry(entry));
+    },
+    [dispatch],
+  );
+
+  const updateHistoryEntry = useCallback(
+    (payload: { index: number; at: string; summary: string }) => {
+      dispatch(updateCharacterEditorHistoryEntry(payload));
+    },
+    [dispatch],
+  );
+
   const removeTrait = useCallback(
     (name: string) => {
       dispatch(removeCharacterEditorTrait(name));
@@ -173,6 +190,13 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   const upsertTrait = useCallback(
     (trait: { at: string; name: string; value: string }) => {
       dispatch(upsertCharacterEditorTrait(trait));
+    },
+    [dispatch],
+  );
+
+  const updateTrait = useCallback(
+    (payload: { originalName: string; at: string; name: string; value: string }) => {
+      dispatch(updateCharacterEditorTrait(payload));
     },
     [dispatch],
   );
@@ -361,8 +385,11 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     clearCharacterName,
     setAttributeValue,
     removeHistoryEntry,
+    appendHistoryEntry,
+    updateHistoryEntry,
     removeTrait,
     upsertTrait,
+    updateTrait,
     addImagesFromFiles,
     addImagesFromLibrary,
     removeImage,
