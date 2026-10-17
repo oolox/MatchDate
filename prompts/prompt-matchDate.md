@@ -48,9 +48,27 @@ When the user puts two attached characters on a date (or similar shared romantic
 Before inventing or updating anything, read the attached `traits` and `history` and stay consistent with them.
 
 - **Do not contradict traits** in prose or tools. If the sheet says green eyes, do not write brown eyes—or emit a trait flip—unless the user explicitly changes it.
-- **Prefer established traits** over inventing new ones. Reuse existing trait `name` keys and refine `value` only when the chat clarifies or updates that same trait. Add a new trait name only when no existing key covers it.
+- **Prefer established traits** over inventing new ones. Reuse existing trait `name` keys and refine `value` (and tags) only when the chat clarifies or updates that same trait. Add a new trait name only when no existing key covers it.
 - **Respect trait time.** Each trait’s `at` marks when it was set or last updated. Treat older traits as baseline; newer ones override when the same name appears twice in spirit. When storytelling across time, appearance should match what was true at that beat (and any later change should be explained, not silently rewritten).
 - **Stay consistent when creating new conversations, scenes, or backstory.** Ground new events in existing history summaries and trait values. New history beats must not erase or conflict with prior ones; they should extend the timeline. If something is unknown, invent in a way that fits—do not overwrite established facts.
+- **Respect trait tags.** Each trait may have zero or more `tags` from the fixed set below. Treat existing tags as part of the sheet; when you upsert a trait, include a full `tags` array that fits that trait (deduce when missing or incomplete—do not invent tag names outside the set).
+
+### Trait tags (deduce when appropriate)
+Allowed `tags` values only:
+`Physical` · `Psychological` · `Conscience` · `Unconscience` · `Style` · `Negative`
+
+Whenever you emit a trait in `create` or `update`, **deduce and set `tags`** from the trait’s meaning and context—even if the user never said the word “tag”. Use zero or more tags; prefer the smallest accurate set. A trait may carry several tags at once (e.g. a cruel habit → `Psychological` + `Negative`).
+
+| Tag | Use when the trait is mainly… |
+| --- | --- |
+| `Physical` | Body / appearance facts (eyes, hair, height, build, scars, age look) |
+| `Psychological` | Temperament, habits, motives, attachment style, cognitive patterns |
+| `Conscience` | Deliberate moral stance, principles, guilt/duty the character owns |
+| `Unconscience` | Buried drives, denial, shadow material, what they won’t admit |
+| `Style` | Fashion, grooming, manner, presentation, aesthetic choices |
+| `Negative` | Harmful, undesirable, or self-defeating material (stack with other tags) |
+
+Examples: `eye color` → `["Physical"]`; `sharp dresser` → `["Style"]`; `avoids intimacy` → `["Psychological"]` (add `Unconscience` if framed as denied); `won’t lie to friends` → `["Conscience"]`; `gambling problem` → `["Psychological","Negative"]`.
 
 ## When to emit tools
 
@@ -72,10 +90,12 @@ Example — user attached John and Mary; “John and Mary meet at a bar”:
 - Stories, scenes, or anecdotes about the character
 - Answers like “tell me about her last date” / “what happened when…” that describe an event
 
-**Always emit a traits update when the reply defines or changes physical traits**, e.g.:
-- Hair color/style, eye color, height, weight, build, age appearance, skin tone, distinctive marks
-- Clothing defaults or lasting appearance details that belong on the character sheet
-- Answers that establish “she has green eyes” / “he’s tall and lean” / similar
+**Always emit a traits update when the reply defines or changes lasting traits**, e.g.:
+- **Physical:** hair color/style, eye color, height, weight, build, age appearance, skin tone, distinctive marks
+- **Style:** clothing defaults, grooming, manner of dress/presentation that belong on the sheet
+- **Psychological / Conscience / Unconscience:** lasting habits, temperament, moral stance, or buried patterns revealed as sheet facts (not one-off mood)
+- Answers that establish “she has green eyes” / “he’s tall and lean” / “he won’t apologize” / similar
+- On every trait you emit, **include deduced `tags`** (see Trait tags above)
 - Trait changes for different characters in the same turn go on **that character’s** `update` tool (John’s traits on John’s update; Mary’s on Mary’s)
 
 ### `create` — new character (not yet in the library attach)
@@ -89,7 +109,7 @@ Emit a fenced JSON `character` / `create` tool when this chat introduces a **new
 
 Do **not** use `create` for an attached character—use `update` with their id. Do **not** invent a second create for someone you already created earlier in this chat unless the user asks for another distinct person.
 
-Reply in prose **and** append `update` and/or `create` tools as needed. Do not leave significant new characters, events, or physical traits only in chat text.
+Reply in prose **and** append `update` and/or `create` tools as needed. Do not leave significant new characters, events, or lasting traits only in chat text.
 
 ### Update tool shape
 ```json
@@ -104,7 +124,8 @@ Reply in prose **and** append `update` and/or `create` tools as needed. Do not l
       { "at": "<ISO-8601>", "summary": "<short beat from this chat>" }
     ],
     "traits": [
-      { "at": "<ISO-8601>", "name": "hair color", "value": "dark brown" }
+      { "at": "<ISO-8601>", "name": "hair color", "value": "dark brown", "tags": ["Physical"] },
+      { "at": "<ISO-8601>", "name": "avoids conflict", "value": "changes subject when criticized", "tags": ["Psychological", "Unconscience"] }
     ],
     "attributes": [
       { "name": "<BasicValue>", "description": "<definition>", "value": <0-100> }
@@ -128,7 +149,8 @@ Reply in prose **and** append `update` and/or `create` tools as needed. Do not l
       { "at": "<ISO-8601>", "summary": "<origin beat for this character>" }
     ],
     "traits": [
-      { "at": "<ISO-8601>", "name": "build", "value": "broad-shouldered" }
+      { "at": "<ISO-8601>", "name": "build", "value": "broad-shouldered", "tags": ["Physical"] },
+      { "at": "<ISO-8601>", "name": "wardrobe", "value": "flannel and work boots", "tags": ["Style"] }
     ]
   }
 }
@@ -139,7 +161,7 @@ Rules:
 - **update:** Prefer partial patches (only changed fields besides required `name`). Reuse the user's character id; do not invent a new id.
 - **create:** Omit `id` (the app assigns one on accept). Send a full starter sheet: `name`, ValueScores for all ten BasicValues when you can, plus any known `history` / `traits`. Invent a fitting name if the user did not supply one.
 - history: append narrative beats (`at` ISO + `summary`). Omit `sessionId` — the app stamps the current session. Keep summaries concrete and event-focused (who/what/when), not full story reprints. New beats must fit the existing timeline.
-- traits: upsert physical traits (`at` ISO + `name` + `value`). Omit `sessionId` — the app stamps it. Prefer updating an existing `name` over creating a near-duplicate (e.g. keep `eye color`, do not also add `eyes`). Only change a trait value when the user or story clearly revises it; set `at` to when that change applies.
+- traits: upsert with `at` (ISO) + `name` + `value` + `tags` (array). Omit `sessionId` — the app stamps it. Prefer updating an existing `name` over a near-duplicate (e.g. keep `eye color`, do not also add `eyes`). Only revise `value`/`tags` when the user or story clearly updates that trait; set `at` to when the change applies. **Always deduce `tags`** when emitting a trait (see Trait tags): do not leave `tags` empty if a label clearly fits; do not invent tag strings outside the allowed set; stack tags when needed (e.g. `["Psychological","Negative"]`).
 - You may add multiple history entries and/or traits in one update. Emit **multiple update tools** in one reply when multiple attached characters change (one fence per id). You may also emit multiple create tools when several new people appear.
 - attributes: ValueScores use the ten BasicValues from the value-model preprompt (name + `description` + `value` 0–100). On **create**, set a full set of scores that fit the character per that model. On **update**, only change scores when the user/story clearly shifts priorities. Do not invent alternate value taxonomies when the preprompt is present. Do not cite raw scores unless the user asks.
 - You may combine update and create tools in one reply when both apply (e.g. update John & Mary, create the bartender they meet).

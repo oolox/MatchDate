@@ -67,6 +67,11 @@ export function CharacterTraitEntry({
         <span className={styles.sep}>:</span>
         <span className={styles.value}>{trait.value}</span>
       </p>
+      {trait.tags?.length ? (
+        <p className={styles.tags} aria-label="Tags">
+          {trait.tags.join(' · ')}
+        </p>
+      ) : null}
     </article>
   );
 }

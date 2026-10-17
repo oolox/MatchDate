@@ -1,12 +1,16 @@
-import { useCallback, useState, type FormEvent } from 'react';
+import { useCallback, useId, useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/Button';
+import type { CharacterTraitTag } from '../../types/character';
+import { normalizeCharacterTraitTags } from '../../types/character';
 import { CharacterAtDateTimeFields } from './CharacterAtDateTimeFields';
+import { CharacterTraitTagsMultiSelect } from './CharacterTraitTagsMultiSelect';
 import styles from './CharacterTraitAddCard.module.css';
 
 export interface CharacterTraitFormValues {
   at: string;
   name: string;
   value: string;
+  tags: CharacterTraitTag[];
 }
 
 export interface CharacterTraitAddCardProps {
@@ -24,9 +28,13 @@ export function CharacterTraitAddCard({
   onSubmit,
   onCancel,
 }: CharacterTraitAddCardProps) {
+  const tagsFieldId = useId();
   const [at, setAt] = useState(initial?.at ?? '');
   const [name, setName] = useState(initial?.name ?? '');
   const [value, setValue] = useState(initial?.value ?? '');
+  const [tags, setTags] = useState<CharacterTraitTag[]>(() =>
+    normalizeCharacterTraitTags(initial?.tags),
+  );
   const handleAtChange = useCallback((next: string) => {
     setAt(next);
   }, []);
@@ -43,6 +51,7 @@ export function CharacterTraitAddCard({
       at: at.trim(),
       name: name.trim(),
       value: value.trim(),
+      tags: normalizeCharacterTraitTags(tags),
     });
   };
 
@@ -86,6 +95,17 @@ export function CharacterTraitAddCard({
           onChange={(event) => setValue(event.target.value)}
         />
       </label>
+      <div className={styles.field}>
+        <span className={styles.label} id={`${tagsFieldId}-label`}>
+          Type
+        </span>
+        <CharacterTraitTagsMultiSelect
+          id={tagsFieldId}
+          value={tags}
+          disabled={disabled}
+          onChange={setTags}
+        />
+      </div>
       <div className={styles.actions}>
         <Button type="submit" variant="tab" disabled={disabled || !canSubmit}>
           {isEdit ? 'Update' : 'Add'}

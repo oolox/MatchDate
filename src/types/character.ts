@@ -46,7 +46,19 @@ export interface CharacterHistoryEntry {
   sessionId?: string;
 }
 
-/** Physical / appearance traits (hair color, eye color, weight, etc.). */
+/** Allowed trait taxonomy tags (0 or more per trait). */
+export const CHARACTER_TRAIT_TAGS = [
+  'Physical',
+  'Psychological',
+  'Conscience',
+  'Unconscience',
+  'Style',
+  'Negative',
+] as const;
+
+export type CharacterTraitTag = (typeof CHARACTER_TRAIT_TAGS)[number];
+
+/** Character traits (appearance, psychology, etc.). */
 export interface CharacterTrait {
   /** When this trait was defined or last updated (ISO-8601). */
   at: string;
@@ -54,6 +66,8 @@ export interface CharacterTrait {
   name: string;
   /** Trait value, e.g. "dark brown", "blue", "180 lbs". */
   value: string;
+  /** Zero or more taxonomy tags. */
+  tags: CharacterTraitTag[];
   /** Session that created or last updated this trait (when known). */
   sessionId?: string;
 }
@@ -103,6 +117,26 @@ export function isBasicValue(value: unknown): value is BasicValue {
   return typeof value === 'string' && (BASIC_VALUES as readonly string[]).includes(value);
 }
 
+export function isCharacterTraitTag(value: unknown): value is CharacterTraitTag {
+  return (
+    typeof value === 'string' && (CHARACTER_TRAIT_TAGS as readonly string[]).includes(value)
+  );
+}
+
+/** Dedupe and keep only known trait tags, in canonical order. */
+export function normalizeCharacterTraitTags(tags: unknown): CharacterTraitTag[] {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+  const selected = new Set<CharacterTraitTag>();
+  for (const tag of tags) {
+    if (isCharacterTraitTag(tag)) {
+      selected.add(tag);
+    }
+  }
+  return CHARACTER_TRAIT_TAGS.filter((tag) => selected.has(tag));
+}
+
 export function isCharacterHistoryEntry(value: unknown): value is CharacterHistoryEntry {
   if (!value || typeof value !== 'object') {
     return false;
@@ -120,12 +154,19 @@ export function isCharacterTrait(value: unknown): value is CharacterTrait {
     return false;
   }
   const trait = value as Partial<CharacterTrait>;
-  return (
-    typeof trait.at === 'string' &&
-    typeof trait.name === 'string' &&
-    trait.name.trim().length > 0 &&
-    typeof trait.value === 'string' &&
-    trait.value.trim().length > 0 &&
-    (trait.sessionId === undefined || typeof trait.sessionId === 'string')
-  );
+  if (
+    typeof trait.at !== 'string' ||
+    typeof trait.name !== 'string' ||
+    trait.name.trim().length === 0 ||
+    typeof trait.value !== 'string' ||
+    trait.value.trim().length === 0 ||
+    (trait.sessionId !== undefined && typeof trait.sessionId !== 'string')
+  ) {
+    return false;
+  }
+  // Missing/undefined tags allowed (legacy docs); invalid non-array tags rejected.
+  if (trait.tags !== undefined && !Array.isArray(trait.tags)) {
+    return false;
+  }
+  return true;
 }

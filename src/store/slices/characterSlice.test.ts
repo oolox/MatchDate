@@ -60,8 +60,8 @@ describe('characterSlice', () => {
       { at: '2026-02-01T00:00:00.000Z', summary: 'Second' },
     ];
     character.traits = [
-      { at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'green' },
-      { at: '2026-01-01T00:00:00.000Z', name: 'hair color', value: 'black' },
+      { at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'green', tags: [] },
+      { at: '2026-01-01T00:00:00.000Z', name: 'hair color', value: 'black', tags: ['Physical'] },
     ];
     let state = characterReducer(
       undefined,
@@ -74,7 +74,12 @@ describe('characterSlice', () => {
     expect(state.isDirty).toBe(true);
     state = characterReducer(state, removeCharacterEditorTrait('Eye Color'));
     expect(state.character.traits).toEqual([
-      { at: '2026-01-01T00:00:00.000Z', name: 'hair color', value: 'black' },
+      {
+        at: '2026-01-01T00:00:00.000Z',
+        name: 'hair color',
+        value: 'black',
+        tags: ['Physical'],
+      },
     ]);
   });
 
@@ -137,6 +142,7 @@ describe('characterSlice', () => {
         at: '2026-01-01T00:00:00.000Z',
         name: 'hair color',
         value: 'black',
+        tags: ['Physical'],
         sessionId: 'chat-1',
       },
     ];
@@ -151,6 +157,7 @@ describe('characterSlice', () => {
         at: '2026-02-01T12:00:00.000Z',
         name: 'Hair Color',
         value: 'brown',
+        tags: ['Physical', 'Conscience'],
       }),
     );
     expect(state.character.traits).toEqual([
@@ -158,6 +165,7 @@ describe('characterSlice', () => {
         at: '2026-02-01T12:00:00.000Z',
         name: 'Hair Color',
         value: 'brown',
+        tags: ['Physical', 'Conscience'],
         sessionId: 'chat-1',
       },
     ]);
@@ -168,6 +176,7 @@ describe('characterSlice', () => {
         at: '2026-03-01T12:00:00.000Z',
         name: 'eye color',
         value: 'blue',
+        tags: ['Physical'],
       }),
     );
     expect(state.character.traits).toEqual([
@@ -175,12 +184,13 @@ describe('characterSlice', () => {
         at: '2026-03-01T12:00:00.000Z',
         name: 'eye color',
         value: 'blue',
+        tags: ['Physical'],
         sessionId: USER_TRAIT_SESSION_ID,
       },
     ]);
   });
 
-  it('upserts traits with sessionId user', () => {
+  it('upserts traits with sessionId user and tags', () => {
     let state = characterReducer(
       undefined,
       replaceCharacterEditor({
@@ -195,6 +205,7 @@ describe('characterSlice', () => {
         at: '2026-09-13T18:00:00.000Z',
         name: 'eye color',
         value: 'green',
+        tags: ['Physical'],
       }),
     );
     expect(state.character.traits).toEqual([
@@ -202,6 +213,7 @@ describe('characterSlice', () => {
         at: '2026-09-13T18:00:00.000Z',
         name: 'eye color',
         value: 'green',
+        tags: ['Physical'],
         sessionId: USER_TRAIT_SESSION_ID,
       },
     ]);
@@ -213,6 +225,7 @@ describe('characterSlice', () => {
         at: '2026-09-14T18:00:00.000Z',
         name: 'Eye Color',
         value: 'hazel',
+        tags: ['Physical', 'Psychological'],
       }),
     );
     expect(state.character.traits).toEqual([
@@ -220,6 +233,7 @@ describe('characterSlice', () => {
         at: '2026-09-14T18:00:00.000Z',
         name: 'Eye Color',
         value: 'hazel',
+        tags: ['Physical', 'Psychological'],
         sessionId: USER_TRAIT_SESSION_ID,
       },
     ]);

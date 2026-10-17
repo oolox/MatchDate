@@ -198,10 +198,19 @@ interface CharacterHistoryEntry {
   sessionId?: string; // session that created the beat (app-stamped)
 }
 
+type CharacterTraitTag =
+  | 'Physical'
+  | 'Psychological'
+  | 'Conscience'
+  | 'Unconscience'
+  | 'Style'
+  | 'Negative';
+
 interface CharacterTrait {
   at: string;
   name: string;
   value: string;
+  tags: CharacterTraitTag[]; // 0 or more taxonomy tags
   sessionId?: string; // session that created/updated the trait (app-stamped)
 }
 

@@ -215,6 +215,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
                           at: trait.at,
                           name: trait.name,
                           value: trait.value,
+                          tags: trait.tags ?? [],
                         }}
                         onSubmit={(values) => {
                           updateTrait({

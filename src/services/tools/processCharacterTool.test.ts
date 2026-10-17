@@ -33,6 +33,7 @@ describe('characterFromCreateData', () => {
         at: '2026-01-01T00:00:00.000Z',
         name: 'eye color',
         value: 'hazel',
+        tags: [],
         sessionId: 'sess-create',
       },
     ]);
@@ -71,15 +72,31 @@ describe('applyCharacterUpdatePatch', () => {
   it('upserts traits by name', () => {
     const existing = createDefaultCharacter('Alex');
     existing.traits = [
-      { at: '2026-01-01T00:00:00.000Z', name: 'eye color', value: 'brown', sessionId: 'sess-old' },
+      {
+        at: '2026-01-01T00:00:00.000Z',
+        name: 'eye color',
+        value: 'brown',
+        tags: ['Physical'],
+        sessionId: 'sess-old',
+      },
     ];
     const merged = applyCharacterUpdatePatch(
       existing,
       {
         name: 'Alex',
         traits: [
-          { at: '2026-09-13T18:00:00.000Z', name: 'eye color', value: 'green' },
-          { at: '2026-09-13T18:00:00.000Z', name: 'hair color', value: 'black' },
+          {
+            at: '2026-09-13T18:00:00.000Z',
+            name: 'eye color',
+            value: 'green',
+            tags: ['Physical'],
+          },
+          {
+            at: '2026-09-13T18:00:00.000Z',
+            name: 'hair color',
+            value: 'black',
+            tags: ['Physical', 'Conscience'],
+          },
         ],
       },
       { sessionId: 'sess-new' },
@@ -90,12 +107,14 @@ describe('applyCharacterUpdatePatch', () => {
         at: '2026-09-13T18:00:00.000Z',
         name: 'eye color',
         value: 'green',
+        tags: ['Physical'],
         sessionId: 'sess-new',
       },
       {
         at: '2026-09-13T18:00:00.000Z',
         name: 'hair color',
         value: 'black',
+        tags: ['Physical', 'Conscience'],
         sessionId: 'sess-new',
       },
     ]);
@@ -281,6 +300,7 @@ describe('processCharacterTool', () => {
         at: '2026-09-13T18:00:00.000Z',
         name: 'build',
         value: 'broad-shouldered',
+        tags: [],
         sessionId: 'sess-create',
       },
     ]);

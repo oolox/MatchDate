@@ -10,6 +10,7 @@ import {
   isBasicValue,
   isCharacterHistoryEntry,
   isCharacterTrait,
+  normalizeCharacterTraitTags,
 } from '../../types/character';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
@@ -88,6 +89,7 @@ export function normalizeTraits(traits: unknown): CharacterTrait[] {
       at: trait.at,
       name: trait.name.trim(),
       value: trait.value.trim(),
+      tags: normalizeCharacterTraitTags(trait.tags),
       ...(sessionId ? { sessionId } : {}),
     };
   });
@@ -121,7 +123,8 @@ export function mergeTraitPatches(
       previous.value !== trait.value ||
       previous.at !== trait.at ||
       previous.name !== trait.name ||
-      previous.sessionId !== trait.sessionId
+      previous.sessionId !== trait.sessionId ||
+      (previous.tags ?? []).join('\0') !== trait.tags.join('\0')
     ) {
       changed = true;
     }

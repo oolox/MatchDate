@@ -59,3 +59,11 @@
   color: var(--color-text-secondary);
   margin-left: 0.25em;
 }
+
+.tags {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}

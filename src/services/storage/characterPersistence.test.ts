@@ -36,6 +36,15 @@ describe('characterPersistence', () => {
     character.history = [
       { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', sessionId: 'sess-1' },
     ];
+    character.traits = [
+      {
+        at: '2026-09-13T17:00:00.000Z',
+        name: 'eye color',
+        value: 'green',
+        tags: ['Physical', 'Unconscience'],
+        sessionId: 'sess-1',
+      },
+    ];
     character.images = [
       {
         id: 'img-1',
@@ -61,6 +70,7 @@ describe('characterPersistence', () => {
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'char-1'));
     expect(loaded.name).toBe('Alex');
     expect(loaded.history).toEqual(character.history);
+    expect(loaded.traits).toEqual(character.traits);
     expect(loaded.images).toEqual(character.images);
     expect(loaded.attributes).toHaveLength(BASIC_VALUES.length);
     expect(loaded.attributes[0]).toEqual({

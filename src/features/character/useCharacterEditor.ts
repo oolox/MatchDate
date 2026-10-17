@@ -7,7 +7,7 @@ import {
 } from '../../services/storage/assetDocument';
 import { saveImage } from '../../services/storage/imageStorage';
 import { loadAsset, loadCharacter, saveCharacter } from '../../services/storage/persistenceService';
-import type { BasicValue, Character } from '../../types/character';
+import type { BasicValue, Character, CharacterTraitTag } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { formatFailure } from '../../utils/formatFailure';
 import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDrag';
@@ -188,14 +188,20 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   );
 
   const upsertTrait = useCallback(
-    (trait: { at: string; name: string; value: string }) => {
+    (trait: { at: string; name: string; value: string; tags?: CharacterTraitTag[] }) => {
       dispatch(upsertCharacterEditorTrait(trait));
     },
     [dispatch],
   );
 
   const updateTrait = useCallback(
-    (payload: { originalName: string; at: string; name: string; value: string }) => {
+    (payload: {
+      originalName: string;
+      at: string;
+      name: string;
+      value: string;
+      tags?: CharacterTraitTag[];
+    }) => {
       dispatch(updateCharacterEditorTrait(payload));
     },
     [dispatch],

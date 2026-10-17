@@ -4,8 +4,9 @@ import type {
   Character,
   CharacterHistoryEntry,
   CharacterTrait,
+  CharacterTraitTag,
 } from '../../types/character';
-import { createDefaultCharacter } from '../../types/character';
+import { createDefaultCharacter, normalizeCharacterTraitTags } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 
@@ -121,7 +122,12 @@ const characterSlice = createSlice({
     /** Upsert trait by name (case-insensitive); stamps sessionId `user`. */
     upsertCharacterEditorTrait: (
       state,
-      action: PayloadAction<{ at: string; name: string; value: string }>,
+      action: PayloadAction<{
+        at: string;
+        name: string;
+        value: string;
+        tags?: CharacterTraitTag[];
+      }>,
     ) => {
       const name = action.payload.name.trim();
       const value = action.payload.value.trim();
@@ -133,6 +139,7 @@ const characterSlice = createSlice({
         at,
         name,
         value,
+        tags: normalizeCharacterTraitTags(action.payload.tags),
         sessionId: USER_EDITOR_SESSION_ID,
       };
       const key = name.toLowerCase();
@@ -154,6 +161,7 @@ const characterSlice = createSlice({
         at: string;
         name: string;
         value: string;
+        tags?: CharacterTraitTag[];
       }>,
     ) => {
       const originalKey = action.payload.originalName.trim().toLowerCase();
@@ -174,6 +182,7 @@ const characterSlice = createSlice({
         at,
         name,
         value,
+        tags: normalizeCharacterTraitTags(action.payload.tags),
         sessionId: USER_EDITOR_SESSION_ID,
       };
       const newKey = name.toLowerCase();
