@@ -67,6 +67,7 @@ export function CharacterImagesSection({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [describing, setDescribing] = useState(false);
   const [descriptions, setDescriptions] = useState<Record<string, ImageDescribeState>>({});
+  const [traitsVisible, setTraitsVisible] = useState(true);
   const [proposal, setProposal] = useState<MergedVisionTrait[] | null>(null);
 
   const clearReorderState = useCallback(() => {
@@ -200,6 +201,7 @@ export function CharacterImagesSection({
     }
     setDescribing(true);
     setProposal(null);
+    setTraitsVisible(true);
     setDescriptions(
       Object.fromEntries(images.map((image) => [image.id, { status: 'loading' as const }])),
     );
@@ -236,6 +238,9 @@ export function CharacterImagesSection({
   }, [describing, disabled, images]);
 
   const actionsDisabled = disabled || describing;
+  const hasTraitButtons = Object.values(descriptions).some(
+    (entry) => entry.status === 'done' && entry.traits.length > 0,
+  );
 
   return (
     <div>
@@ -296,7 +301,7 @@ export function CharacterImagesSection({
                   {description?.status === 'loading' ? (
                     <p className={styles.descriptionPending}>Describing…</p>
                   ) : null}
-                  {description?.status === 'done' ? (
+                  {description?.status === 'done' && traitsVisible ? (
                     description.traits.length === 0 ? (
                       <p className={styles.descriptionPending}>No traits extracted</p>
                     ) : (
@@ -346,6 +351,15 @@ export function CharacterImagesSection({
       </div>
       {images.length > 0 ? (
         <div className={styles.toolbar}>
+          <IconButton
+            icon="eye"
+            label={traitsVisible ? 'Hide extracted traits' : 'Show extracted traits'}
+            variant="secondary"
+            size="sm"
+            disabled={actionsDisabled || !hasTraitButtons}
+            current={hasTraitButtons && traitsVisible}
+            onClick={() => setTraitsVisible((visible) => !visible)}
+          />
           <Button
             type="button"
             variant="tab"
@@ -354,7 +368,7 @@ export function CharacterImagesSection({
               void handleDescribe();
             }}
           >
-            {describing ? 'DESCRIBING…' : 'DESCRIBE'}
+            {describing ? 'DESCRIBING' : 'DESCRIBE'}
           </Button>
         </div>
       ) : null}
