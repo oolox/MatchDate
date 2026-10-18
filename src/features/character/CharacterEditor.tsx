@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useNotification } from '../../components/notification/Notification/useNotification';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
+import { nowIso } from '../../utils/id';
 import type { CharacterEditorApi } from './CharacterEditorContext';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
 import { CharacterHistoryAddCard } from './CharacterHistoryAddCard';
@@ -42,9 +44,11 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     addImagesFromFiles,
     addImagesFromLibrary,
     removeImage,
+    reorderImages,
     handleSave,
     handleNew,
   } = editor;
+  const { notify } = useNotification();
   const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [traitsExpanded, setTraitsExpanded] = useState(true);
   const [imagesExpanded, setImagesExpanded] = useState(true);
@@ -101,6 +105,26 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
             }}
             onRemove={(imageId) => {
               void removeImage(imageId);
+            }}
+            onReorder={(next) => {
+              void reorderImages(next);
+            }}
+            onApplyTraits={(traits) => {
+              const at = nowIso();
+              for (const trait of traits) {
+                upsertTrait({
+                  at,
+                  name: trait.name,
+                  value: trait.value,
+                  tags: trait.tags,
+                });
+              }
+              setTraitsExpanded(true);
+              notify(
+                traits.length === 1
+                  ? 'Applied 1 trait from images'
+                  : `Applied ${traits.length} traits from images`,
+              );
             }}
           />
         </CharacterCollapsibleCard>

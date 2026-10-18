@@ -6,6 +6,7 @@ import characterReducer, {
   markCharacterEditorSaved,
   removeCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
+  reorderCharacterEditorImages,
   replaceCharacterEditor,
   resetCharacterEditor,
   setCharacterEditorName,
@@ -13,6 +14,7 @@ import characterReducer, {
   upsertCharacterEditorTrait,
 } from './characterSlice';
 import { createDefaultCharacter } from '../../types/character';
+import type { SavedImageRef } from '../../types/savedImage';
 
 describe('characterSlice', () => {
   it('preserves edits in redux until reset', () => {
@@ -237,5 +239,26 @@ describe('characterSlice', () => {
         sessionId: USER_TRAIT_SESSION_ID,
       },
     ]);
+  });
+
+  it('reorders character images', () => {
+    const img = (id: string): SavedImageRef => ({
+      id,
+      fileName: `${id}.png`,
+      path: `/matchdate/assets/img/${id}.png`,
+      createdAt: '2026-09-13T17:00:00.000Z',
+    });
+    const character = createDefaultCharacter('Alex');
+    character.images = [img('a'), img('b'), img('c')];
+    let state = characterReducer(
+      undefined,
+      replaceCharacterEditor({ characterId: 'c1', character, isDirty: false }),
+    );
+    state = characterReducer(
+      state,
+      reorderCharacterEditorImages([img('b'), img('a'), img('c')]),
+    );
+    expect(state.character.images.map((image) => image.id)).toEqual(['b', 'a', 'c']);
+    expect(state.isDirty).toBe(true);
   });
 });

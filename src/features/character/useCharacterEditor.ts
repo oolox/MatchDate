@@ -22,6 +22,7 @@ import {
   replaceCharacterEditor,
   resetCharacterEditor,
   removeCharacterEditorImage,
+  reorderCharacterEditorImages,
   selectCharacterEditorCharacter,
   selectCharacterEditorDirty,
   selectCharacterEditorId,
@@ -331,6 +332,26 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     [dispatch, notify, persistImagesIfPossible],
   );
 
+  const reorderImages = useCallback(
+    async (nextImages: SavedImageRef[]) => {
+      const current = characterRef.current.images;
+      if (
+        nextImages.length !== current.length ||
+        nextImages.every((image, index) => image.id === current[index]?.id)
+      ) {
+        return;
+      }
+      dispatch(reorderCharacterEditorImages(nextImages));
+      characterRef.current = { ...characterRef.current, images: nextImages };
+      try {
+        await persistImagesIfPossible(nextImages);
+      } catch (error) {
+        notify(formatFailure('save', characterRef.current.name || 'character', error));
+      }
+    },
+    [dispatch, notify, persistImagesIfPossible],
+  );
+
   const loadCharacterById = useCallback(
     (id: string) => {
       navigate(`/character/${id}`);
@@ -399,6 +420,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     addImagesFromFiles,
     addImagesFromLibrary,
     removeImage,
+    reorderImages,
     loadCharacterById,
     startNewCharacter,
     handleSave,

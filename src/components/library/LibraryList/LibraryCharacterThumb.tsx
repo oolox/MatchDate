@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useObjectUrl } from '../../../hooks/useObjectUrl';
 import { loadImage } from '../../../services/storage/imageStorage';
 import { loadCharacter } from '../../../services/storage/persistenceService';
+import { useAppSelector } from '../../../store/hooks';
+import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
 import type { SavedImageRef } from '../../../types/savedImage';
 import { Icon } from '../../ui/Icon/Icon';
 import styles from './LibraryList.module.css';
@@ -28,6 +30,7 @@ function aspectWidthFor(image: SavedImageRef | null): number | undefined {
 }
 
 export function LibraryCharacterThumb({ characterId, name }: LibraryCharacterThumbProps) {
+  const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const { objectUrl, setFromBlob, clear } = useObjectUrl();
   const [failed, setFailed] = useState(false);
   const [firstImage, setFirstImage] = useState<SavedImageRef | null>(null);
@@ -65,7 +68,7 @@ export function LibraryCharacterThumb({ characterId, name }: LibraryCharacterThu
     return () => {
       cancelled = true;
     };
-  }, [characterId, clear, setFromBlob]);
+  }, [characterId, clear, libraryEpoch, setFromBlob]);
 
   const aspectWidth = aspectWidthFor(firstImage);
   const showImage = Boolean(objectUrl && firstImage && !failed);

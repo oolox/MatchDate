@@ -1,3 +1,13 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm) var(--space-sm) var(--space-xs);
+}
+
 .dropZone {
   position: relative;
   min-height: 5rem;
@@ -40,6 +50,23 @@
   gap: var(--space-xs);
   flex: 0 0 auto;
   min-width: 0;
+  cursor: grab;
+  border-radius: var(--radius-sm);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.12s ease, opacity 0.12s ease;
+}
+
+.tile:active {
+  cursor: grabbing;
+}
+
+.tileDragging {
+  opacity: 0.45;
+}
+
+.tileDropTarget {
+  outline-color: var(--color-accent);
 }
 
 .previewWrap {
@@ -102,4 +129,31 @@
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-accent);
+}
+
+.description {
+  margin: 0;
+  max-width: 16rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.descriptionPending,
+.descriptionError {
+  margin: 0;
+  max-width: 16rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.descriptionPending {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.descriptionError {
+  color: var(--color-danger, #c45c5c);
 }

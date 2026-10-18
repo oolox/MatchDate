@@ -231,6 +231,24 @@ const characterSlice = createSlice({
       state.character.images = next;
       state.isDirty = true;
     },
+    /** Replace gallery order (same image set, new sequence). */
+    reorderCharacterEditorImages: (state, action: PayloadAction<SavedImageRef[]>) => {
+      const next = normalizeSavedImageRefs(action.payload);
+      if (next.length !== state.character.images.length) {
+        return;
+      }
+      const currentIds = state.character.images.map((image) => image.id);
+      const nextIds = next.map((image) => image.id);
+      if (currentIds.join('\0') === nextIds.join('\0')) {
+        return;
+      }
+      const currentSet = new Set(currentIds);
+      if (nextIds.some((id) => !currentSet.has(id))) {
+        return;
+      }
+      state.character.images = next;
+      state.isDirty = true;
+    },
     replaceCharacterEditor: (
       state,
       action: PayloadAction<{ characterId: string | null; character: Character; isDirty?: boolean }>,
@@ -273,6 +291,7 @@ export const {
   updateCharacterEditorTrait,
   prependCharacterEditorImages,
   removeCharacterEditorImage,
+  reorderCharacterEditorImages,
   replaceCharacterEditor,
   markCharacterEditorSaved,
   setCharacterEditorDirty,
