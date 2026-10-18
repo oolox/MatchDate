@@ -376,9 +376,16 @@ export function CharacterImagesSection({
         <CharacterTraitProposal
           traits={proposal}
           disabled={actionsDisabled}
-          onConfirm={(traits) => {
+          onAdd={(traits) => {
             onApplyTraits(traits);
-            setProposal(null);
+            setProposal((prev) => {
+              if (!prev) {
+                return null;
+              }
+              const added = new Set(traits.map((trait) => trait.name.toLowerCase()));
+              const remaining = prev.filter((trait) => !added.has(trait.name.toLowerCase()));
+              return remaining.length === 0 ? null : remaining;
+            });
           }}
           onCancel={() => setProposal(null)}
         />
