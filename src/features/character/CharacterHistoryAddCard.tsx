@@ -72,10 +72,10 @@ export function CharacterHistoryAddCard({
       </label>
       <div className={styles.actions}>
         <Button type="submit" variant="tab" disabled={disabled || !canSubmit}>
-          {isEdit ? 'Update' : 'Add'}
+          {isEdit ? 'UPDATE' : 'ADD'}
         </Button>
         <Button type="button" variant="tab" disabled={disabled} onClick={onCancel}>
-          Cancel
+          CANCEL
         </Button>
       </div>
     </form>

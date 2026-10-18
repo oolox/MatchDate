@@ -1,11 +1,7 @@
 import { useCallback, useState, type DragEvent } from 'react';
 import { Button } from '../../components/ui/Button';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
-import {
-  formatExtractedTraitsPreview,
-  mergeVisionTraits,
-  type MergedVisionTrait,
-} from '../../services/fal/mergeVisionTraits';
+import { mergeVisionTraits, type MergedVisionTrait } from '../../services/fal/mergeVisionTraits';
 import {
   extractTraitsFromImageBlob,
   type VisionExtractedTrait,
@@ -32,7 +28,7 @@ import styles from './CharacterImagesSection.module.css';
 type ImageDescribeState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'done'; traits: VisionExtractedTrait[]; preview: string }
+  | { status: 'done'; traits: VisionExtractedTrait[] }
   | { status: 'error'; message: string };
 
 export interface CharacterImagesSectionProps {
@@ -218,7 +214,6 @@ export function CharacterImagesSection({
             [image.id]: {
               status: 'done',
               traits: extraction.traits,
-              preview: formatExtractedTraitsPreview(extraction.traits),
             },
           }));
           return extraction;
@@ -302,7 +297,38 @@ export function CharacterImagesSection({
                     <p className={styles.descriptionPending}>Describing…</p>
                   ) : null}
                   {description?.status === 'done' ? (
-                    <p className={styles.description}>{description.preview}</p>
+                    description.traits.length === 0 ? (
+                      <p className={styles.descriptionPending}>No traits extracted</p>
+                    ) : (
+                      <div className={styles.traitButtons} role="group" aria-label="Extracted traits">
+                        {description.traits.map((trait) => (
+                          <button
+                            key={`${trait.name}:${trait.value}`}
+                            type="button"
+                            className={styles.traitButton}
+                            disabled={actionsDisabled}
+                            draggable={false}
+                            title={`Add trait ${trait.name}: ${trait.value}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onApplyTraits([
+                                {
+                                  name: trait.name,
+                                  value: trait.value,
+                                  tags: trait.tags,
+                                },
+                              ]);
+                            }}
+                            onDragStart={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                          >
+                            {trait.name}: {trait.value}
+                          </button>
+                        ))}
+                      </div>
+                    )
                   ) : null}
                   {description?.status === 'error' ? (
                     <p className={styles.descriptionError}>{description.message}</p>
@@ -328,7 +354,7 @@ export function CharacterImagesSection({
               void handleDescribe();
             }}
           >
-            {describing ? 'Describing…' : 'Describe'}
+            {describing ? 'DESCRIBING…' : 'DESCRIBE'}
           </Button>
         </div>
       ) : null}

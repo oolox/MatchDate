@@ -86,10 +86,10 @@ export function CharacterTraitProposal({
             )
           }
         >
-          Apply {selectedTraits.length > 0 ? `(${selectedTraits.length})` : ''}
+          {selectedTraits.length > 0 ? `APPLY(${selectedTraits.length})` : 'APPLY'}
         </Button>
         <Button type="button" variant="tab" disabled={disabled} onClick={onCancel}>
-          Cancel
+          CANCEL
         </Button>
       </div>
     </div>
