@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type DragEvent } from 'react';
 import { useNotification } from '../../components/notification/Notification/useNotification';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import { nowIso } from '../../utils/id';
+import {
+  dataTransferHasMatchDateLibrary,
+  readMatchDateLibraryDragPayload,
+} from '../../utils/matchdateLibraryDrag';
 import type { CharacterEditorApi } from './CharacterEditorContext';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
 import { CharacterHistoryAddCard } from './CharacterHistoryAddCard';
@@ -36,6 +40,8 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     setCharacterName,
     clearCharacterName,
     setIdentity,
+    clearVoiceAssetId,
+    attachVoiceFromLibrary,
     setAttributeValue,
     removeHistoryEntry,
     appendHistoryEntry,
@@ -62,6 +68,45 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   );
   const [editingHistoryIndex, setEditingHistoryIndex] = useState<number | null>(null);
   const [imagesSheetEpoch, setImagesSheetEpoch] = useState(0);
+  const [voiceDragActive, setVoiceDragActive] = useState(false);
+
+  const handleVoiceDragOver = useCallback(
+    (event: DragEvent) => {
+      if (isBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      setVoiceDragActive(true);
+    },
+    [isBusy],
+  );
+
+  const handleVoiceDragLeave = useCallback((event: DragEvent) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    setVoiceDragActive(false);
+  }, []);
+
+  const handleVoiceDrop = useCallback(
+    (event: DragEvent) => {
+      setVoiceDragActive(false);
+      if (isBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
+        return;
+      }
+      event.preventDefault();
+      const payload = readMatchDateLibraryDragPayload(event.dataTransfer);
+      if (payload?.kind === 'asset' && payload.subtype === 'voice') {
+        void attachVoiceFromLibrary(payload);
+        return;
+      }
+      if (payload?.kind === 'asset' && payload.subtype === 'image') {
+        void addImagesFromLibrary([payload]);
+      }
+    },
+    [addImagesFromLibrary, attachVoiceFromLibrary, isBusy],
+  );
 
   const sheetEntryActionsDisabled =
     isBusy || addingTrait || addingHistory || editingTraitOriginalName !== null || editingHistoryIndex !== null;
@@ -76,15 +121,25 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   );
 
   return (
-    <section className={styles.section} aria-label="Character editor">
+    <section
+      className={[styles.section, voiceDragActive ? styles.sectionDragActive : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-label="Character editor"
+      onDragOver={handleVoiceDragOver}
+      onDragLeave={handleVoiceDragLeave}
+      onDrop={handleVoiceDrop}
+    >
       <CharacterSubHeader
         name={character.name}
         identity={character.identity}
+        voiceAssetId={character.voiceAssetId}
         isBusy={isBusy}
         canSave={canSave}
         onNameChange={setCharacterName}
         onClearName={clearCharacterName}
         onIdentityChange={setIdentity}
+        onClearVoice={clearVoiceAssetId}
         onSave={() => {
           void handleSave();
         }}

@@ -36,6 +36,7 @@ import {
   removeCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
   setCharacterEditorIdentity,
+  setCharacterEditorVoiceAssetId,
   setCharacterEditorName,
   upsertCharacterEditorTrait,
 } from '../../store/slices/characterSlice';
@@ -49,6 +50,7 @@ function clampScore(value: number): number {
 }
 
 function toEditorCharacter(character: Character, images?: SavedImageRef[]): Character {
+  const voiceAssetId = character.voiceAssetId?.trim();
   return {
     name: character.name,
     identity: normalizeCharacterIdentity(character.identity),
@@ -56,6 +58,7 @@ function toEditorCharacter(character: Character, images?: SavedImageRef[]): Char
     history: character.history ?? [],
     traits: character.traits ?? [],
     images: images ?? character.images ?? [],
+    ...(voiceAssetId ? { voiceAssetId } : {}),
   };
 }
 
@@ -168,6 +171,17 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     [dispatch],
   );
 
+  const setVoiceAssetId = useCallback(
+    (voiceAssetId: string | null) => {
+      dispatch(setCharacterEditorVoiceAssetId(voiceAssetId));
+    },
+    [dispatch],
+  );
+
+  const clearVoiceAssetId = useCallback(() => {
+    dispatch(setCharacterEditorVoiceAssetId(null));
+  }, [dispatch]);
+
   const setAttributeValue = useCallback(
     (name: BasicValue, value: number) => {
       dispatch(setCharacterEditorAttributeValue({ name, value: clampScore(value) }));
@@ -236,22 +250,35 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
       dispatch(
         markCharacterEditorSaved({
           characterId: saved.id,
-          character: toEditorCharacter(
-            {
-              name: saved.name,
-              identity: saved.identity,
-              attributes: saved.attributes,
-              history: saved.history ?? [],
-              traits: saved.traits ?? [],
-              images: saved.images ?? nextImages,
-            },
-            saved.images ?? nextImages,
-          ),
+          character: toEditorCharacter(saved, saved.images ?? nextImages),
         }),
       );
       lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
     },
     [dispatch, libraryEpoch],
+  );
+
+  const attachVoiceFromLibrary = useCallback(
+    async (item: MatchDateLibraryDragPayload) => {
+      if (item.kind !== 'asset' || item.subtype !== 'voice') {
+        return;
+      }
+      const id = item.id.trim();
+      if (!id) {
+        return;
+      }
+      try {
+        const asset = await loadAsset(id);
+        if (asset.subtype !== 'voice') {
+          notify('Drop a voice asset onto the character sheet');
+          return;
+        }
+        dispatch(setCharacterEditorVoiceAssetId(asset.id));
+      } catch (error) {
+        notify(formatFailure('attach voice', id, error));
+      }
+    },
+    [dispatch, notify],
   );
 
   const attachImageRefs = useCallback(
@@ -389,17 +416,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
       dispatch(
         markCharacterEditorSaved({
           characterId: saved.id,
-          character: toEditorCharacter(
-            {
-              name: saved.name,
-              identity: saved.identity,
-              attributes: saved.attributes,
-              history: saved.history ?? [],
-              traits: saved.traits ?? [],
-              images: saved.images ?? character.images ?? [],
-            },
-            saved.images ?? character.images ?? [],
-          ),
+          character: toEditorCharacter(saved, saved.images ?? character.images ?? []),
         }),
       );
       lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
@@ -428,6 +445,9 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     setCharacterName,
     clearCharacterName,
     setIdentity,
+    setVoiceAssetId,
+    clearVoiceAssetId,
+    attachVoiceFromLibrary,
     setAttributeValue,
     removeHistoryEntry,
     appendHistoryEntry,

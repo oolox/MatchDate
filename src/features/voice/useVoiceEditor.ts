@@ -75,12 +75,14 @@ function hydrateFromMetadata(meta: VoiceAssetMetadata | undefined): {
   voiceId: string;
   styleInstructions: string;
   temperature: number;
+  sayText: string;
 } {
   const preset = meta?.preset;
   const voiceId =
     preset?.voiceId?.trim() && isGeminiTtsVoiceId(preset.voiceId.trim())
       ? preset.voiceId.trim()
       : DEFAULT_GEMINI_VOICE_PRESET.voiceId;
+  const sayThis = meta?.sayThis?.trim();
   return {
     voiceName: meta?.voiceName?.trim() || DEFAULT_VOICE_NAME,
     gender: genderHintForGeminiVoice(voiceId),
@@ -90,6 +92,7 @@ function hydrateFromMetadata(meta: VoiceAssetMetadata | undefined): {
       typeof preset?.temperature === 'number' && Number.isFinite(preset.temperature)
         ? preset.temperature
         : 1,
+    sayText: sayThis || DEFAULT_SAY_TEXT,
   };
 }
 
@@ -175,6 +178,14 @@ export function useVoiceEditor(): VoiceEditor {
     [markDirty],
   );
 
+  const setSayTextDirty = useCallback(
+    (value: string) => {
+      setSayText(value);
+      markDirty();
+    },
+    [markDirty],
+  );
+
   const applyVoiceDocument = useCallback(
     (doc: AssetDocument) => {
       if (doc.subtype !== 'voice') {
@@ -188,6 +199,7 @@ export function useVoiceEditor(): VoiceEditor {
       setVoiceIdState(hydrated.voiceId);
       setStyleInstructions(hydrated.styleInstructions);
       setTemperature(hydrated.temperature);
+      setSayText(hydrated.sayText);
       setIsDirty(false);
       setLastError(null);
     },
@@ -205,7 +217,6 @@ export function useVoiceEditor(): VoiceEditor {
       try {
         const doc = await loadVoice(trimmed);
         applyVoiceDocument(doc);
-        notify(`Loaded ${doc.name}`);
       } catch (error) {
         const message = formatFailure('load voice', trimmed, error);
         setLastError(message);
@@ -238,6 +249,7 @@ export function useVoiceEditor(): VoiceEditor {
         id: voiceAssetId ?? undefined,
         voiceName: voiceName.trim() || DEFAULT_VOICE_NAME,
         preset: presetFromControls(voiceId, styleInstructions, temperature),
+        sayThis: sayText,
       });
       setVoiceAssetId(saved.id);
       setVoiceName(saved.name);
@@ -251,7 +263,16 @@ export function useVoiceEditor(): VoiceEditor {
     } finally {
       setIsBusy(false);
     }
-  }, [dispatch, notify, styleInstructions, temperature, voiceAssetId, voiceId, voiceName]);
+  }, [
+    dispatch,
+    notify,
+    sayText,
+    styleInstructions,
+    temperature,
+    voiceAssetId,
+    voiceId,
+    voiceName,
+  ]);
 
   const handleSayThis = useCallback(async () => {
     const text = sayText.trim();
@@ -313,7 +334,7 @@ export function useVoiceEditor(): VoiceEditor {
     setVoiceId,
     setStyleInstructions: setStyleInstructionsDirty,
     setTemperature: setTemperatureDirty,
-    setSayText,
+    setSayText: setSayTextDirty,
     handleNew,
     handleSave,
     handleSayThis,

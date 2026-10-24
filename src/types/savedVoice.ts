@@ -21,6 +21,8 @@ export interface VoicePreset {
  */
 export interface VoiceAssetMetadata {
   voiceName: string;
+  /** Last “Say this” draft for this voice design (restored on load). */
+  sayThis?: string;
   sampleDurationMs?: number;
   originalName?: string;
   preset?: VoicePreset;
@@ -52,6 +54,13 @@ export function normalizeVoiceAssetMetadata(
 ): VoiceAssetMetadata {
   const voiceName = metadata?.voiceName?.trim() || fallbackName;
   const next: VoiceAssetMetadata = { voiceName };
+
+  if (typeof metadata?.sayThis === 'string') {
+    const sayThis = metadata.sayThis.trim();
+    if (sayThis) {
+      next.sayThis = sayThis;
+    }
+  }
 
   if (
     typeof metadata?.sampleDurationMs === 'number' &&

@@ -24,7 +24,6 @@ import {
   duplicateCharacter,
   setActivePrompt,
 } from '../../../services/storage/persistenceService';
-import { saveVoice } from '../../../services/storage/voiceStorage';
 import { formatFailure } from '../../../utils/formatFailure';
 import { LibrarySidebar } from '../LibraryList/LibrarySidebar';
 import {
@@ -358,26 +357,8 @@ export function LibraryBrowser({
     [dispatch, isBusy, notify, onCatalogMutated],
   );
 
-  const handleCreateVoice = useCallback(async () => {
-    if (isBusy) {
-      return;
-    }
-    setActionBusy(true);
-    try {
-      const saved = await saveVoice();
-      dispatch(bumpLibraryEpoch());
-      onCatalogMutated?.();
-      notify(`Created ${saved.name}`);
-    } catch (error) {
-      notify(formatFailure('create voice', undefined, error));
-    } finally {
-      setActionBusy(false);
-    }
-  }, [dispatch, isBusy, notify, onCatalogMutated]);
-
   const chromeKey = `${activeTab}:${activeSubtype}`;
   const showImageUpload = activeTab === 'assets' || activeTab === 'all';
-  const showNewVoice = activeTab === 'assets' && activeSubtype === 'voice';
 
   return (
     <LibrarySidebar
@@ -415,18 +396,6 @@ export function LibraryBrowser({
                 Upload image
               </button>
             </>
-          ) : null}
-          {showNewVoice ? (
-            <button
-              type="button"
-              className={styles.uploadButton}
-              disabled={isBusy}
-              onClick={() => {
-                void handleCreateVoice();
-              }}
-            >
-              New voice
-            </button>
           ) : null}
           {headerActions}
         </>

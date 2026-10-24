@@ -11,9 +11,24 @@ import {
   createDefaultCharacter,
   normalizeCharacterIdentity,
   normalizeCharacterTraitTags,
+  normalizeVoiceAssetId,
 } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
+
+function withNormalizedEditorCharacter(character: Character): Character {
+  const voiceAssetId = normalizeVoiceAssetId(character.voiceAssetId);
+  const next: Character = {
+    ...character,
+    images: normalizeSavedImageRefs(character.images),
+  };
+  if (voiceAssetId) {
+    next.voiceAssetId = voiceAssetId;
+  } else {
+    delete next.voiceAssetId;
+  }
+  return next;
+}
 
 /** Session id stamped on sheet UI adds (traits / history). */
 export const USER_EDITOR_SESSION_ID = 'user';
@@ -57,6 +72,18 @@ const characterSlice = createSlice({
         return;
       }
       state.character.identity = next;
+      state.isDirty = true;
+    },
+    setCharacterEditorVoiceAssetId: (state, action: PayloadAction<string | null>) => {
+      const next = normalizeVoiceAssetId(action.payload) ?? undefined;
+      if (state.character.voiceAssetId === next) {
+        return;
+      }
+      if (next) {
+        state.character.voiceAssetId = next;
+      } else {
+        delete state.character.voiceAssetId;
+      }
       state.isDirty = true;
     },
     setCharacterEditorAttributeValue: (
@@ -267,10 +294,7 @@ const characterSlice = createSlice({
       action: PayloadAction<{ characterId: string | null; character: Character; isDirty?: boolean }>,
     ) => {
       state.characterId = action.payload.characterId;
-      state.character = {
-        ...action.payload.character,
-        images: normalizeSavedImageRefs(action.payload.character.images),
-      };
+      state.character = withNormalizedEditorCharacter(action.payload.character);
       state.isDirty = action.payload.isDirty ?? false;
     },
     markCharacterEditorSaved: (
@@ -278,10 +302,7 @@ const characterSlice = createSlice({
       action: PayloadAction<{ characterId: string; character: Character }>,
     ) => {
       state.characterId = action.payload.characterId;
-      state.character = {
-        ...action.payload.character,
-        images: normalizeSavedImageRefs(action.payload.character.images),
-      };
+      state.character = withNormalizedEditorCharacter(action.payload.character);
       state.isDirty = false;
     },
     setCharacterEditorDirty: (state, action: PayloadAction<boolean>) => {
@@ -296,6 +317,7 @@ export const {
   setCharacterEditorCharacter,
   setCharacterEditorName,
   setCharacterEditorIdentity,
+  setCharacterEditorVoiceAssetId,
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
   appendCharacterEditorHistoryEntry,

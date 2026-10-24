@@ -86,6 +86,11 @@ export interface Character {
   traits: CharacterTrait[];
   /** Image asset refs (by guid / `SavedImageRef.id`), LuxNova-style. */
   images: SavedImageRef[];
+  /**
+   * Library voice asset GUID (`AssetDocument.id` with subtype voice).
+   * Not a Gemini/MiniMax preset id — display name is looked up from the asset.
+   */
+  voiceAssetId?: string;
 }
 
 export interface CharacterDocument {
@@ -99,6 +104,8 @@ export interface CharacterDocument {
   traits: CharacterTrait[];
   /** Image asset refs keyed by asset id. */
   images?: SavedImageRef[];
+  /** Library voice asset GUID when bound. */
+  voiceAssetId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +139,15 @@ export function isCharacterIdentity(value: unknown): value is CharacterIdentity 
 /** Coerce unknown / missing identity to a valid value (legacy docs → binary). */
 export function normalizeCharacterIdentity(value: unknown): CharacterIdentity {
   return isCharacterIdentity(value) ? value : 'binary';
+}
+
+/** Trimmed voice asset GUID, or undefined when absent/invalid. */
+export function normalizeVoiceAssetId(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const id = value.trim();
+  return id || undefined;
 }
 
 export function isBasicValue(value: unknown): value is BasicValue {

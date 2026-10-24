@@ -9,6 +9,7 @@ import {
 describe('jsonAttach', () => {
   it('builds a user write tool envelope', () => {
     const character = createDefaultCharacter('Alex');
+    character.voiceAssetId = 'voice-1';
     character.history.push({
       at: '2026-09-13T17:00:00.000Z',
       summary: 'Met at a cafe',
@@ -25,6 +26,7 @@ describe('jsonAttach', () => {
       attributes: character.attributes,
       history: character.history,
       traits: [],
+      voiceAssetId: 'voice-1',
     });
   });
 

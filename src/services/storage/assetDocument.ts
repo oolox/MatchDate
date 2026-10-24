@@ -142,6 +142,7 @@ export function savedVoiceRefFromAsset(asset: AssetDocument): SavedVoiceRef {
     ...(asset.mimeType ? { mimeType: asset.mimeType } : {}),
     metadata: {
       voiceName: meta?.voiceName?.trim() || asset.name || asset.id,
+      ...(meta?.sayThis?.trim() ? { sayThis: meta.sayThis.trim() } : {}),
       ...(meta?.sampleDurationMs != null ? { sampleDurationMs: meta.sampleDurationMs } : {}),
       ...(meta?.originalName ? { originalName: meta.originalName } : {}),
       ...(meta?.preset ? { preset: meta.preset } : {}),

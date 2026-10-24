@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { ColumnSplit } from '../../components/layout/ColumnSplit/ColumnSplit';
 import { LibraryBrowser } from '../../components/library/LibraryBrowser/LibraryBrowser';
@@ -16,6 +17,42 @@ export function VoiceView() {
   const dispatch = useAppDispatch();
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const [catalogEpoch, setCatalogEpoch] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const loadId = searchParams.get('load')?.trim() || null;
+
+  const clearLoadParam = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.has('load')) {
+          return prev;
+        }
+        const next = new URLSearchParams(prev);
+        next.delete('load');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    if (!loadId) {
+      return;
+    }
+    // Already editing this voice — just switch here and drop the query.
+    if (voiceAssetId === loadId) {
+      clearLoadParam();
+      return;
+    }
+    let cancelled = false;
+    void loadVoiceAsset(loadId).finally(() => {
+      if (!cancelled) {
+        clearLoadParam();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [clearLoadParam, loadId, loadVoiceAsset, voiceAssetId]);
 
   const bumpCatalog = useCallback(() => {
     dispatch(bumpLibraryEpoch());

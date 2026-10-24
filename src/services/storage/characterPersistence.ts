@@ -12,6 +12,7 @@ import {
   isCharacterTrait,
   normalizeCharacterIdentity,
   normalizeCharacterTraitTags,
+  normalizeVoiceAssetId,
 } from '../../types/character';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
@@ -40,6 +41,7 @@ export function characterDocumentFromCharacter(
     history: normalized.history,
     traits: normalized.traits,
     images: normalized.images,
+    ...(normalized.voiceAssetId ? { voiceAssetId: normalized.voiceAssetId } : {}),
     createdAt: options.createdAt ?? now,
     updatedAt: now,
   };
@@ -53,6 +55,7 @@ export function characterFromDocument(document: CharacterDocument): Character {
     history: document.history ?? [],
     traits: document.traits ?? [],
     images: document.images ?? [],
+    voiceAssetId: document.voiceAssetId,
   });
 }
 
@@ -139,6 +142,7 @@ export function mergeTraitPatches(
 
 export function normalizeCharacter(character: Character): Character {
   const byName = new Map(character.attributes.map((attribute) => [attribute.name, attribute]));
+  const voiceAssetId = normalizeVoiceAssetId(character.voiceAssetId);
   return {
     name: character.name,
     identity: normalizeCharacterIdentity(character.identity),
@@ -153,6 +157,7 @@ export function normalizeCharacter(character: Character): Character {
     history: normalizeHistory(character.history),
     traits: normalizeTraits(character.traits),
     images: normalizeSavedImageRefs(character.images),
+    ...(voiceAssetId ? { voiceAssetId } : {}),
   };
 }
 
@@ -189,6 +194,7 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
     history: normalizeHistory(value.history),
     traits: normalizeTraits(value.traits),
     images: normalizeSavedImageRefs(value.images),
+    voiceAssetId: value.voiceAssetId,
   });
 }
 

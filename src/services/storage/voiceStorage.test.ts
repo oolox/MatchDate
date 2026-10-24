@@ -65,6 +65,20 @@ describe('voiceStorage', () => {
     expect(items.find((item) => item.id === saved.id)?.name).toBe('After');
   });
 
+  it('persists and reloads Say this draft', async () => {
+    const saved = await saveVoice({
+      voiceName: 'Line reader',
+      sayThis: 'Custom line for this voice.',
+    });
+    expect((await loadVoiceMetadata(saved.id)).sayThis).toBe('Custom line for this voice.');
+
+    const updated = await saveVoice({
+      id: saved.id,
+      sayThis: 'Updated line.',
+    });
+    expect((updated.metadata as { sayThis?: string }).sayThis).toBe('Updated line.');
+  });
+
   it('lists voice assets and deletes sample + metadata', async () => {
     const saved = await saveVoice({
       voiceName: 'With sample',

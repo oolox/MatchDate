@@ -29,6 +29,9 @@ export function buildCharacterWriteTool(
       attributes: character.attributes,
       history: character.history ?? [],
       traits: character.traits ?? [],
+      ...(character.voiceAssetId?.trim()
+        ? { voiceAssetId: character.voiceAssetId.trim() }
+        : {}),
     },
   };
 }

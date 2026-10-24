@@ -4,6 +4,13 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.sectionDragActive {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 
 .listBody {

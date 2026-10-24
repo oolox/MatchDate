@@ -30,6 +30,8 @@ export interface SaveVoiceOptions {
   id?: string;
   voiceName?: string;
   preset?: VoicePreset;
+  /** Last “Say this” draft persisted with the voice design. */
+  sayThis?: string;
   /** Optional sample blob (clone path later); preset-only voices omit this. */
   sample?: Blob;
   originalName?: string;
@@ -57,11 +59,19 @@ export async function saveVoice(options: SaveVoiceOptions = {}): Promise<AssetDo
     existing?.name?.trim() ||
     DEFAULT_VOICE_NAME;
 
+  const sayThis =
+    options.sayThis !== undefined
+      ? options.sayThis
+      : options.metadata?.sayThis !== undefined
+        ? options.metadata.sayThis
+        : existingMeta?.sayThis;
+
   const mergedMeta = normalizeVoiceAssetMetadata(
     {
       ...existingMeta,
       ...options.metadata,
       voiceName,
+      ...(sayThis !== undefined ? { sayThis } : {}),
       ...(options.originalName != null
         ? { originalName: options.originalName }
         : {}),

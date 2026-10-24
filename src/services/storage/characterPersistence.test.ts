@@ -42,6 +42,7 @@ describe('characterPersistence', () => {
       { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', sessionId: 'sess-1' },
     ];
     character.identity = 'female';
+    character.voiceAssetId = 'voice-guid-1';
     character.traits = [
       {
         at: '2026-09-13T17:00:00.000Z',
@@ -72,10 +73,12 @@ describe('characterPersistence', () => {
     expect(saved.history).toHaveLength(1);
     expect(saved.images).toHaveLength(1);
     expect(saved.images?.[0]?.id).toBe('img-1');
+    expect(saved.voiceAssetId).toBe('voice-guid-1');
 
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'char-1'));
     expect(loaded.name).toBe('Alex');
     expect(loaded.identity).toBe('female');
+    expect(loaded.voiceAssetId).toBe('voice-guid-1');
     expect(loaded.history).toEqual(character.history);
     expect(loaded.traits).toEqual(character.traits);
     expect(loaded.images).toEqual(character.images);
