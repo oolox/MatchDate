@@ -85,7 +85,7 @@ export function VoiceDesignerPanel({
   const voiceOptions = geminiVoiceOptionsForGender(gender);
   const voiceLabel =
     ALL_VOICE_OPTIONS.find((option) => option.value === voiceId)?.label ?? voiceId;
-  const stylePreview = styleInstructions.trim() || '—';
+  const stylePreview = styleInstructions.trim() || 'new voice';
 
   return (
     <div className={styles.panel} aria-label="Voice designer">
@@ -179,10 +179,6 @@ export function VoiceDesignerPanel({
               }}
             />
             {lastError ? <p className={styles.error}>{lastError}</p> : null}
-            <p className={styles.hint}>
-              Drag a VOICE asset onto the character sheet to load. Character SAVE keeps the
-              design.
-            </p>
           </div>
         </div>
       )}

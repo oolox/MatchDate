@@ -130,6 +130,12 @@ export function geminiVoiceOptionsForGender(gender: VoiceGenderHint): readonly G
 
 /** Uniform random preset from the Gemini VoiceEnum list. */
 export function pickRandomGeminiVoice(): GeminiTtsVoiceId {
-  const index = Math.floor(Math.random() * GEMINI_TTS_VOICES.length);
-  return GEMINI_TTS_VOICES[index] ?? 'Kore';
+  return pickRandomGeminiVoiceForGender('neutral');
+}
+
+/** Uniform random preset from the gender-filtered list (neutral = full catalog). */
+export function pickRandomGeminiVoiceForGender(gender: VoiceGenderHint): GeminiTtsVoiceId {
+  const options = GEMINI_VOICE_OPTIONS_BY_GENDER[gender];
+  const index = Math.floor(Math.random() * options.length);
+  return options[index]?.value ?? GEMINI_VOICE_BY_GENDER[gender];
 }

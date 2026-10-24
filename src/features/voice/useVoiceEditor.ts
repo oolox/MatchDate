@@ -8,7 +8,7 @@ import {
   genderHintForGeminiVoice,
   getTtsModel,
   isGeminiTtsVoiceId,
-  pickRandomGeminiVoice,
+  pickRandomGeminiVoiceForGender,
   type VoiceGenderHint,
 } from '../../services/fal/models/tts';
 import { synthesizeSpeech } from '../../services/fal/ttsService';
@@ -32,6 +32,14 @@ import type { RootState } from '../../store';
 import { useStore } from 'react-redux';
 
 const DEFAULT_SAY_TEXT = 'Hello — this is how I sound.';
+
+function sayTextForCharacterName(name: string | undefined): string {
+  const trimmed = name?.trim();
+  if (!trimmed || trimmed === DEFAULT_VOICE_NAME) {
+    return DEFAULT_SAY_TEXT;
+  }
+  return `Hi, I'm ${trimmed}. Nice to meet you.`;
+}
 
 export interface VoiceEditorState {
   voiceAssetId: string | null;
@@ -271,17 +279,15 @@ export function useVoiceEditor(): VoiceEditor {
 
   const applyNewVoiceDefaults = useCallback(
     (voiceNameValue: string, genderHint?: VoiceGenderHint) => {
-      const voice =
-        genderHint != null
-          ? GEMINI_VOICE_BY_GENDER[genderHint]
-          : pickRandomGeminiVoice();
+      const gender = genderHint ?? 'neutral';
+      const voice = pickRandomGeminiVoiceForGender(gender);
       setVoiceAssetId(null);
       setVoiceName(voiceNameValue);
       setVoiceIdState(voice);
-      setGenderState(genderHint ?? genderHintForGeminiVoice(voice));
+      setGenderState(gender);
       setStyleInstructions('');
       setTemperature(1);
-      setSayText(DEFAULT_SAY_TEXT);
+      setSayText(sayTextForCharacterName(voiceNameValue));
       setLastError(null);
     },
     [],

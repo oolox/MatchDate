@@ -18,6 +18,7 @@ export {
   geminiVoiceOptionsForGender,
   isGeminiTtsVoiceId,
   pickRandomGeminiVoice,
+  pickRandomGeminiVoiceForGender,
   type GeminiTtsVoiceId,
   type GeminiVoiceOption,
   type VoiceGenderHint,

@@ -56,7 +56,6 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     setCharacterName,
     clearCharacterName,
     setIdentity,
-    clearVoiceAssetId,
     attachVoiceFromLibrary,
     setAttributeValue,
     removeHistoryEntry,
@@ -159,18 +158,6 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     [addImagesFromLibrary, attachVoiceFromLibrary, sheetBusy],
   );
 
-  const handleNewVoiceDesign = useCallback(() => {
-    clearVoiceAssetId();
-    voiceSyncKeyRef.current = `${characterId ?? 'new'}:`;
-    voiceEditor.startNewVoiceDesign({
-      voiceName: character.name.trim() || undefined,
-      characterId: characterId ?? null,
-      gender: genderFromIdentity(character.identity),
-      markDirty: true,
-    });
-    setVoiceExpanded(true);
-  }, [character.identity, character.name, characterId, clearVoiceAssetId, voiceEditor]);
-
   const handleCombinedSave = useCallback(() => {
     void handleSave({
       persistVoice: (savedCharacterId) =>
@@ -272,16 +259,6 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
           expanded={voiceExpanded}
           onExpandedChange={setVoiceExpanded}
           bodyClassName={styles.voiceBody}
-          headerLeading={
-            <IconButton
-              icon="plus"
-              label="New voice"
-              variant="secondary"
-              size="sm"
-              disabled={sheetBusy}
-              onClick={handleNewVoiceDesign}
-            />
-          }
         >
           <VoiceDesignerPanel
             editor={voiceEditor}
