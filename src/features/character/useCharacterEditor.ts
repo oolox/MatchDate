@@ -101,6 +101,15 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     }
 
     const loadKey = `${characterIdFromRoute}:${libraryEpoch}`;
+    // Already editing this character (e.g. return from Voice keep-alive) — don't reload.
+    if (
+      characterIdFromRoute === characterIdRef.current &&
+      lastLoadKeyRef.current !== null &&
+      lastLoadKeyRef.current.startsWith(`${characterIdFromRoute}:`)
+    ) {
+      lastLoadKeyRef.current = loadKey;
+      return;
+    }
     // Avoid clobbering in-progress edits when epoch bumps while this sheet is open.
     if (
       isDirtyRef.current &&

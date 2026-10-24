@@ -3,6 +3,7 @@ import binarySvg from '../../../assets/icons/binary.svg?raw';
 import calendarSvg from '../../../assets/icons/calendar.svg?raw';
 import caretDownSvg from '../../../assets/icons/caret-down.svg?raw';
 import caretUpSvg from '../../../assets/icons/caret-up.svg?raw';
+import characterSvg from '../../../assets/icons/character.svg?raw';
 import closeSvg from '../../../assets/icons/close.svg?raw';
 import copySvg from '../../../assets/icons/copy.svg?raw';
 import editSvg from '../../../assets/icons/edit.svg?raw';
@@ -45,6 +46,7 @@ export const iconSources = {
   image: imageSvg,
   video: videoSvg,
   voice: voiceSvg,
+  character: characterSvg,
   tag: tagSvg,
   model: modelSvg,
   prompt: promptSvg,

@@ -37,6 +37,8 @@ export interface VoiceEditorState {
   voiceAssetId: string | null;
   voiceName: string;
   gender: VoiceGenderHint;
+  /** Character this voice is linked to (`voice.characterId`), if any. */
+  linkedCharacterId: string | null;
   voiceId: string;
   styleInstructions: string;
   temperature: number;
@@ -123,6 +125,7 @@ export function useVoiceEditor(): VoiceEditor {
   const [voiceAssetId, setVoiceAssetId] = useState<string | null>(null);
   const [voiceName, setVoiceName] = useState(DEFAULT_VOICE_NAME);
   const [gender, setGenderState] = useState<VoiceGenderHint>('female');
+  const [linkedCharacterId, setLinkedCharacterId] = useState<string | null>(null);
   const [voiceId, setVoiceIdState] = useState(DEFAULT_GEMINI_VOICE_PRESET.voiceId);
   const [styleInstructions, setStyleInstructions] = useState('');
   const [temperature, setTemperature] = useState(1);
@@ -134,8 +137,6 @@ export function useVoiceEditor(): VoiceEditor {
 
   const objectUrlRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  /** Character to bind on next Save (from Character → New Voice). */
-  const pendingCharacterIdRef = useRef<string | null>(null);
 
   const revokePlayback = useCallback(() => {
     audioRef.current?.pause();
@@ -213,7 +214,12 @@ export function useVoiceEditor(): VoiceEditor {
         return;
       }
       revokePlayback();
-      const hydrated = hydrateFromMetadata(doc.metadata as VoiceAssetMetadata | undefined);
+      const meta = doc.metadata as VoiceAssetMetadata | undefined;
+      const hydrated = hydrateFromMetadata(meta);
+      const characterId =
+        typeof meta?.characterId === 'string' && meta.characterId.trim()
+          ? meta.characterId.trim()
+          : null;
       setVoiceAssetId(doc.id);
       setVoiceName(hydrated.voiceName);
       setGenderState(hydrated.gender);
@@ -221,7 +227,7 @@ export function useVoiceEditor(): VoiceEditor {
       setStyleInstructions(hydrated.styleInstructions);
       setTemperature(hydrated.temperature);
       setSayText(hydrated.sayText);
-      pendingCharacterIdRef.current = null;
+      setLinkedCharacterId(characterId);
       setIsDirty(false);
       setLastError(null);
     },
@@ -270,7 +276,7 @@ export function useVoiceEditor(): VoiceEditor {
 
   const handleNew = useCallback(() => {
     revokePlayback();
-    pendingCharacterIdRef.current = null;
+    setLinkedCharacterId(null);
     applyNewVoiceDefaults(DEFAULT_VOICE_NAME);
     setIsDirty(false);
   }, [applyNewVoiceDefaults, revokePlayback]);
@@ -279,7 +285,7 @@ export function useVoiceEditor(): VoiceEditor {
     (options?: StartNewVoiceDesignOptions) => {
       revokePlayback();
       const name = options?.voiceName?.trim() || DEFAULT_VOICE_NAME;
-      pendingCharacterIdRef.current = options?.characterId?.trim() || null;
+      setLinkedCharacterId(options?.characterId?.trim() || null);
       applyNewVoiceDefaults(name, options?.gender);
       setIsDirty(true);
     },
@@ -290,7 +296,7 @@ export function useVoiceEditor(): VoiceEditor {
     setIsBusy(true);
     setLastError(null);
     try {
-      const linkCharacterId = pendingCharacterIdRef.current;
+      const linkCharacterId = linkedCharacterId?.trim() || null;
       const saved = await saveVoice({
         id: voiceAssetId ?? undefined,
         voiceName: voiceName.trim() || DEFAULT_VOICE_NAME,
@@ -323,7 +329,6 @@ export function useVoiceEditor(): VoiceEditor {
           });
           notify(formatFailure('link voice to character', saved.name, linkError));
         }
-        pendingCharacterIdRef.current = null;
       }
 
       dispatch(bumpLibraryEpoch());
@@ -337,6 +342,7 @@ export function useVoiceEditor(): VoiceEditor {
     }
   }, [
     dispatch,
+    linkedCharacterId,
     notify,
     sayText,
     store,
@@ -391,6 +397,7 @@ export function useVoiceEditor(): VoiceEditor {
     voiceAssetId,
     voiceName,
     gender,
+    linkedCharacterId,
     voiceId,
     styleInstructions,
     temperature,

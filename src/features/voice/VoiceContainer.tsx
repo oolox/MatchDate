@@ -1,5 +1,6 @@
 import { useCallback, useState, type DragEvent } from 'react';
 import { DropdownSelect } from '../../components/ui/DropdownSelect';
+import { Icon } from '../../components/ui/Icon/Icon';
 import { TextArea } from '../../components/ui/TextArea/TextArea';
 import { geminiVoiceOptions } from '../../services/fal/models/tts';
 import {
@@ -20,6 +21,7 @@ export function VoiceContainer({ editor }: VoiceContainerProps) {
   const {
     voiceName,
     gender,
+    linkedCharacterId,
     voiceId,
     styleInstructions,
     temperature,
@@ -89,6 +91,7 @@ export function VoiceContainer({ editor }: VoiceContainerProps) {
       <VoiceSubHeader
         name={voiceName}
         gender={gender}
+        characterId={linkedCharacterId}
         isBusy={disabled}
         canSave={canSave}
         canNew={canNew}
@@ -144,22 +147,7 @@ export function VoiceContainer({ editor }: VoiceContainerProps) {
         </div>
 
         <div className={styles.sayBlock}>
-          <div className={styles.sayHeader}>
-            <span className={styles.fieldLabel}>Say this</span>
-            <div className={styles.sayMeta}>
-              <span>{costLabel}</span>
-              <button
-                type="button"
-                className={`${styles.button} ${styles.buttonPrimary}`}
-                disabled={disabled || !sayText.trim()}
-                onClick={() => {
-                  void handleSayThis();
-                }}
-              >
-                {isSaying ? 'Speaking…' : 'Say this'}
-              </button>
-            </div>
-          </div>
+          <span className={styles.fieldLabel}>Say this</span>
           <TextArea
             label="Utterance"
             hideLabel
@@ -169,6 +157,33 @@ export function VoiceContainer({ editor }: VoiceContainerProps) {
             placeholder="Type something to hear…"
             onChange={(event) => setSayText(event.target.value)}
           />
+          <div className={styles.sayMeta}>
+            <span>{costLabel}</span>
+            <button
+              type="button"
+              className={[
+                styles.button,
+                styles.buttonPrimary,
+                isSaying ? styles.buttonSaying : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              disabled={disabled || !sayText.trim()}
+              aria-busy={isSaying || undefined}
+              aria-label={isSaying ? 'Speaking…' : 'Say'}
+              title={isSaying ? 'Speaking…' : 'Say'}
+              onClick={() => {
+                void handleSayThis();
+              }}
+            >
+              <Icon
+                name="voice"
+                className={[styles.sayIcon, isSaying ? styles.sayIconSpeaking : '']
+                  .filter(Boolean)
+                  .join(' ')}
+              />
+            </button>
+          </div>
           {lastError ? <p className={styles.error}>{lastError}</p> : null}
           <p className={styles.hint}>
             Drag a VOICE asset here to load. Utterances are temporary — Save keeps the design only.

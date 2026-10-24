@@ -1,0 +1,11 @@
+.characterButton {
+  max-width: 14rem;
+  min-width: 0;
+}
+
+.characterButton > span:last-of-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
