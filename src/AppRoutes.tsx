@@ -10,13 +10,13 @@ import {
 } from './components/layout/SectionKeepAlive';
 import { appMainNavIdFromPath } from './components/layout/AppMainNav/mainNavConfig';
 import { useAppSelector } from './store/hooks';
+import { selectCharacterEditorId } from './store/slices/characterSlice';
 import { selectSelectedSessionId } from './store/slices/sessionsSlice';
 import { createId } from './store/slices/threadSlice';
 import { ChatView } from './views/ChatView/ChatView';
 import { CharacterSheetView } from './views/CharacterSheetView/CharacterSheetView';
 import { ConfigView } from './views/ConfigView/ConfigView';
 import { PromptsView } from './views/PromptsView/PromptsView';
-import { VoiceView } from './views/VoiceView/VoiceView';
 
 function RootRedirect() {
   const selectedId = useAppSelector(selectSelectedSessionId);
@@ -24,9 +24,19 @@ function RootRedirect() {
   return <Navigate to={`/session/${id}`} replace />;
 }
 
+function VoiceRedirect() {
+  const characterEditorId = useAppSelector(selectCharacterEditorId);
+  return (
+    <Navigate
+      to={characterEditorId ? `/character/${characterEditorId}` : '/character'}
+      replace
+    />
+  );
+}
+
 /**
- * Keeps each main nav section mounted after first visit so editor/chat/voice
- * context survives tab switches (and future Character → Voice → back).
+ * Keeps each main nav section mounted after first visit so editor/chat
+ * context survives tab switches.
  */
 function AppWorkspace() {
   const { pathname } = useLocation();
@@ -37,6 +47,10 @@ function AppWorkspace() {
   const pathSessionId = sessionIdFromPath(pathname);
   const chatSessionId = pathSessionId ?? selectedSessionId ?? fallbackSessionId;
   const characterId = characterIdFromPath(pathname);
+
+  if (pathname === '/voice' || pathname.startsWith('/voice/')) {
+    return <VoiceRedirect />;
+  }
 
   if (!isKnownAppPath(pathname)) {
     return <Navigate to="/" replace />;
@@ -52,11 +66,6 @@ function AppWorkspace() {
       {visited.has('character') ? (
         <SectionKeepAlive active={section === 'character'} label="Character">
           <CharacterSheetView characterId={characterId} />
-        </SectionKeepAlive>
-      ) : null}
-      {visited.has('voice') ? (
-        <SectionKeepAlive active={section === 'voice'} label="Voice">
-          <VoiceView />
         </SectionKeepAlive>
       ) : null}
       {visited.has('prompts') ? (

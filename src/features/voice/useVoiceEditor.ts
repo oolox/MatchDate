@@ -58,6 +58,14 @@ export interface StartNewVoiceDesignOptions {
   characterId?: string | null;
   /** Character identity → voice gender (male/female/neutral) + matching Gemini preset. */
   gender?: VoiceGenderHint;
+  /** Defaults true. Pass false when seeding an empty panel without enabling SAVE. */
+  markDirty?: boolean;
+}
+
+export interface PersistVoiceDesignOptions {
+  characterId: string;
+  /** Defaults to current voiceName. */
+  voiceName?: string;
 }
 
 export interface VoiceEditor extends VoiceEditorState {
@@ -71,6 +79,11 @@ export interface VoiceEditor extends VoiceEditorState {
   /** Reset designer for a new voice (e.g. Character → New Voice). */
   startNewVoiceDesign: (options?: StartNewVoiceDesignOptions) => void;
   handleSave: () => Promise<void>;
+  /**
+   * Persist voice design for Character SAVE (no toast). Returns voice asset id.
+   * Skips write when clean and already saved — still returns current id.
+   */
+  persistVoiceDesign: (options: PersistVoiceDesignOptions) => Promise<string | null>;
   handleSayThis: () => Promise<void>;
   loadVoiceAsset: (id: string) => Promise<void>;
   applyVoiceDocument: (doc: AssetDocument) => void;
@@ -287,9 +300,50 @@ export function useVoiceEditor(): VoiceEditor {
       const name = options?.voiceName?.trim() || DEFAULT_VOICE_NAME;
       setLinkedCharacterId(options?.characterId?.trim() || null);
       applyNewVoiceDefaults(name, options?.gender);
-      setIsDirty(true);
+      setIsDirty(options?.markDirty !== false);
     },
     [applyNewVoiceDefaults, revokePlayback],
+  );
+
+  const persistVoiceDesign = useCallback(
+    async (options: PersistVoiceDesignOptions): Promise<string | null> => {
+      const charId = options.characterId.trim();
+      if (!charId) {
+        return voiceAssetId;
+      }
+      // Clean + already saved: just ensure characterId link metadata.
+      if (!isDirty && voiceAssetId) {
+        setLinkedCharacterId(charId);
+        return voiceAssetId;
+      }
+      // Seeded empty panel — do not create a voice asset until the user edits or NEW.
+      if (!isDirty && !voiceAssetId) {
+        return null;
+      }
+      const name =
+        options.voiceName?.trim() || voiceName.trim() || DEFAULT_VOICE_NAME;
+      const saved = await saveVoice({
+        id: voiceAssetId ?? undefined,
+        voiceName: name,
+        preset: presetFromControls(voiceId, styleInstructions, temperature),
+        sayThis: sayText,
+        characterId: charId,
+      });
+      setVoiceAssetId(saved.id);
+      setVoiceName(saved.name);
+      setLinkedCharacterId(charId);
+      setIsDirty(false);
+      return saved.id;
+    },
+    [
+      isDirty,
+      sayText,
+      styleInstructions,
+      temperature,
+      voiceAssetId,
+      voiceId,
+      voiceName,
+    ],
   );
 
   const handleSave = useCallback(async () => {
@@ -297,42 +351,49 @@ export function useVoiceEditor(): VoiceEditor {
     setLastError(null);
     try {
       const linkCharacterId = linkedCharacterId?.trim() || null;
-      const saved = await saveVoice({
-        id: voiceAssetId ?? undefined,
-        voiceName: voiceName.trim() || DEFAULT_VOICE_NAME,
-        preset: presetFromControls(voiceId, styleInstructions, temperature),
-        sayThis: sayText,
-        ...(linkCharacterId ? { characterId: linkCharacterId } : {}),
-      });
-      setVoiceAssetId(saved.id);
-      setVoiceName(saved.name);
-      setIsDirty(false);
-
-      if (linkCharacterId) {
-        try {
-          const character = await loadCharacter(linkCharacterId);
-          if (character.voiceAssetId !== saved.id) {
-            await saveCharacter(
-              { ...character, voiceAssetId: saved.id },
-              linkCharacterId,
-            );
-          }
-          const editorCharacterId = selectCharacterEditorId(store.getState());
-          if (editorCharacterId === linkCharacterId) {
-            dispatch(setCharacterEditorVoiceAssetId(saved.id));
-          }
-        } catch (linkError) {
-          console.info('Saved voice but could not link character', {
-            linkCharacterId,
-            voiceId: saved.id,
-            linkError,
-          });
-          notify(formatFailure('link voice to character', saved.name, linkError));
-        }
+      if (!linkCharacterId) {
+        const saved = await saveVoice({
+          id: voiceAssetId ?? undefined,
+          voiceName: voiceName.trim() || DEFAULT_VOICE_NAME,
+          preset: presetFromControls(voiceId, styleInstructions, temperature),
+          sayThis: sayText,
+        });
+        setVoiceAssetId(saved.id);
+        setVoiceName(saved.name);
+        setIsDirty(false);
+        dispatch(bumpLibraryEpoch());
+        notify(`Saved ${saved.name}`);
+        return;
       }
-
+      const savedId = await persistVoiceDesign({
+        characterId: linkCharacterId,
+        voiceName: voiceName.trim() || DEFAULT_VOICE_NAME,
+      });
+      if (!savedId) {
+        throw new Error('Voice save returned no id');
+      }
+      try {
+        const character = await loadCharacter(linkCharacterId);
+        if (character.voiceAssetId !== savedId) {
+          await saveCharacter(
+            { ...character, voiceAssetId: savedId },
+            linkCharacterId,
+          );
+        }
+        const editorCharacterId = selectCharacterEditorId(store.getState());
+        if (editorCharacterId === linkCharacterId) {
+          dispatch(setCharacterEditorVoiceAssetId(savedId));
+        }
+      } catch (linkError) {
+        console.info('Saved voice but could not link character', {
+          linkCharacterId,
+          voiceId: savedId,
+          linkError,
+        });
+        notify(formatFailure('link voice to character', voiceName, linkError));
+      }
       dispatch(bumpLibraryEpoch());
-      notify(`Saved ${saved.name}`);
+      notify(`Saved ${voiceName.trim() || DEFAULT_VOICE_NAME}`);
     } catch (error) {
       const message = formatFailure('save voice', voiceName, error);
       setLastError(message);
@@ -344,6 +405,7 @@ export function useVoiceEditor(): VoiceEditor {
     dispatch,
     linkedCharacterId,
     notify,
+    persistVoiceDesign,
     sayText,
     store,
     styleInstructions,
@@ -418,6 +480,7 @@ export function useVoiceEditor(): VoiceEditor {
     handleNew,
     startNewVoiceDesign,
     handleSave,
+    persistVoiceDesign,
     handleSayThis,
     loadVoiceAsset,
     applyVoiceDocument,

@@ -17,8 +17,6 @@ export function isKnownAppPath(pathname: string): boolean {
     pathname.startsWith('/session/') ||
     pathname === '/character' ||
     pathname.startsWith('/character/') ||
-    pathname === '/voice' ||
-    pathname.startsWith('/voice/') ||
     pathname === '/prompts' ||
     pathname.startsWith('/prompts/') ||
     pathname === '/config' ||

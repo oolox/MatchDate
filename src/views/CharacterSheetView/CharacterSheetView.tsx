@@ -1,6 +1,7 @@
 import { CharacterEditor } from '../../features/character/CharacterEditor';
 import { CharacterEditorProvider } from '../../features/character/CharacterEditorContext';
 import { useCharacterEditor } from '../../features/character/useCharacterEditor';
+import { useVoiceEditor } from '../../features/voice/useVoiceEditor';
 import { SessionWorkspaceLayout } from '../../features/session/SessionWorkspaceLayout';
 import { useAppSelector } from '../../store/hooks';
 import { selectStorageReady } from '../../store/slices/promptsSlice';
@@ -13,13 +14,14 @@ export interface CharacterSheetViewProps {
 export function CharacterSheetView({ characterId = null }: CharacterSheetViewProps) {
   const storageReady = useAppSelector(selectStorageReady);
   const editor = useCharacterEditor(characterId?.trim() || null);
+  const voiceEditor = useVoiceEditor();
 
   return (
     <CharacterEditorProvider value={editor}>
       <SessionWorkspaceLayout
         routePrefix="character"
         persistence={{ ready: storageReady, persistAfterTurn: async () => {} }}
-        left={<CharacterEditor editor={editor} />}
+        left={<CharacterEditor editor={editor} voiceEditor={voiceEditor} />}
       />
     </CharacterEditorProvider>
   );

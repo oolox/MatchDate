@@ -24,8 +24,8 @@
 **Product shape (end state):**
 
 1. **`voice` asset subtype** in the library (GUID + `voiceName` + preset / sample).
-2. **Top-level VOICE view** — design → Say this → play (temp blob) → save design.
-3. **Characters attach a voice** via `voiceAssetId`.
+2. **Voice designer on the Character sheet** (collapsible Voice card under Images) — design → Say this → play (temp blob); Character SAVE persists the voice design. No standalone `/voice` app section.
+3. **Characters attach a voice** via `voiceAssetId` (drag from library ASSETS → VOICE).
 4. **Chat plays TTS** for assistant replies.
 
 **Build order (locked):** see §7 —

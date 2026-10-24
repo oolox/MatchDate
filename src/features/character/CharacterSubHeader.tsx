@@ -3,20 +3,16 @@ import { SubHeader } from '../../components/ui/SubHeader';
 import { SubHeaderNameField } from '../../components/ui/SubHeaderNameField';
 import type { CharacterIdentity } from '../../types/character';
 import { CharacterIdentityToggle } from './CharacterIdentityToggle';
-import { CharacterVoiceLabel } from './CharacterVoiceLabel';
 import styles from './CharacterSubHeader.module.css';
 
 export interface CharacterSubHeaderProps {
   name: string;
   identity: CharacterIdentity;
-  characterId?: string | null;
-  voiceAssetId?: string | null;
   isBusy: boolean;
   canSave: boolean;
   onNameChange: (value: string) => void;
   onClearName: () => void;
   onIdentityChange: (identity: CharacterIdentity) => void;
-  onClearVoice: () => void;
   onSave: () => void;
   onNew: () => void;
 }
@@ -24,14 +20,11 @@ export interface CharacterSubHeaderProps {
 export function CharacterSubHeader({
   name,
   identity,
-  characterId,
-  voiceAssetId,
   isBusy,
   canSave,
   onNameChange,
   onClearName,
   onIdentityChange,
-  onClearVoice,
   onSave,
   onNew,
 }: CharacterSubHeaderProps) {
@@ -63,14 +56,6 @@ export function CharacterSubHeader({
           value={identity}
           disabled={isBusy}
           onChange={onIdentityChange}
-        />
-        <CharacterVoiceLabel
-          voiceAssetId={voiceAssetId}
-          characterName={name}
-          characterIdentity={identity}
-          characterId={characterId}
-          disabled={isBusy}
-          onClear={onClearVoice}
         />
       </div>
     </SubHeader>

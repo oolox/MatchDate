@@ -456,33 +456,55 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     navigate('/character');
   }, [dispatch, navigate]);
 
-  const handleSave = useCallback(async () => {
-    setIsBusy(true);
-    try {
-      const saved = await saveCharacter(character, characterId ?? undefined);
-      const voiceId = saved.voiceAssetId?.trim() || character.voiceAssetId?.trim() || null;
-      if (voiceId) {
-        // Ensure link is written once the character has a stable id (first save).
-        await setVoiceCharacterId(voiceId, saved.id);
+  const handleSave = useCallback(
+    async (options?: {
+      /** Persist voice design after character has a stable id; returns voice asset id. */
+      persistVoice?: (characterId: string) => Promise<string | null>;
+    }) => {
+      setIsBusy(true);
+      try {
+        let saved = await saveCharacter(character, characterId ?? undefined);
+
+        if (options?.persistVoice) {
+          const voiceId = await options.persistVoice(saved.id);
+          if (voiceId && saved.voiceAssetId !== voiceId) {
+            saved = await saveCharacter(
+              {
+                ...toEditorCharacter(saved, saved.images ?? character.images ?? []),
+                voiceAssetId: voiceId,
+              },
+              saved.id,
+            );
+          } else if (voiceId) {
+            await setVoiceCharacterId(voiceId, saved.id);
+          }
+        } else {
+          const voiceId = saved.voiceAssetId?.trim() || character.voiceAssetId?.trim() || null;
+          if (voiceId) {
+            await setVoiceCharacterId(voiceId, saved.id);
+          }
+        }
+
+        dispatch(bumpLibraryEpoch());
+        dispatch(
+          markCharacterEditorSaved({
+            characterId: saved.id,
+            character: toEditorCharacter(saved, saved.images ?? character.images ?? []),
+          }),
+        );
+        lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
+        notify(`Saved ${saved.name}`);
+        if (saved.id !== characterIdFromRoute) {
+          navigate(`/character/${saved.id}`, { replace: true });
+        }
+      } catch (error) {
+        notify(formatFailure('save', character.name || 'character', error));
+      } finally {
+        setIsBusy(false);
       }
-      dispatch(bumpLibraryEpoch());
-      dispatch(
-        markCharacterEditorSaved({
-          characterId: saved.id,
-          character: toEditorCharacter(saved, saved.images ?? character.images ?? []),
-        }),
-      );
-      lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
-      notify(`Saved ${saved.name}`);
-      if (saved.id !== characterIdFromRoute) {
-        navigate(`/character/${saved.id}`, { replace: true });
-      }
-    } catch (error) {
-      notify(formatFailure('save', character.name || 'character', error));
-    } finally {
-      setIsBusy(false);
-    }
-  }, [character, characterId, characterIdFromRoute, dispatch, libraryEpoch, navigate, notify]);
+    },
+    [character, characterId, characterIdFromRoute, dispatch, libraryEpoch, navigate, notify],
+  );
 
   const handleNew = useCallback(() => {
     startNewCharacter();

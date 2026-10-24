@@ -1,11 +1,15 @@
-import { useCallback, useMemo, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useNotification } from '../../components/notification/Notification/useNotification';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
+import type { VoiceGenderHint } from '../../services/fal/models/tts';
+import type { CharacterIdentity } from '../../types/character';
 import { nowIso } from '../../utils/id';
 import {
   dataTransferHasMatchDateLibrary,
   readMatchDateLibraryDragPayload,
 } from '../../utils/matchdateLibraryDrag';
+import { VoiceDesignerPanel } from '../voice/VoiceDesignerPanel';
+import type { VoiceEditor } from '../voice/useVoiceEditor';
 import type { CharacterEditorApi } from './CharacterEditorContext';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
 import { CharacterHistoryAddCard } from './CharacterHistoryAddCard';
@@ -18,6 +22,17 @@ import styles from './CharacterEditor.module.css';
 
 export interface CharacterEditorProps {
   editor: CharacterEditorApi;
+  voiceEditor: VoiceEditor;
+}
+
+function genderFromIdentity(identity: CharacterIdentity): VoiceGenderHint {
+  if (identity === 'male') {
+    return 'male';
+  }
+  if (identity === 'female') {
+    return 'female';
+  }
+  return 'neutral';
 }
 
 function sortByAtDesc<T extends { at: string }>(items: T[]): T[] {
@@ -31,12 +46,13 @@ function sortByAtDesc<T extends { at: string }>(items: T[]): T[] {
   });
 }
 
-export function CharacterEditor({ editor }: CharacterEditorProps) {
+export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const {
     characterId,
     character,
     isBusy,
-    canSave,
+    isDirty,
+    storageReady,
     setCharacterName,
     clearCharacterName,
     setIdentity,
@@ -60,6 +76,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [traitsExpanded, setTraitsExpanded] = useState(true);
   const [imagesExpanded, setImagesExpanded] = useState(true);
+  const [voiceExpanded, setVoiceExpanded] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [addingTrait, setAddingTrait] = useState(false);
   const [addingHistory, setAddingHistory] = useState(false);
@@ -69,17 +86,50 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   const [editingHistoryIndex, setEditingHistoryIndex] = useState<number | null>(null);
   const [imagesSheetEpoch, setImagesSheetEpoch] = useState(0);
   const [voiceDragActive, setVoiceDragActive] = useState(false);
+  const voiceSyncKeyRef = useRef<string | null>(null);
+
+  const sheetBusy = isBusy || voiceEditor.isBusy || voiceEditor.isSaying;
+  const canSave =
+    (isDirty || voiceEditor.isDirty) && !sheetBusy && storageReady;
+
+  const { loadVoiceAsset, startNewVoiceDesign } = voiceEditor;
+
+  useEffect(() => {
+    const voiceId = character.voiceAssetId?.trim() || '';
+    const key = `${characterId ?? 'new'}:${voiceId}`;
+    if (voiceSyncKeyRef.current === key) {
+      return;
+    }
+    voiceSyncKeyRef.current = key;
+    if (voiceId) {
+      void loadVoiceAsset(voiceId);
+      return;
+    }
+    startNewVoiceDesign({
+      voiceName: character.name.trim() || undefined,
+      characterId: characterId ?? null,
+      gender: genderFromIdentity(character.identity),
+      markDirty: false,
+    });
+  }, [
+    character.identity,
+    character.name,
+    character.voiceAssetId,
+    characterId,
+    loadVoiceAsset,
+    startNewVoiceDesign,
+  ]);
 
   const handleVoiceDragOver = useCallback(
     (event: DragEvent) => {
-      if (isBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
+      if (sheetBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
       event.dataTransfer.dropEffect = 'copy';
       setVoiceDragActive(true);
     },
-    [isBusy],
+    [sheetBusy],
   );
 
   const handleVoiceDragLeave = useCallback((event: DragEvent) => {
@@ -92,24 +142,51 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
   const handleVoiceDrop = useCallback(
     (event: DragEvent) => {
       setVoiceDragActive(false);
-      if (isBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
+      if (sheetBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
       const payload = readMatchDateLibraryDragPayload(event.dataTransfer);
       if (payload?.kind === 'asset' && payload.subtype === 'voice') {
         void attachVoiceFromLibrary(payload);
+        setVoiceExpanded(true);
         return;
       }
       if (payload?.kind === 'asset' && payload.subtype === 'image') {
         void addImagesFromLibrary([payload]);
       }
     },
-    [addImagesFromLibrary, attachVoiceFromLibrary, isBusy],
+    [addImagesFromLibrary, attachVoiceFromLibrary, sheetBusy],
   );
 
+  const handleNewVoiceDesign = useCallback(() => {
+    clearVoiceAssetId();
+    voiceSyncKeyRef.current = `${characterId ?? 'new'}:`;
+    voiceEditor.startNewVoiceDesign({
+      voiceName: character.name.trim() || undefined,
+      characterId: characterId ?? null,
+      gender: genderFromIdentity(character.identity),
+      markDirty: true,
+    });
+    setVoiceExpanded(true);
+  }, [character.identity, character.name, characterId, clearVoiceAssetId, voiceEditor]);
+
+  const handleCombinedSave = useCallback(() => {
+    void handleSave({
+      persistVoice: (savedCharacterId) =>
+        voiceEditor.persistVoiceDesign({
+          characterId: savedCharacterId,
+          voiceName: character.name.trim() || voiceEditor.voiceName,
+        }),
+    });
+  }, [character.name, handleSave, voiceEditor]);
+
   const sheetEntryActionsDisabled =
-    isBusy || addingTrait || addingHistory || editingTraitOriginalName !== null || editingHistoryIndex !== null;
+    sheetBusy ||
+    addingTrait ||
+    addingHistory ||
+    editingTraitOriginalName !== null ||
+    editingHistoryIndex !== null;
 
   const historyNewestFirst = useMemo(
     () => sortByAtDesc(character.history ?? []),
@@ -133,19 +210,15 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
       <CharacterSubHeader
         name={character.name}
         identity={character.identity}
-        characterId={characterId}
-        voiceAssetId={character.voiceAssetId}
-        isBusy={isBusy}
+        isBusy={sheetBusy}
         canSave={canSave}
         onNameChange={setCharacterName}
         onClearName={clearCharacterName}
         onIdentityChange={setIdentity}
-        onClearVoice={clearVoiceAssetId}
-        onSave={() => {
-          void handleSave();
-        }}
+        onSave={handleCombinedSave}
         onNew={() => {
           setImagesSheetEpoch((epoch) => epoch + 1);
+          voiceSyncKeyRef.current = null;
           handleNew();
         }}
       />
@@ -191,6 +264,29 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
                   : `Applied ${traits.length} traits from images`,
               );
             }}
+          />
+        </CharacterCollapsibleCard>
+
+        <CharacterCollapsibleCard
+          title="Voice"
+          expanded={voiceExpanded}
+          onExpandedChange={setVoiceExpanded}
+          bodyClassName={styles.voiceBody}
+          headerLeading={
+            <IconButton
+              icon="plus"
+              label="New voice"
+              variant="secondary"
+              size="sm"
+              disabled={sheetBusy}
+              onClick={handleNewVoiceDesign}
+            />
+          }
+        >
+          <VoiceDesignerPanel
+            editor={voiceEditor}
+            expanded={voiceExpanded}
+            disabled={isBusy || voiceEditor.isBusy}
           />
         </CharacterCollapsibleCard>
 
