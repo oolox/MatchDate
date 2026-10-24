@@ -89,11 +89,43 @@ export function genderHintForGeminiVoice(voiceId: string): VoiceGenderHint {
   return 'neutral';
 }
 
-export function geminiVoiceOptions(): Array<{ value: GeminiTtsVoiceId; label: string }> {
-  return GEMINI_TTS_VOICES.map((voice) => ({
+export type GeminiVoiceOption = { value: GeminiTtsVoiceId; label: string };
+
+function toVoiceOptions(voices: readonly GeminiTtsVoiceId[]): GeminiVoiceOption[] {
+  return voices.map((voice) => ({
     value: voice,
     label: voice,
   }));
+}
+
+/** Built once at module load — voice lists rarely change. */
+const GEMINI_VOICE_OPTIONS_ALL = toVoiceOptions(GEMINI_TTS_VOICES);
+const GEMINI_VOICE_OPTIONS_MALE = toVoiceOptions(
+  GEMINI_TTS_VOICES.filter((voice) => MALE_VOICES.has(voice)),
+);
+const GEMINI_VOICE_OPTIONS_FEMALE = toVoiceOptions(
+  GEMINI_TTS_VOICES.filter((voice) => FEMALE_VOICES.has(voice)),
+);
+
+/**
+ * Dropdown options by gender hint.
+ * `neutral` (binary) = full catalog; male/female = filtered lists.
+ */
+export const GEMINI_VOICE_OPTIONS_BY_GENDER: Record<VoiceGenderHint, readonly GeminiVoiceOption[]> =
+  {
+    male: GEMINI_VOICE_OPTIONS_MALE,
+    female: GEMINI_VOICE_OPTIONS_FEMALE,
+    neutral: GEMINI_VOICE_OPTIONS_ALL,
+  };
+
+/** Full catalog (same as gender `neutral`). */
+export function geminiVoiceOptions(): GeminiVoiceOption[] {
+  return [...GEMINI_VOICE_OPTIONS_ALL];
+}
+
+/** Options for the voice selector UI, filtered by gender toggle. */
+export function geminiVoiceOptionsForGender(gender: VoiceGenderHint): readonly GeminiVoiceOption[] {
+  return GEMINI_VOICE_OPTIONS_BY_GENDER[gender];
 }
 
 /** Uniform random preset from the Gemini VoiceEnum list. */

@@ -12,11 +12,14 @@ export { gemini31FlashTts, GEMINI_31_FLASH_TTS_ID } from './gemini31FlashTts';
 export {
   GEMINI_TTS_VOICES,
   GEMINI_VOICE_BY_GENDER,
+  GEMINI_VOICE_OPTIONS_BY_GENDER,
   genderHintForGeminiVoice,
   geminiVoiceOptions,
+  geminiVoiceOptionsForGender,
   isGeminiTtsVoiceId,
   pickRandomGeminiVoice,
   type GeminiTtsVoiceId,
+  type GeminiVoiceOption,
   type VoiceGenderHint,
 } from './geminiVoices';
 

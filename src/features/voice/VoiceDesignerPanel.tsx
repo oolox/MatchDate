@@ -1,12 +1,16 @@
 import { DropdownSelect } from '../../components/ui/DropdownSelect';
 import { Icon } from '../../components/ui/Icon/Icon';
 import { TextArea } from '../../components/ui/TextArea/TextArea';
-import { geminiVoiceOptions } from '../../services/fal/models/tts';
+import {
+  geminiVoiceOptions,
+  geminiVoiceOptionsForGender,
+} from '../../services/fal/models/tts';
 import { VoiceGenderToggle } from './VoiceGenderToggle';
 import type { VoiceEditor } from './useVoiceEditor';
 import styles from './VoiceDesignerPanel.module.css';
 
-const VOICE_OPTIONS = geminiVoiceOptions();
+/** Full catalog for collapsed label lookup (built once). */
+const ALL_VOICE_OPTIONS = geminiVoiceOptions();
 
 export interface VoiceDesignerPanelProps {
   editor: VoiceEditor;
@@ -78,8 +82,9 @@ export function VoiceDesignerPanel({
 
   const controlsDisabled = disabled || isSaying;
   const sayDisabled = controlsDisabled || !sayText.trim();
+  const voiceOptions = geminiVoiceOptionsForGender(gender);
   const voiceLabel =
-    VOICE_OPTIONS.find((option) => option.value === voiceId)?.label ?? voiceId;
+    ALL_VOICE_OPTIONS.find((option) => option.value === voiceId)?.label ?? voiceId;
   const stylePreview = styleInstructions.trim() || '—';
 
   return (
@@ -124,7 +129,7 @@ export function VoiceDesignerPanel({
             <div className={styles.controlField}>
               <DropdownSelect
                 aria-label="Gemini voice"
-                options={VOICE_OPTIONS}
+                options={[...voiceOptions]}
                 value={voiceId}
                 disabled={controlsDisabled}
                 onChange={setVoiceId}
