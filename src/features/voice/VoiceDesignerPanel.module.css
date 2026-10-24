@@ -11,25 +11,27 @@
   align-items: center;
   gap: var(--space-sm);
   min-width: 0;
-  flex-wrap: wrap;
 }
 
-.summaryField {
+.collapsedText {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.15rem;
   min-width: 0;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
 }
 
-.summaryStyle {
-  flex: 1 1 8rem;
-  min-width: 6rem;
-}
-
-.summaryValue {
+.collapsedStyle {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsedMeta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted, var(--color-text-secondary));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

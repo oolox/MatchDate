@@ -91,20 +91,15 @@ export function VoiceDesignerPanel({
     <div className={styles.panel} aria-label="Voice designer">
       {!expanded ? (
         <div className={styles.collapsedRow}>
-          <div className={styles.summaryField}>
-            <span className={styles.fieldLabel}>Voice</span>
-            <span className={styles.summaryValue} title={voiceLabel}>
-              {voiceLabel}
-            </span>
-          </div>
-          <div className={styles.summaryField}>
-            <span className={styles.fieldLabel}>Temp</span>
-            <span className={styles.summaryValue}>{temperature.toFixed(1)}</span>
-          </div>
-          <div className={`${styles.summaryField} ${styles.summaryStyle}`}>
-            <span className={styles.fieldLabel}>Style</span>
-            <span className={styles.summaryValue} title={stylePreview}>
+          <div className={styles.collapsedText}>
+            <span className={styles.collapsedStyle} title={stylePreview}>
               {stylePreview}
+            </span>
+            <span
+              className={styles.collapsedMeta}
+              title={`${voiceLabel}-${temperature.toFixed(1)}`}
+            >
+              {voiceLabel}-{temperature.toFixed(1)}
             </span>
           </div>
           <SayThisButton
