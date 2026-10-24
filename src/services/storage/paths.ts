@@ -11,6 +11,7 @@ export const ASSETS_DIR = `${OPFS_ROOT}/assets`;
 export const ASSETS_IMG_DIR = `${ASSETS_DIR}/img`;
 export const ASSETS_VID_DIR = `${ASSETS_DIR}/vid`;
 export const TEXT_ASSETS_DIR = `${ASSETS_DIR}/text`;
+export const VOICE_ASSETS_DIR = `${ASSETS_DIR}/voice`;
 export const ASSETS_METADATA_DIR = `${ASSETS_DIR}/metadata`;
 export const CHARACTERS_DIR = `${OPFS_ROOT}/characters`;
 
@@ -60,6 +61,14 @@ export function textPath(id: string): StoragePath {
 
 export function textMetaPath(id: string): StoragePath {
   return `${TEXT_ASSETS_DIR}/${textMetaFileName(id)}`;
+}
+
+export function voiceFileName(id: string): string {
+  return `matchDate-voice-${id}.bin`;
+}
+
+export function voicePath(id: string): StoragePath {
+  return `${VOICE_ASSETS_DIR}/${voiceFileName(id)}`;
 }
 
 export function parseTextIdFromFileName(fileName: string): string | null {

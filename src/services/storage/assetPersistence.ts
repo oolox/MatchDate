@@ -1,7 +1,12 @@
 import type { AssetDocument } from '../../types/opfsDoc';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { nowIso } from '../../utils/id';
-import { assetDocumentFromImageRef, assetDocumentFromTextRef, assetDocumentFromVideoRef } from './assetDocument';
+import {
+  assetDocumentFromImageRef,
+  assetDocumentFromTextRef,
+  assetDocumentFromVideoRef,
+  assetDocumentFromVoiceRef,
+} from './assetDocument';
 import { parseAsset } from './libraryRegistry';
 import { removeLibraryItem, upsertLibraryItem } from './libraryIndex';
 import { assetPath } from './paths';
@@ -10,6 +15,7 @@ import { StorageError } from './types';
 import type { SavedImageRef } from '../../types/savedImage';
 import type { SavedVideoRef } from '../../types/savedVideo';
 import type { SavedTextRef } from '../../types/savedText';
+import type { SavedVoiceRef } from '../../types/savedVoice';
 
 export async function saveAssetDocument(
   storage: FileStorageService,
@@ -125,4 +131,16 @@ export async function ensureVideoAsset(
     return existing;
   }
   return saveAssetDocument(storage, assetDocumentFromVideoRef(ref, options));
+}
+
+export async function ensureVoiceAsset(
+  storage: FileStorageService,
+  ref: SavedVoiceRef,
+  options?: { name?: string },
+): Promise<AssetDocument> {
+  const existing = await tryLoadAssetDocument(storage, ref.id);
+  if (existing) {
+    return existing;
+  }
+  return saveAssetDocument(storage, assetDocumentFromVoiceRef(ref, options));
 }

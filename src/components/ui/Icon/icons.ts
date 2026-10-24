@@ -23,6 +23,7 @@ import textFileSvg from '../../../assets/icons/text-file.svg?raw';
 import timeSvg from '../../../assets/icons/time.svg?raw';
 import toolSvg from '../../../assets/icons/tool.svg?raw';
 import videoSvg from '../../../assets/icons/video.svg?raw';
+import voiceSvg from '../../../assets/icons/voice.svg?raw';
 
 export const iconSources = {
   send: sendSvg,
@@ -43,6 +44,7 @@ export const iconSources = {
   'text-file': textFileSvg,
   image: imageSvg,
   video: videoSvg,
+  voice: voiceSvg,
   tag: tagSvg,
   model: modelSvg,
   prompt: promptSvg,

@@ -25,6 +25,10 @@ export function AppMainNav() {
         navigate(characterEditorId ? `/character/${characterEditorId}` : '/character');
         return;
       }
+      if (next === 'voice') {
+        navigate('/voice');
+        return;
+      }
       if (next === 'prompts') {
         navigate('/prompts');
         return;

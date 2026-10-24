@@ -13,6 +13,7 @@ import { LibraryAssetThumb } from './LibraryAssetThumb';
 import { LibraryCharacterThumb } from './LibraryCharacterThumb';
 import { LibraryTextThumb } from './LibraryTextThumb';
 import { LibraryVideoThumb } from './LibraryVideoThumb';
+import { LibraryVoiceThumb } from './LibraryVoiceThumb';
 import styles from './LibraryList.module.css';
 
 const IDENTITY_LABELS = {
@@ -107,6 +108,7 @@ export function LibraryListItem({
         <LibraryCharacterThumb characterId={item.id} name={item.name} />
       ) : null}
       {isAsset && assetSubtype === 'text' ? <LibraryTextThumb name={item.name} /> : null}
+      {isAsset && assetSubtype === 'voice' ? <LibraryVoiceThumb name={item.name} /> : null}
       {isAsset && assetSubtype === 'image' ? (
         <LibraryAssetThumb assetId={item.id} name={item.name} />
       ) : null}

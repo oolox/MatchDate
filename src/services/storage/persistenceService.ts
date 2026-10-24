@@ -26,6 +26,7 @@ import { deleteImage } from './imageStorage';
 import { migrateTextAssetMetadata } from './migrateTextAssetMetadata';
 import { migrateCharacterFromAssets } from './migrateCharacterFromAssets';
 import { deleteVideo } from './videoStorage';
+import { deleteVoiceSample } from './voiceStorage';
 import {
   listLibraryItems,
   parsePreset,
@@ -182,6 +183,8 @@ export async function deleteAsset(id: string): Promise<void> {
     await deleteImage(id);
   } else if (asset.subtype === 'video') {
     await deleteVideo(id);
+  } else if (asset.subtype === 'voice') {
+    await deleteVoiceSample(id);
   }
   await deleteAssetDocument(storage, id);
 }

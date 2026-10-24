@@ -24,6 +24,7 @@ import {
   duplicateCharacter,
   setActivePrompt,
 } from '../../../services/storage/persistenceService';
+import { saveVoice } from '../../../services/storage/voiceStorage';
 import { formatFailure } from '../../../utils/formatFailure';
 import { LibrarySidebar } from '../LibraryList/LibrarySidebar';
 import {
@@ -53,6 +54,8 @@ import styles from './LibraryBrowser.module.css';
 
 export interface LibraryBrowserProps {
   loadableKinds: LibraryItemKind[];
+  /** When set, preferred subtype tab if present for the default folder (e.g. `voice`). */
+  preferredSubtype?: LibraryBrowserSubtypeId;
   catalogEpoch?: number;
   selectedId?: string | null;
   selectedKind?: LibraryItemKind | null;
@@ -65,8 +68,24 @@ export interface LibraryBrowserProps {
   headerActions?: React.ReactNode;
 }
 
+function initialSubtype(
+  loadableKinds: LibraryItemKind[],
+  preferredSubtype?: LibraryBrowserSubtypeId,
+): LibraryBrowserSubtypeId {
+  const folder = defaultTabForLoadableKinds(loadableKinds);
+  const subtypes = subtypesForFolder(folder);
+  if (
+    preferredSubtype &&
+    subtypes?.some((tab) => tab.id === preferredSubtype)
+  ) {
+    return preferredSubtype;
+  }
+  return subtypes ? defaultSubtypeForLoadableKinds(folder, subtypes) : 'all';
+}
+
 export function LibraryBrowser({
   loadableKinds,
+  preferredSubtype,
   catalogEpoch = 0,
   selectedId = null,
   selectedKind = null,
@@ -88,11 +107,9 @@ export function LibraryBrowser({
   const [activeTab, setActiveTab] = useState<LibraryBrowserTabId>(() =>
     defaultTabForLoadableKinds(loadableKinds),
   );
-  const [activeSubtype, setActiveSubtype] = useState<LibraryBrowserSubtypeId>(() => {
-    const folder = defaultTabForLoadableKinds(loadableKinds);
-    const subtypes = subtypesForFolder(folder);
-    return subtypes ? defaultSubtypeForLoadableKinds(folder, subtypes) : 'all';
-  });
+  const [activeSubtype, setActiveSubtype] = useState<LibraryBrowserSubtypeId>(() =>
+    initialSubtype(loadableKinds, preferredSubtype),
+  );
   const [actionBusy, setActionBusy] = useState(false);
   const [identityFilter, setIdentityFilter] = useState<CharacterIdentity[]>(() => [
     ...ALL_CHARACTER_IDENTITIES,
@@ -118,8 +135,16 @@ export function LibraryBrowser({
       setActiveSubtype('all');
       return;
     }
+    if (
+      preferredSubtype &&
+      activeTab === 'assets' &&
+      subtypes.some((tab) => tab.id === preferredSubtype)
+    ) {
+      setActiveSubtype(preferredSubtype);
+      return;
+    }
     setActiveSubtype(defaultSubtypeForLoadableKinds(activeTab, subtypes));
-  }, [activeTab]);
+  }, [activeTab, preferredSubtype]);
 
   const filteredItems = useMemo(() => {
     let next = items;
@@ -333,8 +358,26 @@ export function LibraryBrowser({
     [dispatch, isBusy, notify, onCatalogMutated],
   );
 
+  const handleCreateVoice = useCallback(async () => {
+    if (isBusy) {
+      return;
+    }
+    setActionBusy(true);
+    try {
+      const saved = await saveVoice();
+      dispatch(bumpLibraryEpoch());
+      onCatalogMutated?.();
+      notify(`Created ${saved.name}`);
+    } catch (error) {
+      notify(formatFailure('create voice', undefined, error));
+    } finally {
+      setActionBusy(false);
+    }
+  }, [dispatch, isBusy, notify, onCatalogMutated]);
+
   const chromeKey = `${activeTab}:${activeSubtype}`;
   const showImageUpload = activeTab === 'assets' || activeTab === 'all';
+  const showNewVoice = activeTab === 'assets' && activeSubtype === 'voice';
 
   return (
     <LibrarySidebar
@@ -372,6 +415,18 @@ export function LibraryBrowser({
                 Upload image
               </button>
             </>
+          ) : null}
+          {showNewVoice ? (
+            <button
+              type="button"
+              className={styles.uploadButton}
+              disabled={isBusy}
+              onClick={() => {
+                void handleCreateVoice();
+              }}
+            >
+              New voice
+            </button>
           ) : null}
           {headerActions}
         </>

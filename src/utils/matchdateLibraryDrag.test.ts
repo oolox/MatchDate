@@ -22,10 +22,11 @@ function mockDataTransfer(initial: Record<string, string> = {}) {
 }
 
 describe('matchdateLibraryDrag', () => {
-  it('allows character, text, and image asset rows', () => {
+  it('allows character, text, image, and voice asset rows', () => {
     expect(canDragLibraryItem({ kind: 'character' })).toBe(true);
     expect(canDragLibraryItem({ kind: 'asset', subtype: 'text' })).toBe(true);
     expect(canDragLibraryItem({ kind: 'asset', subtype: 'image' })).toBe(true);
+    expect(canDragLibraryItem({ kind: 'asset', subtype: 'voice' })).toBe(true);
     expect(canDragLibraryItem({ kind: 'session' })).toBe(false);
   });
 

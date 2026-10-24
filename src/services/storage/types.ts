@@ -53,6 +53,7 @@ export type OpfsDocSubtype =
   | 'image'
   | 'video'
   | 'text'
+  | 'voice'
   | 'frame'
   | 'character';
 

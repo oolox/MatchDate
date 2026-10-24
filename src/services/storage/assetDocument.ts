@@ -3,14 +3,16 @@ import { OPFS_SCHEMA_VERSION, type OpfsAssetSubtype } from '../../types/opfsDoc'
 import type { SavedImageMetadata, SavedImageRef } from '../../types/savedImage';
 import type { SavedVideoRef } from '../../types/savedVideo';
 import type { SavedTextMetadata, SavedTextRef } from '../../types/savedText';
-import { imagePath, textPath, videoPath } from './paths';
+import type { SavedVoiceRef, VoiceAssetMetadata } from '../../types/savedVoice';
+import { imagePath, textPath, videoPath, voicePath } from './paths';
 
 export function isAssetSubtype(value: unknown): value is OpfsAssetSubtype {
   return (
     value === 'image' ||
     value === 'video' ||
     value === 'frame' ||
-    value === 'text'
+    value === 'text' ||
+    value === 'voice'
   );
 }
 
@@ -96,6 +98,56 @@ export function savedTextRefFromAsset(asset: AssetDocument): SavedTextRef {
     createdAt: asset.createdAt,
     mimeType: asset.mimeType === 'text/markdown' ? 'text/markdown' : 'text/plain',
     ...(meta ? { metadata: meta } : {}),
+  };
+}
+
+export function assetDocumentFromVoiceRef(
+  ref: SavedVoiceRef,
+  options?: { name?: string },
+): AssetDocument {
+  const voiceName =
+    options?.name?.trim() ||
+    ref.metadata.voiceName.trim() ||
+    ref.fileName ||
+    ref.id;
+  return {
+    schemaVersion: OPFS_SCHEMA_VERSION,
+    type: 'asset',
+    subtype: 'voice',
+    id: ref.id,
+    name: voiceName,
+    blobPath: ref.path || voicePath(ref.id),
+    fileName: ref.fileName,
+    ...(ref.mimeType ? { mimeType: ref.mimeType } : {}),
+    metadata: {
+      ...ref.metadata,
+      voiceName,
+    } as Record<string, unknown>,
+    createdAt: ref.createdAt,
+    updatedAt: ref.createdAt,
+    refs: {},
+  };
+}
+
+export function savedVoiceRefFromAsset(asset: AssetDocument): SavedVoiceRef {
+  const meta =
+    asset.subtype === 'voice'
+      ? (asset.metadata as VoiceAssetMetadata | undefined)
+      : undefined;
+  return {
+    id: asset.id,
+    fileName: asset.fileName,
+    path: asset.blobPath,
+    createdAt: asset.createdAt,
+    ...(asset.mimeType ? { mimeType: asset.mimeType } : {}),
+    metadata: {
+      voiceName: meta?.voiceName?.trim() || asset.name || asset.id,
+      ...(meta?.sampleDurationMs != null ? { sampleDurationMs: meta.sampleDurationMs } : {}),
+      ...(meta?.originalName ? { originalName: meta.originalName } : {}),
+      ...(meta?.preset ? { preset: meta.preset } : {}),
+      ...(meta?.providerIds ? { providerIds: meta.providerIds } : {}),
+      ...(meta?.waveformPeaks ? { waveformPeaks: meta.waveformPeaks } : {}),
+    },
   };
 }
 
