@@ -25,6 +25,7 @@ export function buildCharacterWriteTool(
     id,
     data: {
       name: character.name,
+      identity: character.identity,
       attributes: character.attributes,
       history: character.history ?? [],
       traits: character.traits ?? [],

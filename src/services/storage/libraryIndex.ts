@@ -1,4 +1,5 @@
 import { nowIso } from '../../utils/id';
+import { isCharacterIdentity } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import type { SessionDocument } from '../../types/session';
 import {
@@ -98,6 +99,7 @@ function parseLibraryIndex(raw: string): LibraryIndex {
           favoritedAt: item.favoritedAt,
           createdAt: item.createdAt || item.updatedAt,
           updatedAt: item.updatedAt,
+          ...(isCharacterIdentity(item.identity) ? { identity: item.identity } : {}),
         });
       }
 
@@ -375,6 +377,7 @@ export async function reconcileLibraryIndex(storage: FileStorageService): Promis
         favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
         createdAt: fields.createdAt,
         updatedAt: fields.updatedAt,
+        identity: fields.identity,
       });
     } catch {
       if (existing) {
@@ -399,6 +402,7 @@ export async function upsertLibraryItem(
     updatedAt: string;
     type?: OpfsDocType;
     subtype?: OpfsDocSubtype;
+    identity?: LibraryItemMeta['identity'];
   },
 ): Promise<LibraryItemMeta> {
   const index = await loadLibraryIndex(storage);
@@ -419,6 +423,7 @@ export async function upsertLibraryItem(
     favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
     createdAt: existing?.createdAt ?? input.createdAt,
     updatedAt: input.updatedAt,
+    identity: input.identity ?? existing?.identity,
   };
 
   byKey.set(key, nextItem);

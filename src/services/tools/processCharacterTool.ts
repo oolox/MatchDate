@@ -1,7 +1,13 @@
 import type { CharacterToolMessage } from '../../features/chat/attach/jsonAttach';
 import { CHARACTER_TOOL } from '../../features/chat/attach/jsonAttach';
 import type { Character, CharacterDocument, ValueScore } from '../../types/character';
-import { BASIC_VALUES, createDefaultCharacter, isBasicValue } from '../../types/character';
+import {
+  BASIC_VALUES,
+  createDefaultCharacter,
+  isBasicValue,
+  isCharacterIdentity,
+  normalizeCharacterIdentity,
+} from '../../types/character';
 import { createId } from '../../utils/id';
 import {
   characterDocumentFromCharacter,
@@ -14,7 +20,12 @@ import {
 } from '../storage/characterPersistence';
 import { getFileStorageService } from '../storage';
 
-export type CharacterUpdateField = 'history' | 'attributes' | 'traits' | 'name';
+export type CharacterUpdateField =
+  | 'history'
+  | 'attributes'
+  | 'traits'
+  | 'name'
+  | 'identity';
 
 export type ProcessCharacterToolOptions = {
   /** Current chat session id; stamped onto new history/trait rows. */
@@ -132,6 +143,7 @@ export function characterFromCreateData(
 
   const patch = data as {
     name?: unknown;
+    identity?: unknown;
     history?: unknown;
     attributes?: unknown;
     traits?: unknown;
@@ -149,6 +161,7 @@ export function characterFromCreateData(
 
   return {
     name,
+    identity: normalizeCharacterIdentity(patch.identity),
     attributes: mergeAttributePatches(base.attributes, patch.attributes),
     history: stampSessionId(normalizeHistory(patch.history), options?.sessionId),
     traits: traitsMerged.traits,
@@ -172,6 +185,7 @@ export function applyCharacterUpdatePatch(
 
   const patch = data as {
     name?: unknown;
+    identity?: unknown;
     history?: unknown;
     attributes?: unknown;
     traits?: unknown;
@@ -199,6 +213,11 @@ export function applyCharacterUpdatePatch(
       ? patch.name.trim()
       : existing.name;
   const nameChanged = nextName !== existing.name;
+  const identityProvided = isCharacterIdentity(patch.identity);
+  const nextIdentity = identityProvided
+    ? patch.identity
+    : normalizeCharacterIdentity(existing.identity);
+  const identityChanged = identityProvided && nextIdentity !== existing.identity;
 
   const updatedFields: CharacterUpdateField[] = [];
   if (historyAdditions.length > 0) {
@@ -213,6 +232,9 @@ export function applyCharacterUpdatePatch(
   if (nameChanged) {
     updatedFields.push('name');
   }
+  if (identityChanged) {
+    updatedFields.push('identity');
+  }
 
   if (updatedFields.length === 0) {
     return null;
@@ -221,6 +243,7 @@ export function applyCharacterUpdatePatch(
   return {
     character: {
       name: nextName,
+      identity: nextIdentity,
       attributes: nextAttributes,
       history: [...existing.history, ...historyAdditions],
       traits: traitsMerged.traits,
@@ -270,7 +293,7 @@ async function processCharacterCreate(
     name: document.name,
     document,
     appendedHistoryCount: character.history.length,
-    updatedFields: ['name', 'attributes', 'history', 'traits'],
+    updatedFields: ['name', 'identity', 'attributes', 'history', 'traits'],
   };
 }
 
@@ -322,7 +345,8 @@ async function processCharacterUpdate(
       action: 'update',
       id,
       reason: 'empty_patch',
-      message: 'character.update data had no history, traits, attributes, or name changes',
+      message:
+        'character.update data had no history, traits, attributes, identity, or name changes',
     };
   }
 

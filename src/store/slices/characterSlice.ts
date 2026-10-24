@@ -3,10 +3,15 @@ import type {
   BasicValue,
   Character,
   CharacterHistoryEntry,
+  CharacterIdentity,
   CharacterTrait,
   CharacterTraitTag,
 } from '../../types/character';
-import { createDefaultCharacter, normalizeCharacterTraitTags } from '../../types/character';
+import {
+  createDefaultCharacter,
+  normalizeCharacterIdentity,
+  normalizeCharacterTraitTags,
+} from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 
@@ -44,6 +49,14 @@ const characterSlice = createSlice({
     },
     setCharacterEditorName: (state, action: PayloadAction<string>) => {
       state.character.name = action.payload;
+      state.isDirty = true;
+    },
+    setCharacterEditorIdentity: (state, action: PayloadAction<CharacterIdentity>) => {
+      const next = normalizeCharacterIdentity(action.payload);
+      if (state.character.identity === next) {
+        return;
+      }
+      state.character.identity = next;
       state.isDirty = true;
     },
     setCharacterEditorAttributeValue: (
@@ -282,6 +295,7 @@ export const {
   setCharacterEditorId,
   setCharacterEditorCharacter,
   setCharacterEditorName,
+  setCharacterEditorIdentity,
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
   appendCharacterEditorHistoryEntry,

@@ -1,6 +1,8 @@
 import type { DragEvent } from 'react';
+import { Icon } from '../../ui/Icon/Icon';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { LibraryItemMeta } from '../../../services/storage/types';
+import { normalizeCharacterIdentity } from '../../../types/character';
 import {
   canDragLibraryItem,
   setMatchDateLibraryDragData,
@@ -12,6 +14,12 @@ import { LibraryCharacterThumb } from './LibraryCharacterThumb';
 import { LibraryTextThumb } from './LibraryTextThumb';
 import { LibraryVideoThumb } from './LibraryVideoThumb';
 import styles from './LibraryList.module.css';
+
+const IDENTITY_LABELS = {
+  male: 'Male',
+  female: 'Female',
+  binary: 'Binary',
+} as const;
 
 const ASSET_NAME_MAX = 40;
 
@@ -55,6 +63,8 @@ export function LibraryListItem({
 
   const assetSubtype = item.subtype ?? (isAsset ? 'image' : undefined);
   const canDrag = canDragLibraryItem(item);
+  const characterIdentity =
+    item.kind === 'character' ? normalizeCharacterIdentity(item.identity) : null;
 
   const handleDragStart = (event: DragEvent<HTMLElement>) => {
     if (!canDrag) {
@@ -109,8 +119,18 @@ export function LibraryListItem({
         disabled={disabled}
         onClick={() => onSelect(item)}
       >
-        <span className={[styles.name, isAsset ? styles.assetName : ''].filter(Boolean).join(' ')}>
-          {displayName}
+        <span className={styles.nameRow}>
+          <span className={[styles.name, isAsset ? styles.assetName : ''].filter(Boolean).join(' ')}>
+            {displayName}
+          </span>
+          {characterIdentity ? (
+            <Icon
+              name={characterIdentity}
+              className={styles.identityIcon}
+              label={IDENTITY_LABELS[characterIdentity]}
+              size={16}
+            />
+          ) : null}
         </span>
         {updated ? (
           <span className={styles.meta} aria-hidden="true">

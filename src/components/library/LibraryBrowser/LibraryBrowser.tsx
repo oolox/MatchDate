@@ -6,6 +6,10 @@ import { SubSubHeader } from '../../ui/SubSubHeader';
 import { useNotification } from '../../notification/Notification/useNotification';
 import type { LibraryItemKind, LibraryItemMeta } from '../../../services/storage/types';
 import {
+  normalizeCharacterIdentity,
+  type CharacterIdentity,
+} from '../../../types/character';
+import {
   loadSessionIntoApp,
   pathForGeneratorLoad,
   pathForPromptLoad,
@@ -26,6 +30,10 @@ import {
   confirmAndDeleteLibraryItem,
   toggleLibraryItemFavoriteSafe,
 } from './libraryBrowserActions';
+import {
+  ALL_CHARACTER_IDENTITIES,
+  LibraryIdentityFilter,
+} from './LibraryIdentityFilter';
 import {
   defaultTabForLoadableKinds,
   kindsForTab,
@@ -86,6 +94,9 @@ export function LibraryBrowser({
     return subtypes ? defaultSubtypeForLoadableKinds(folder, subtypes) : 'all';
   });
   const [actionBusy, setActionBusy] = useState(false);
+  const [identityFilter, setIdentityFilter] = useState<CharacterIdentity[]>(() => [
+    ...ALL_CHARACTER_IDENTITIES,
+  ]);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const isBusy = editorBusy || isStreaming || isRefreshing || actionBusy;
@@ -94,6 +105,7 @@ export function LibraryBrowser({
   const listKind = listKindForTab(activeTab);
   const subtypeTabs = useMemo(() => subtypesForFolder(activeTab), [activeTab]);
   const showKindLabels = activeTab === 'all';
+  const showIdentityFilter = activeTab === 'characters';
 
   const tabItems = useMemo(
     () => LIBRARY_BROWSER_TABS.map(({ id, label }) => ({ id, label })),
@@ -124,8 +136,17 @@ export function LibraryBrowser({
         next = next.filter((item) => itemMatchesSubtypeTab(item, subtype));
       }
     }
+    if (showIdentityFilter) {
+      const allowedIdentities = new Set(identityFilter);
+      next = next.filter((item) => {
+        if (item.kind !== 'character') {
+          return true;
+        }
+        return allowedIdentities.has(normalizeCharacterIdentity(item.identity));
+      });
+    }
     return next;
-  }, [activeSubtype, items, subtypeTabs, tabKinds]);
+  }, [activeSubtype, identityFilter, items, showIdentityFilter, subtypeTabs, tabKinds]);
 
   const isLoadable = useCallback(
     (item: LibraryItemMeta) => loadableKinds.includes(item.kind),
@@ -385,6 +406,14 @@ export function LibraryBrowser({
                   ) : null}
                   {sortSelect}
                   {searchInput}
+                  {showIdentityFilter ? (
+                    <LibraryIdentityFilter
+                      className={styles.identityFilter}
+                      value={identityFilter}
+                      disabled={isBusy}
+                      onChange={setIdentityFilter}
+                    />
+                  ) : null}
                 </div>
               </SubSubHeader>
             )

@@ -7,7 +7,13 @@ import {
 } from '../../services/storage/assetDocument';
 import { saveImage } from '../../services/storage/imageStorage';
 import { loadAsset, loadCharacter, saveCharacter } from '../../services/storage/persistenceService';
-import type { BasicValue, Character, CharacterTraitTag } from '../../types/character';
+import type {
+  BasicValue,
+  Character,
+  CharacterIdentity,
+  CharacterTraitTag,
+} from '../../types/character';
+import { normalizeCharacterIdentity } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { formatFailure } from '../../utils/formatFailure';
 import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDrag';
@@ -29,6 +35,7 @@ import {
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
+  setCharacterEditorIdentity,
   setCharacterEditorName,
   upsertCharacterEditorTrait,
 } from '../../store/slices/characterSlice';
@@ -44,6 +51,7 @@ function clampScore(value: number): number {
 function toEditorCharacter(character: Character, images?: SavedImageRef[]): Character {
   return {
     name: character.name,
+    identity: normalizeCharacterIdentity(character.identity),
     attributes: character.attributes,
     history: character.history ?? [],
     traits: character.traits ?? [],
@@ -153,6 +161,13 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     setCharacterName('');
   }, [setCharacterName]);
 
+  const setIdentity = useCallback(
+    (identity: CharacterIdentity) => {
+      dispatch(setCharacterEditorIdentity(identity));
+    },
+    [dispatch],
+  );
+
   const setAttributeValue = useCallback(
     (name: BasicValue, value: number) => {
       dispatch(setCharacterEditorAttributeValue({ name, value: clampScore(value) }));
@@ -224,6 +239,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
           character: toEditorCharacter(
             {
               name: saved.name,
+              identity: saved.identity,
               attributes: saved.attributes,
               history: saved.history ?? [],
               traits: saved.traits ?? [],
@@ -376,6 +392,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
           character: toEditorCharacter(
             {
               name: saved.name,
+              identity: saved.identity,
               attributes: saved.attributes,
               history: saved.history ?? [],
               traits: saved.traits ?? [],
@@ -410,6 +427,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     canSave: isDirty && !isBusy && storageReady,
     setCharacterName,
     clearCharacterName,
+    setIdentity,
     setAttributeValue,
     removeHistoryEntry,
     appendHistoryEntry,

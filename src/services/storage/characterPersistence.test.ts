@@ -8,7 +8,12 @@ import {
 } from './characterPersistence';
 import { deleteCharacterDocument, loadCharacterDocument, saveCharacterDocument } from './characterPersistence';
 import { listLibraryItems } from './libraryIndex';
-import { duplicateCharacter, loadCharacter, saveCharacter } from './persistenceService';
+import {
+  duplicateCharacter,
+  listCharacters,
+  loadCharacter,
+  saveCharacter,
+} from './persistenceService';
 import { characterDocumentPath } from './paths';
 import {
   defaultSubtypeForLoadableKinds,
@@ -36,6 +41,7 @@ describe('characterPersistence', () => {
     character.history = [
       { at: '2026-09-13T17:00:00.000Z', summary: 'First chat beat', sessionId: 'sess-1' },
     ];
+    character.identity = 'female';
     character.traits = [
       {
         at: '2026-09-13T17:00:00.000Z',
@@ -69,6 +75,7 @@ describe('characterPersistence', () => {
 
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'char-1'));
     expect(loaded.name).toBe('Alex');
+    expect(loaded.identity).toBe('female');
     expect(loaded.history).toEqual(character.history);
     expect(loaded.traits).toEqual(character.traits);
     expect(loaded.images).toEqual(character.images);
@@ -98,14 +105,28 @@ describe('characterPersistence', () => {
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'legacy'));
     expect(loaded.history).toEqual([]);
     expect(loaded.images).toEqual([]);
+    expect(loaded.identity).toBe('binary');
   });
 
   it('registers characters in library.json', async () => {
-    await saveCharacter(createDefaultCharacter('Jordan'), 'char-2');
+    const character = createDefaultCharacter('Jordan');
+    character.identity = 'male';
+    await saveCharacter(character, 'char-2');
     const items = await listLibraryItems(getFileStorageService(), 'character');
     const row = items.find((item) => item.id === 'char-2');
     expect(row?.kind).toBe('character');
     expect(row?.name).toBe('Jordan');
+    expect(row?.identity).toBe('male');
+  });
+
+  it('keeps character identity after library index reload', async () => {
+    const character = createDefaultCharacter('Riley');
+    character.identity = 'female';
+    await saveCharacter(character, 'char-identity');
+    // listCharacters reconciles then reloads the index (parse must keep identity).
+    const items = await listCharacters();
+    const row = items.find((item) => item.id === 'char-identity');
+    expect(row?.identity).toBe('female');
   });
 
   it('loads character via persistenceService', async () => {

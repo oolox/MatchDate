@@ -10,6 +10,7 @@ import {
   isBasicValue,
   isCharacterHistoryEntry,
   isCharacterTrait,
+  normalizeCharacterIdentity,
   normalizeCharacterTraitTags,
 } from '../../types/character';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
@@ -34,6 +35,7 @@ export function characterDocumentFromCharacter(
     type: 'character',
     id,
     name: normalized.name.trim() || 'Untitled character',
+    identity: normalized.identity,
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
@@ -46,6 +48,7 @@ export function characterDocumentFromCharacter(
 export function characterFromDocument(document: CharacterDocument): Character {
   return normalizeCharacter({
     name: document.name,
+    identity: document.identity,
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
@@ -138,6 +141,7 @@ export function normalizeCharacter(character: Character): Character {
   const byName = new Map(character.attributes.map((attribute) => [attribute.name, attribute]));
   return {
     name: character.name,
+    identity: normalizeCharacterIdentity(character.identity),
     attributes: BASIC_VALUES.map((name) => {
       const existing = byName.get(name);
       return {
@@ -180,6 +184,7 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
 
   return normalizeCharacter({
     name,
+    identity: normalizeCharacterIdentity(value.identity),
     attributes,
     history: normalizeHistory(value.history),
     traits: normalizeTraits(value.traits),
@@ -220,6 +225,7 @@ export async function saveCharacterDocument(
 
   const normalized = normalizeCharacter({
     name: document.name,
+    identity: document.identity,
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
@@ -232,6 +238,7 @@ export async function saveCharacterDocument(
     type: 'character',
     id,
     name: normalized.name.trim() || 'Untitled character',
+    identity: normalized.identity,
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
@@ -249,6 +256,7 @@ export async function saveCharacterDocument(
     updatedAt: saved.updatedAt,
     type: 'character',
     subtype: 'character',
+    identity: saved.identity,
   });
   return saved;
 }

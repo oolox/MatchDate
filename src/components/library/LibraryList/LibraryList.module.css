@@ -62,12 +62,32 @@
   cursor: not-allowed;
 }
 
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .name {
   font-size: var(--font-size-md);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  min-width: 0;
+}
+
+.identityIcon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.identityIcon svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .meta {

@@ -1,3 +1,5 @@
+import type { CharacterIdentity } from '../../types/character';
+
 export type StoragePath = string;
 
 export type StorageErrorCode =
@@ -60,6 +62,8 @@ export interface LibraryCatalogFields {
   updatedAt: string;
   type?: OpfsDocType;
   subtype?: OpfsDocSubtype;
+  /** Present for character catalog rows. */
+  identity?: CharacterIdentity;
 }
 
 export interface LibraryKindRegistration {
@@ -95,6 +99,8 @@ export interface LibraryItemMeta {
   favoritedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** Present for character rows. */
+  identity?: CharacterIdentity;
 }
 
 export interface LibraryIndex {

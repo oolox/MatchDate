@@ -29,11 +29,13 @@ function sortByAtDesc<T extends { at: string }>(items: T[]): T[] {
 
 export function CharacterEditor({ editor }: CharacterEditorProps) {
   const {
+    characterId,
     character,
     isBusy,
     canSave,
     setCharacterName,
     clearCharacterName,
+    setIdentity,
     setAttributeValue,
     removeHistoryEntry,
     appendHistoryEntry,
@@ -59,6 +61,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     null,
   );
   const [editingHistoryIndex, setEditingHistoryIndex] = useState<number | null>(null);
+  const [imagesSheetEpoch, setImagesSheetEpoch] = useState(0);
 
   const sheetEntryActionsDisabled =
     isBusy || addingTrait || addingHistory || editingTraitOriginalName !== null || editingHistoryIndex !== null;
@@ -76,14 +79,19 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
     <section className={styles.section} aria-label="Character editor">
       <CharacterSubHeader
         name={character.name}
+        identity={character.identity}
         isBusy={isBusy}
         canSave={canSave}
         onNameChange={setCharacterName}
         onClearName={clearCharacterName}
+        onIdentityChange={setIdentity}
         onSave={() => {
           void handleSave();
         }}
-        onNew={handleNew}
+        onNew={() => {
+          setImagesSheetEpoch((epoch) => epoch + 1);
+          handleNew();
+        }}
       />
 
       <div className={styles.listBody}>
@@ -95,6 +103,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
           bodyClassName={styles.imagesBody}
         >
           <CharacterImagesSection
+            key={`${characterId ?? 'new'}:${imagesSheetEpoch}`}
             images={character.images ?? []}
             disabled={isBusy}
             onFilesDrop={(files) => {

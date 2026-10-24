@@ -1,4 +1,5 @@
 import promptSvg from '../../../assets/icons/prompt.svg?raw';
+import binarySvg from '../../../assets/icons/binary.svg?raw';
 import calendarSvg from '../../../assets/icons/calendar.svg?raw';
 import caretDownSvg from '../../../assets/icons/caret-down.svg?raw';
 import caretUpSvg from '../../../assets/icons/caret-up.svg?raw';
@@ -6,8 +7,10 @@ import closeSvg from '../../../assets/icons/close.svg?raw';
 import copySvg from '../../../assets/icons/copy.svg?raw';
 import editSvg from '../../../assets/icons/edit.svg?raw';
 import eyeSvg from '../../../assets/icons/eye.svg?raw';
+import femaleSvg from '../../../assets/icons/female.svg?raw';
 import generateSvg from '../../../assets/icons/generate.svg?raw';
 import imageSvg from '../../../assets/icons/image.svg?raw';
+import maleSvg from '../../../assets/icons/male.svg?raw';
 import modelSvg from '../../../assets/icons/model.svg?raw';
 import plusSvg from '../../../assets/icons/plus.svg?raw';
 import searchSvg from '../../../assets/icons/search.svg?raw';
@@ -44,6 +47,9 @@ export const iconSources = {
   model: modelSvg,
   prompt: promptSvg,
   tool: toolSvg,
+  male: maleSvg,
+  female: femaleSvg,
+  binary: binarySvg,
 } as const;
 
 export type IconName = keyof typeof iconSources;

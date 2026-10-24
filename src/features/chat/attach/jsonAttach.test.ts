@@ -21,6 +21,7 @@ describe('jsonAttach', () => {
     expect(payload.id).toBe('char-1');
     expect(payload.data).toEqual({
       name: 'Alex',
+      identity: 'binary',
       attributes: character.attributes,
       history: character.history,
       traits: [],

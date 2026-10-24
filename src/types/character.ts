@@ -72,8 +72,15 @@ export interface CharacterTrait {
   sessionId?: string;
 }
 
+/** Top-level sexual / gender identity on the character sheet. */
+export const CHARACTER_IDENTITIES = ['male', 'female', 'binary'] as const;
+
+export type CharacterIdentity = (typeof CHARACTER_IDENTITIES)[number];
+
 export interface Character {
   name: string;
+  /** Sexual / gender identity (male, female, or binary). */
+  identity: CharacterIdentity;
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
@@ -86,6 +93,7 @@ export interface CharacterDocument {
   type: 'character';
   id: string;
   name: string;
+  identity?: CharacterIdentity;
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
@@ -106,11 +114,24 @@ export function createDefaultValueScores(): ValueScore[] {
 export function createDefaultCharacter(name = ''): Character {
   return {
     name,
+    identity: 'binary',
     attributes: createDefaultValueScores(),
     history: [],
     traits: [],
     images: [],
   };
+}
+
+export function isCharacterIdentity(value: unknown): value is CharacterIdentity {
+  return (
+    typeof value === 'string' &&
+    (CHARACTER_IDENTITIES as readonly string[]).includes(value)
+  );
+}
+
+/** Coerce unknown / missing identity to a valid value (legacy docs → binary). */
+export function normalizeCharacterIdentity(value: unknown): CharacterIdentity {
+  return isCharacterIdentity(value) ? value : 'binary';
 }
 
 export function isBasicValue(value: unknown): value is BasicValue {

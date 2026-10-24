@@ -1,5 +1,6 @@
 import type { AssetDocument } from '../../types/opfsDoc';
 import type { CharacterDocument } from '../../types/character';
+import { normalizeCharacterIdentity } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { isAssetSubtype } from './assetDocument';
 import {
@@ -81,6 +82,7 @@ export function parseCharacterDocument(raw: string, path: string): CharacterDocu
         type: 'character',
         id: value.id,
         name: value.name,
+        identity: normalizeCharacterIdentity(value.identity),
         attributes: value.attributes,
         history: Array.isArray(value.history) ? value.history : [],
         traits: Array.isArray(value.traits) ? value.traits : [],
@@ -174,6 +176,7 @@ const characterRegistration: LibraryKindRegistration = {
       updatedAt: doc.updatedAt,
       type: 'character',
       subtype: 'character',
+      identity: normalizeCharacterIdentity(doc.identity),
     };
   },
 };
