@@ -1,4 +1,3 @@
-import type { LibraryItemKind } from '../../../services/storage/types';
 import type { LibrarySortListKind } from '../../../services/localStorage/keys';
 
 export type LibraryListKind = LibrarySortListKind;
@@ -35,44 +34,8 @@ const LABELS: Record<LibraryListKind, LibraryListLabels> = {
     empty: 'No saved assets yet.',
     ariaLabel: 'Asset',
   },
-  all: {
-    title: 'All',
-    loading: 'Loading library…',
-    empty: 'No saved items yet.',
-    ariaLabel: 'All library items',
-  },
 };
 
 export function getLibraryListLabels(kind: LibraryListKind): LibraryListLabels {
   return LABELS[kind];
-}
-
-export function getLibraryKindLabel(kind: LibraryItemKind): string {
-  switch (kind) {
-    case 'session':
-      return 'Chat';
-    case 'prompt':
-      return 'Prompt';
-    case 'character':
-      return 'Character';
-    case 'asset':
-      return 'Asset';
-    default:
-      return kind;
-  }
-}
-
-export function getLibraryKindBadge(kind: LibraryItemKind): string | null {
-  switch (kind) {
-    case 'session':
-      return 'CHAT';
-    case 'asset':
-      return 'AST';
-    case 'character':
-      return 'CHAR';
-    case 'prompt':
-      return null;
-    default:
-      return null;
-  }
 }

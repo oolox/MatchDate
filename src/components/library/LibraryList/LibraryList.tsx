@@ -7,7 +7,6 @@ export interface LibraryListProps {
   selectedId?: string | null;
   selectedKind?: string | null;
   isBusy?: boolean;
-  showKindLabels?: boolean;
   activePromptId?: string | null;
   onSelect: (item: LibraryItemMeta) => void;
   onActivateType?: (item: LibraryItemMeta) => void;
@@ -21,7 +20,6 @@ export function LibraryList({
   selectedId = null,
   selectedKind = null,
   isBusy = false,
-  showKindLabels = false,
   activePromptId = null,
   onSelect,
   onActivateType,
@@ -41,7 +39,6 @@ export function LibraryList({
           item={item}
           selected={item.id === selectedId && item.kind === selectedKind}
           disabled={isBusy}
-          showKindLabel={showKindLabels}
           typeActive={item.kind === 'prompt' && item.id === activePromptId}
           onSelect={onSelect}
           onActivateType={onActivateType}

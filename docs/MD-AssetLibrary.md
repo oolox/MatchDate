@@ -21,7 +21,7 @@ MatchDate's library sidebar lists chat sessions, system prompts, and (target) te
 
 | Area | Before | Target (LuxNova parity) |
 |------|--------|-------------------------|
-| **Tabs** | All / Chats / Prompts | All / Chats / Prompts / **Assets** |
+| **Tabs** | All / Chats / Prompts | Chats / Character / Prompt / **Assets** |
 | **Search** | Plain always-visible `<input>` | Collapsible `SearchBar` with icon |
 | **Sort** | Hardcoded in `LibraryBrowser` | `LibraryListSortControls` — Name / Created / Updated / Starred, asc/desc, persisted per tab |
 | **Sort location** | `LibraryBrowser.tsx` | `LibrarySidebar.tsx` via `useLibraryListSort` |
@@ -82,9 +82,9 @@ LibrarySidebar
 | Tab | `kinds` | `listKind` (sort pref key) | Subtypes |
 |-----|---------|---------------------------|----------|
 | Chats | `session` | `session` | ALL |
-| Prompts | `prompt` | `prompt` | ALL |
-| **Assets** | `asset` | `asset` | image / video / text / all |
-| All | `null` | `all` | ALL |
+| Character | `character` | `character` | ALL |
+| Prompt | `prompt` | `prompt` | ALL |
+| **Assets** | `asset` | `asset` | image / video / text / voice / all |
 
 **Assets tab:** sort + search in subtype row (`sortPlacement: 'subSubHeader'`). Asset delete skips confirm dialog.
 
@@ -178,8 +178,8 @@ LibrarySidebar
 |-----|---------|
 | `matchdate.librarySort.session` | `{ field: 'updatedAt', direction: 'desc' }` |
 | `matchdate.librarySort.prompt` | `{ field: 'name', direction: 'asc' }` |
+| `matchdate.librarySort.character` | `{ field: 'name', direction: 'asc' }` |
 | `matchdate.librarySort.asset` | `{ field: 'updatedAt', direction: 'desc' }` |
-| `matchdate.librarySort.all` | `{ field: 'updatedAt', direction: 'desc' }` |
 
 ---
 

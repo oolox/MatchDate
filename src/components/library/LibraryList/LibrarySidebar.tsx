@@ -26,7 +26,6 @@ export interface LibrarySidebarProps {
   header?: ReactNode;
   subHeader?: ReactNode | ((extras: LibrarySidebarSubHeaderExtras) => ReactNode);
   chromeKey?: string;
-  showKindLabels?: boolean;
   headerActions?: ReactNode;
   sortSelectClassName?: string;
   searchInputClassName?: string;
@@ -48,7 +47,6 @@ export function LibrarySidebar({
   header,
   subHeader,
   chromeKey,
-  showKindLabels = false,
   headerActions,
   sortSelectClassName,
   searchInputClassName,
@@ -113,7 +111,6 @@ export function LibrarySidebar({
           selectedId={selectedId}
           selectedKind={selectedKind}
           isBusy={isBusy}
-          showKindLabels={showKindLabels}
           activePromptId={activePromptId}
           onSelect={onSelect}
           onActivateType={onActivateType}

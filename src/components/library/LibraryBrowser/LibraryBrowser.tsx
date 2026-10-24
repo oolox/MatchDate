@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DropdownSelect } from '../../ui/DropdownSelect';
 import { Tabs } from '../../ui/Tabs';
@@ -19,7 +19,6 @@ import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { selectIsStreaming } from '../../../store/slices/chatUiSlice';
 import { selectActiveSystemPresetSlug, setActiveSystemPreset } from '../../../store/slices/promptsSlice';
 import { selectIsActiveThreadDirty } from '../../../store/slices/sessionsSlice';
-import { saveImage } from '../../../services/storage/imageStorage';
 import {
   duplicateCharacter,
   setActivePrompt,
@@ -113,14 +112,12 @@ export function LibraryBrowser({
   const [identityFilter, setIdentityFilter] = useState<CharacterIdentity[]>(() => [
     ...ALL_CHARACTER_IDENTITIES,
   ]);
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const isBusy = editorBusy || isStreaming || isRefreshing || actionBusy;
 
   const tabKinds = useMemo(() => kindsForTab(activeTab), [activeTab]);
   const listKind = listKindForTab(activeTab);
   const subtypeTabs = useMemo(() => subtypesForFolder(activeTab), [activeTab]);
-  const showKindLabels = activeTab === 'all';
   const showIdentityFilter = activeTab === 'characters';
 
   const tabItems = useMemo(
@@ -146,11 +143,8 @@ export function LibraryBrowser({
   }, [activeTab, preferredSubtype]);
 
   const filteredItems = useMemo(() => {
-    let next = items;
-    if (tabKinds !== null) {
-      const allowed = new Set(tabKinds);
-      next = next.filter((item) => allowed.has(item.kind));
-    }
+    const allowed = new Set(tabKinds);
+    let next = items.filter((item) => allowed.has(item.kind));
     if (subtypeTabs) {
       const subtype = subtypeTabs.find((tab) => tab.id === activeSubtype);
       if (
@@ -324,41 +318,7 @@ export function LibraryBrowser({
     ],
   );
 
-  const handleUploadImages = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0 || isBusy) {
-        return;
-      }
-      setActionBusy(true);
-      let savedCount = 0;
-      try {
-        for (const file of Array.from(files)) {
-          if (!file.type.startsWith('image/')) {
-            notify(`Skipped non-image file: ${file.name}`);
-            continue;
-          }
-          await saveImage(file, { name: file.name });
-          savedCount += 1;
-        }
-        if (savedCount > 0) {
-          dispatch(bumpLibraryEpoch());
-          onCatalogMutated?.();
-          notify(savedCount === 1 ? 'Image uploaded' : `Uploaded ${savedCount} images`);
-        }
-      } catch (error) {
-        notify(formatFailure('upload image', undefined, error));
-      } finally {
-        setActionBusy(false);
-        if (imageInputRef.current) {
-          imageInputRef.current.value = '';
-        }
-      }
-    },
-    [dispatch, isBusy, notify, onCatalogMutated],
-  );
-
   const chromeKey = `${activeTab}:${activeSubtype}`;
-  const showImageUpload = activeTab === 'assets' || activeTab === 'all';
 
   return (
     <LibrarySidebar
@@ -370,36 +330,7 @@ export function LibraryBrowser({
       storageReady={storageReady}
       isBusy={isBusy}
       chromeKey={chromeKey}
-      showKindLabels={showKindLabels}
-      headerActions={
-        <>
-          {showImageUpload ? (
-            <>
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                aria-hidden="true"
-                tabIndex={-1}
-                onChange={(event) => {
-                  void handleUploadImages(event.target.files);
-                }}
-              />
-              <button
-                type="button"
-                className={styles.uploadButton}
-                disabled={isBusy}
-                onClick={() => imageInputRef.current?.click()}
-              >
-                Upload image
-              </button>
-            </>
-          ) : null}
-          {headerActions}
-        </>
-      }
+      headerActions={headerActions}
       sortSelectClassName={styles.sortSelect}
       searchInputClassName={styles.searchInput}
       header={

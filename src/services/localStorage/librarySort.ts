@@ -13,7 +13,6 @@ const LIBRARY_SORT_DEFAULTS: Record<LibrarySortListKind, LibrarySortPreference> 
   prompt: { field: 'name', direction: 'asc' },
   character: { field: 'name', direction: 'asc' },
   asset: { field: 'updatedAt', direction: 'desc' },
-  all: { field: 'updatedAt', direction: 'desc' },
 };
 
 const LIBRARY_SORT_FIELDS: LibrarySortField[] = ['name', 'starred', 'updatedAt', 'createdAt'];
@@ -91,6 +90,5 @@ export function loadLibrarySortState(): Record<LibrarySortListKind, LibrarySortP
     prompt: readLibrarySortPreference('prompt'),
     character: readLibrarySortPreference('character'),
     asset: readLibrarySortPreference('asset'),
-    all: readLibrarySortPreference('all'),
   };
 }

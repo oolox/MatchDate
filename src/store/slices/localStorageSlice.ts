@@ -18,7 +18,6 @@ export interface LocalStorageState {
   librarySortPrompt: LibrarySortPreference;
   librarySortCharacter: LibrarySortPreference;
   librarySortAsset: LibrarySortPreference;
-  librarySortAll: LibrarySortPreference;
 }
 
 const initialState: LocalStorageState = {
@@ -29,7 +28,6 @@ const initialState: LocalStorageState = {
   librarySortPrompt: getDefaultLibrarySort('prompt'),
   librarySortCharacter: getDefaultLibrarySort('character'),
   librarySortAsset: getDefaultLibrarySort('asset'),
-  librarySortAll: getDefaultLibrarySort('all'),
 };
 
 const localStorageSlice = createSlice({
@@ -60,9 +58,6 @@ const localStorageSlice = createSlice({
           break;
         case 'asset':
           state.librarySortAsset = preference;
-          break;
-        case 'all':
-          state.librarySortAll = preference;
           break;
       }
     },
@@ -100,8 +95,6 @@ export function selectLibrarySortPreference(
         return state.localStorage.librarySortCharacter;
       case 'asset':
         return state.localStorage.librarySortAsset;
-      case 'all':
-        return state.localStorage.librarySortAll;
     }
   };
 }
@@ -116,7 +109,6 @@ export function loadLocalStorageSliceState(): LocalStorageState {
     librarySortPrompt: sorts.prompt,
     librarySortCharacter: sorts.character,
     librarySortAsset: sorts.asset,
-    librarySortAll: sorts.all,
   };
 }
 

@@ -8,7 +8,6 @@ import {
   setMatchDateLibraryDragData,
 } from '../../../utils/matchdateLibraryDrag';
 import { formatLibraryListDateTime } from './libraryListDateTime';
-import { getLibraryKindBadge, getLibraryKindLabel } from './libraryListLabels';
 import { LibraryAssetThumb } from './LibraryAssetThumb';
 import { LibraryCharacterThumb } from './LibraryCharacterThumb';
 import { LibraryTextThumb } from './LibraryTextThumb';
@@ -35,7 +34,6 @@ export interface LibraryListItemProps {
   item: LibraryItemMeta;
   selected: boolean;
   disabled: boolean;
-  showKindLabel?: boolean;
   typeActive?: boolean;
   onSelect: (item: LibraryItemMeta) => void;
   onActivateType?: (item: LibraryItemMeta) => void;
@@ -48,7 +46,6 @@ export function LibraryListItem({
   item,
   selected,
   disabled,
-  showKindLabel = false,
   typeActive = false,
   onSelect,
   onActivateType,
@@ -57,8 +54,6 @@ export function LibraryListItem({
   onDelete,
 }: LibraryListItemProps) {
   const updated = formatLibraryListDateTime(item.updatedAt);
-  const kindLabel = showKindLabel ? getLibraryKindLabel(item.kind) : null;
-  const kindBadge = showKindLabel ? getLibraryKindBadge(item.kind) : null;
   const isAsset = item.kind === 'asset';
   const displayName = isAsset ? truncateAssetName(item.name) : item.name;
 
@@ -95,14 +90,6 @@ export function LibraryListItem({
         >
           SYS
         </button>
-      ) : kindBadge ? (
-        <span className={styles.kindBadge} aria-hidden="true">
-          {kindBadge}
-        </span>
-      ) : kindLabel ? (
-        <span className={styles.kindBadge} aria-hidden="true">
-          {kindLabel}
-        </span>
       ) : null}
       {item.kind === 'character' ? (
         <LibraryCharacterThumb characterId={item.id} name={item.name} />

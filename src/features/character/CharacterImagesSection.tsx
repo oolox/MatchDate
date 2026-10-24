@@ -1,4 +1,4 @@
-import { useCallback, useState, type DragEvent } from 'react';
+import { useCallback, useRef, useState, type DragEvent } from 'react';
 import { Button } from '../../components/ui/Button';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import { mergeVisionTraits, type MergedVisionTrait } from '../../services/fal/mergeVisionTraits';
@@ -69,6 +69,7 @@ export function CharacterImagesSection({
   const [descriptions, setDescriptions] = useState<Record<string, ImageDescribeState>>({});
   const [traitsVisible, setTraitsVisible] = useState(true);
   const [proposal, setProposal] = useState<MergedVisionTrait[] | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const clearReorderState = useCallback(() => {
     setDraggingId(null);
@@ -349,29 +350,56 @@ export function CharacterImagesSection({
           </div>
         ) : null}
       </div>
-      {images.length > 0 ? (
-        <div className={styles.toolbar}>
-          <IconButton
-            icon="eye"
-            label={traitsVisible ? 'Hide extracted traits' : 'Show extracted traits'}
-            variant="secondary"
-            size="sm"
-            disabled={actionsDisabled || !hasTraitButtons}
-            current={hasTraitButtons && traitsVisible}
-            onClick={() => setTraitsVisible((visible) => !visible)}
-          />
-          <Button
-            type="button"
-            variant="tab"
-            disabled={actionsDisabled}
-            onClick={() => {
-              void handleDescribe();
-            }}
-          >
-            {describing ? 'DESCRIBING' : 'DESCRIBE'}
-          </Button>
-        </div>
-      ) : null}
+      <div className={styles.toolbar}>
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(event) => {
+            const list = event.target.files;
+            if (!list || list.length === 0) {
+              return;
+            }
+            onFilesDrop(Array.from(list));
+            event.target.value = '';
+          }}
+        />
+        {images.length > 0 ? (
+          <>
+            <IconButton
+              icon="eye"
+              label={traitsVisible ? 'Hide extracted traits' : 'Show extracted traits'}
+              variant="secondary"
+              size="sm"
+              disabled={actionsDisabled || !hasTraitButtons}
+              current={hasTraitButtons && traitsVisible}
+              onClick={() => setTraitsVisible((visible) => !visible)}
+            />
+            <Button
+              type="button"
+              variant="tab"
+              disabled={actionsDisabled}
+              onClick={() => {
+                void handleDescribe();
+              }}
+            >
+              {describing ? 'DESCRIBING' : 'DESCRIBE'}
+            </Button>
+          </>
+        ) : null}
+        <Button
+          type="button"
+          variant="tab"
+          disabled={actionsDisabled}
+          onClick={() => uploadInputRef.current?.click()}
+        >
+          UPLOAD
+        </Button>
+      </div>
       {proposal ? (
         <CharacterTraitProposal
           traits={proposal}
