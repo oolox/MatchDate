@@ -133,6 +133,7 @@ export function CharacterEditor({ editor }: CharacterEditorProps) {
       <CharacterSubHeader
         name={character.name}
         identity={character.identity}
+        characterId={characterId}
         voiceAssetId={character.voiceAssetId}
         isBusy={isBusy}
         canSave={canSave}

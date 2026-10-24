@@ -95,3 +95,9 @@ export function geminiVoiceOptions(): Array<{ value: GeminiTtsVoiceId; label: st
     label: voice,
   }));
 }
+
+/** Uniform random preset from the Gemini VoiceEnum list. */
+export function pickRandomGeminiVoice(): GeminiTtsVoiceId {
+  const index = Math.floor(Math.random() * GEMINI_TTS_VOICES.length);
+  return GEMINI_TTS_VOICES[index] ?? 'Kore';
+}

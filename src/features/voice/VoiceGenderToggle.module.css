@@ -1,0 +1,6 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}

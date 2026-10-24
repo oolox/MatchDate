@@ -23,6 +23,11 @@ export interface VoiceAssetMetadata {
   voiceName: string;
   /** Last “Say this” draft for this voice design (restored on load). */
   sayThis?: string;
+  /**
+   * Character document id this voice is assigned to.
+   * `null` / omitted = unassigned; set when attached from the character sheet.
+   */
+  characterId?: string | null;
   sampleDurationMs?: number;
   originalName?: string;
   preset?: VoicePreset;
@@ -59,6 +64,15 @@ export function normalizeVoiceAssetMetadata(
     const sayThis = metadata.sayThis.trim();
     if (sayThis) {
       next.sayThis = sayThis;
+    }
+  }
+
+  if (metadata && Object.prototype.hasOwnProperty.call(metadata, 'characterId')) {
+    const raw = metadata.characterId;
+    if (typeof raw === 'string' && raw.trim()) {
+      next.characterId = raw.trim();
+    } else {
+      next.characterId = null;
     }
   }
 

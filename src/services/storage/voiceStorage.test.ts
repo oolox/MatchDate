@@ -79,6 +79,18 @@ describe('voiceStorage', () => {
     expect((updated.metadata as { sayThis?: string }).sayThis).toBe('Updated line.');
   });
 
+  it('assigns and clears characterId on a voice', async () => {
+    const { setVoiceCharacterId } = await import('./voiceStorage');
+    const saved = await saveVoice({ voiceName: 'Bound voice' });
+    expect((await loadVoiceMetadata(saved.id)).characterId ?? null).toBeNull();
+
+    await setVoiceCharacterId(saved.id, 'char-abc');
+    expect((await loadVoiceMetadata(saved.id)).characterId).toBe('char-abc');
+
+    await setVoiceCharacterId(saved.id, null);
+    expect((await loadVoiceMetadata(saved.id)).characterId).toBeNull();
+  });
+
   it('lists voice assets and deletes sample + metadata', async () => {
     const saved = await saveVoice({
       voiceName: 'With sample',

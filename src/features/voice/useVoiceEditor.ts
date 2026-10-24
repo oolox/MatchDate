@@ -8,6 +8,7 @@ import {
   genderHintForGeminiVoice,
   getTtsModel,
   isGeminiTtsVoiceId,
+  pickRandomGeminiVoice,
   type VoiceGenderHint,
 } from '../../services/fal/models/tts';
 import { synthesizeSpeech } from '../../services/fal/ttsService';
@@ -20,8 +21,15 @@ import {
   type VoiceAssetMetadata,
   type VoicePreset,
 } from '../../types/savedVoice';
+import { loadCharacter, saveCharacter } from '../../services/storage/persistenceService';
 import { loadVoice, saveVoice } from '../../services/storage/voiceStorage';
+import {
+  selectCharacterEditorId,
+  setCharacterEditorVoiceAssetId,
+} from '../../store/slices/characterSlice';
 import { formatFailure } from '../../utils/formatFailure';
+import type { RootState } from '../../store';
+import { useStore } from 'react-redux';
 
 const DEFAULT_SAY_TEXT = 'Hello — this is how I sound.';
 
@@ -42,6 +50,14 @@ export interface VoiceEditorState {
   canNew: boolean;
 }
 
+export interface StartNewVoiceDesignOptions {
+  voiceName?: string;
+  /** When set, Save links this voice to the character (`voice.characterId` + `character.voiceAssetId`). */
+  characterId?: string | null;
+  /** Character identity → voice gender (male/female/neutral) + matching Gemini preset. */
+  gender?: VoiceGenderHint;
+}
+
 export interface VoiceEditor extends VoiceEditorState {
   setVoiceName: (value: string) => void;
   setGender: (value: VoiceGenderHint) => void;
@@ -50,6 +66,8 @@ export interface VoiceEditor extends VoiceEditorState {
   setTemperature: (value: number) => void;
   setSayText: (value: string) => void;
   handleNew: () => void;
+  /** Reset designer for a new voice (e.g. Character → New Voice). */
+  startNewVoiceDesign: (options?: StartNewVoiceDesignOptions) => void;
   handleSave: () => Promise<void>;
   handleSayThis: () => Promise<void>;
   loadVoiceAsset: (id: string) => Promise<void>;
@@ -98,6 +116,7 @@ function hydrateFromMetadata(meta: VoiceAssetMetadata | undefined): {
 
 export function useVoiceEditor(): VoiceEditor {
   const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
   const { notify } = useNotification();
   const { begin } = useAbortController();
 
@@ -115,6 +134,8 @@ export function useVoiceEditor(): VoiceEditor {
 
   const objectUrlRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Character to bind on next Save (from Character → New Voice). */
+  const pendingCharacterIdRef = useRef<string | null>(null);
 
   const revokePlayback = useCallback(() => {
     audioRef.current?.pause();
@@ -200,6 +221,7 @@ export function useVoiceEditor(): VoiceEditor {
       setStyleInstructions(hydrated.styleInstructions);
       setTemperature(hydrated.temperature);
       setSayText(hydrated.sayText);
+      pendingCharacterIdRef.current = null;
       setIsDirty(false);
       setLastError(null);
     },
@@ -228,32 +250,82 @@ export function useVoiceEditor(): VoiceEditor {
     [applyVoiceDocument, notify],
   );
 
+  const applyNewVoiceDefaults = useCallback(
+    (voiceNameValue: string, genderHint?: VoiceGenderHint) => {
+      const voice =
+        genderHint != null
+          ? GEMINI_VOICE_BY_GENDER[genderHint]
+          : pickRandomGeminiVoice();
+      setVoiceAssetId(null);
+      setVoiceName(voiceNameValue);
+      setVoiceIdState(voice);
+      setGenderState(genderHint ?? genderHintForGeminiVoice(voice));
+      setStyleInstructions('');
+      setTemperature(1);
+      setSayText(DEFAULT_SAY_TEXT);
+      setLastError(null);
+    },
+    [],
+  );
+
   const handleNew = useCallback(() => {
     revokePlayback();
-    setVoiceAssetId(null);
-    setVoiceName(DEFAULT_VOICE_NAME);
-    setGenderState('female');
-    setVoiceIdState(DEFAULT_GEMINI_VOICE_PRESET.voiceId);
-    setStyleInstructions('');
-    setTemperature(1);
-    setSayText(DEFAULT_SAY_TEXT);
+    pendingCharacterIdRef.current = null;
+    applyNewVoiceDefaults(DEFAULT_VOICE_NAME);
     setIsDirty(false);
-    setLastError(null);
-  }, [revokePlayback]);
+  }, [applyNewVoiceDefaults, revokePlayback]);
+
+  const startNewVoiceDesign = useCallback(
+    (options?: StartNewVoiceDesignOptions) => {
+      revokePlayback();
+      const name = options?.voiceName?.trim() || DEFAULT_VOICE_NAME;
+      pendingCharacterIdRef.current = options?.characterId?.trim() || null;
+      applyNewVoiceDefaults(name, options?.gender);
+      setIsDirty(true);
+    },
+    [applyNewVoiceDefaults, revokePlayback],
+  );
 
   const handleSave = useCallback(async () => {
     setIsBusy(true);
     setLastError(null);
     try {
+      const linkCharacterId = pendingCharacterIdRef.current;
       const saved = await saveVoice({
         id: voiceAssetId ?? undefined,
         voiceName: voiceName.trim() || DEFAULT_VOICE_NAME,
         preset: presetFromControls(voiceId, styleInstructions, temperature),
         sayThis: sayText,
+        ...(linkCharacterId ? { characterId: linkCharacterId } : {}),
       });
       setVoiceAssetId(saved.id);
       setVoiceName(saved.name);
       setIsDirty(false);
+
+      if (linkCharacterId) {
+        try {
+          const character = await loadCharacter(linkCharacterId);
+          if (character.voiceAssetId !== saved.id) {
+            await saveCharacter(
+              { ...character, voiceAssetId: saved.id },
+              linkCharacterId,
+            );
+          }
+          const editorCharacterId = selectCharacterEditorId(store.getState());
+          if (editorCharacterId === linkCharacterId) {
+            dispatch(setCharacterEditorVoiceAssetId(saved.id));
+          }
+        } catch (linkError) {
+          console.info('Saved voice but could not link character', {
+            linkCharacterId,
+            voiceId: saved.id,
+            linkError,
+          });
+          notify(formatFailure('link voice to character', saved.name, linkError));
+        }
+        pendingCharacterIdRef.current = null;
+      }
+
       dispatch(bumpLibraryEpoch());
       notify(`Saved ${saved.name}`);
     } catch (error) {
@@ -267,6 +339,7 @@ export function useVoiceEditor(): VoiceEditor {
     dispatch,
     notify,
     sayText,
+    store,
     styleInstructions,
     temperature,
     voiceAssetId,
@@ -336,6 +409,7 @@ export function useVoiceEditor(): VoiceEditor {
     setTemperature: setTemperatureDirty,
     setSayText: setSayTextDirty,
     handleNew,
+    startNewVoiceDesign,
     handleSave,
     handleSayThis,
     loadVoiceAsset,

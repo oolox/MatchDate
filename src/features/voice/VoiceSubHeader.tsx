@@ -1,26 +1,32 @@
 import { Button } from '../../components/ui/Button';
 import { SubHeader } from '../../components/ui/SubHeader';
 import { SubHeaderNameField } from '../../components/ui/SubHeaderNameField';
+import type { VoiceGenderHint } from '../../services/fal/models/tts';
+import { VoiceGenderToggle } from './VoiceGenderToggle';
 import styles from './VoiceSubHeader.module.css';
 
 export interface VoiceSubHeaderProps {
   name: string;
+  gender: VoiceGenderHint;
   isBusy: boolean;
   canSave: boolean;
   canNew: boolean;
   onNameChange: (value: string) => void;
   onClearName: () => void;
+  onGenderChange: (gender: VoiceGenderHint) => void;
   onSave: () => void;
   onNew: () => void;
 }
 
 export function VoiceSubHeader({
   name,
+  gender,
   isBusy,
   canSave,
   canNew,
   onNameChange,
   onClearName,
+  onGenderChange,
   onSave,
   onNew,
 }: VoiceSubHeaderProps) {
@@ -47,6 +53,11 @@ export function VoiceSubHeader({
           clearLabel="Clear voice name"
           onChange={onNameChange}
           onClear={onClearName}
+        />
+        <VoiceGenderToggle
+          value={gender}
+          disabled={isBusy}
+          onChange={onGenderChange}
         />
       </div>
     </SubHeader>

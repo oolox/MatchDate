@@ -88,8 +88,26 @@
   color: var(--color-text-muted);
 }
 
+.tab.withIcon {
+  gap: 0.25rem;
+  padding-left: 0.25rem;
+  padding-right: 0.5rem;
+}
+
+.tab .icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.tab .icon svg {
+  width: 1em;
+  height: 1em;
+}
+
 .tab .label {
   text-transform: none;
+  min-width: 0;
 }
 
 .tab:hover:not(:disabled):not(.current),

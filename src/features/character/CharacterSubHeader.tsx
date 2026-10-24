@@ -9,6 +9,7 @@ import styles from './CharacterSubHeader.module.css';
 export interface CharacterSubHeaderProps {
   name: string;
   identity: CharacterIdentity;
+  characterId?: string | null;
   voiceAssetId?: string | null;
   isBusy: boolean;
   canSave: boolean;
@@ -23,6 +24,7 @@ export interface CharacterSubHeaderProps {
 export function CharacterSubHeader({
   name,
   identity,
+  characterId,
   voiceAssetId,
   isBusy,
   canSave,
@@ -64,6 +66,9 @@ export function CharacterSubHeader({
         />
         <CharacterVoiceLabel
           voiceAssetId={voiceAssetId}
+          characterName={name}
+          characterIdentity={identity}
+          characterId={characterId}
           disabled={isBusy}
           onClear={onClearVoice}
         />

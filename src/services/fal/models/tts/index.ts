@@ -15,6 +15,7 @@ export {
   genderHintForGeminiVoice,
   geminiVoiceOptions,
   isGeminiTtsVoiceId,
+  pickRandomGeminiVoice,
   type GeminiTtsVoiceId,
   type VoiceGenderHint,
 } from './geminiVoices';

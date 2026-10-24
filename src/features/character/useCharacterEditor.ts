@@ -7,6 +7,7 @@ import {
 } from '../../services/storage/assetDocument';
 import { saveImage } from '../../services/storage/imageStorage';
 import { loadAsset, loadCharacter, saveCharacter } from '../../services/storage/persistenceService';
+import { setVoiceCharacterId } from '../../services/storage/voiceStorage';
 import type {
   BasicValue,
   Character,
@@ -178,9 +179,43 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     [dispatch],
   );
 
+  /** Update voice.characterId links when attaching/clearing on the sheet. */
+  const syncVoiceCharacterAssignment = useCallback(
+    async (nextVoiceId: string | null, previousVoiceId: string | null | undefined) => {
+      const previous = previousVoiceId?.trim() || null;
+      const next = nextVoiceId?.trim() || null;
+      const charId = characterIdRef.current?.trim() || null;
+
+      if (previous && previous !== next) {
+        try {
+          await setVoiceCharacterId(previous, null);
+        } catch (error) {
+          console.info('Could not clear voice characterId', { previous, error });
+        }
+      }
+
+      if (next && charId) {
+        try {
+          await setVoiceCharacterId(next, charId);
+        } catch (error) {
+          console.info('Could not set voice characterId', { next, charId, error });
+          throw error;
+        }
+      }
+    },
+    [],
+  );
+
   const clearVoiceAssetId = useCallback(() => {
+    const previous = characterRef.current.voiceAssetId;
     dispatch(setCharacterEditorVoiceAssetId(null));
-  }, [dispatch]);
+    const nextCharacter = { ...characterRef.current };
+    delete nextCharacter.voiceAssetId;
+    characterRef.current = nextCharacter;
+    void syncVoiceCharacterAssignment(null, previous).catch((error) => {
+      notify(formatFailure('unassign voice', undefined, error));
+    });
+  }, [dispatch, notify, syncVoiceCharacterAssignment]);
 
   const setAttributeValue = useCallback(
     (name: BasicValue, value: number) => {
@@ -273,12 +308,16 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
           notify('Drop a voice asset onto the character sheet');
           return;
         }
+        const previous = characterRef.current.voiceAssetId;
         dispatch(setCharacterEditorVoiceAssetId(asset.id));
+        characterRef.current = { ...characterRef.current, voiceAssetId: asset.id };
+        await syncVoiceCharacterAssignment(asset.id, previous);
+        dispatch(bumpLibraryEpoch());
       } catch (error) {
         notify(formatFailure('attach voice', id, error));
       }
     },
-    [dispatch, notify],
+    [dispatch, notify, syncVoiceCharacterAssignment],
   );
 
   const attachImageRefs = useCallback(
@@ -412,6 +451,11 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     setIsBusy(true);
     try {
       const saved = await saveCharacter(character, characterId ?? undefined);
+      const voiceId = saved.voiceAssetId?.trim() || character.voiceAssetId?.trim() || null;
+      if (voiceId) {
+        // Ensure link is written once the character has a stable id (first save).
+        await setVoiceCharacterId(voiceId, saved.id);
+      }
       dispatch(bumpLibraryEpoch());
       dispatch(
         markCharacterEditorSaved({

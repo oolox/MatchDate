@@ -1,10 +1,7 @@
 import { useCallback, useState, type DragEvent } from 'react';
 import { DropdownSelect } from '../../components/ui/DropdownSelect';
 import { TextArea } from '../../components/ui/TextArea/TextArea';
-import {
-  geminiVoiceOptions,
-  type VoiceGenderHint,
-} from '../../services/fal/models/tts';
+import { geminiVoiceOptions } from '../../services/fal/models/tts';
 import {
   dataTransferHasMatchDateLibrary,
   readMatchDateLibraryDragPayload,
@@ -12,12 +9,6 @@ import {
 import type { VoiceEditor } from './useVoiceEditor';
 import { VoiceSubHeader } from './VoiceSubHeader';
 import styles from './VoiceContainer.module.css';
-
-const GENDER_OPTIONS: Array<{ value: VoiceGenderHint; label: string }> = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'neutral', label: 'Neutral' },
-];
 
 const VOICE_OPTIONS = geminiVoiceOptions();
 
@@ -97,11 +88,13 @@ export function VoiceContainer({ editor }: VoiceContainerProps) {
     >
       <VoiceSubHeader
         name={voiceName}
+        gender={gender}
         isBusy={disabled}
         canSave={canSave}
         canNew={canNew}
         onNameChange={setVoiceName}
         onClearName={() => setVoiceName('')}
+        onGenderChange={setGender}
         onSave={() => {
           void handleSave();
         }}
@@ -110,16 +103,6 @@ export function VoiceContainer({ editor }: VoiceContainerProps) {
 
       <div className={styles.body}>
         <div className={styles.controls}>
-          <label className={styles.controlField}>
-            <span className={styles.fieldLabel}>Gender</span>
-            <DropdownSelect
-              aria-label="Gender"
-              options={GENDER_OPTIONS}
-              value={gender}
-              disabled={disabled}
-              onChange={(value) => setGender(value as VoiceGenderHint)}
-            />
-          </label>
           <label className={styles.controlField}>
             <span className={styles.fieldLabel}>Gemini voice</span>
             <DropdownSelect

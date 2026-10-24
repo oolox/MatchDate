@@ -32,6 +32,10 @@ export interface SaveVoiceOptions {
   preset?: VoicePreset;
   /** Last “Say this” draft persisted with the voice design. */
   sayThis?: string;
+  /**
+   * Character assignment. Pass `null` to clear; omit to leave unchanged.
+   */
+  characterId?: string | null;
   /** Optional sample blob (clone path later); preset-only voices omit this. */
   sample?: Blob;
   originalName?: string;
@@ -66,26 +70,33 @@ export async function saveVoice(options: SaveVoiceOptions = {}): Promise<AssetDo
         ? options.metadata.sayThis
         : existingMeta?.sayThis;
 
-  const mergedMeta = normalizeVoiceAssetMetadata(
-    {
-      ...existingMeta,
-      ...options.metadata,
-      voiceName,
-      ...(sayThis !== undefined ? { sayThis } : {}),
-      ...(options.originalName != null
-        ? { originalName: options.originalName }
-        : {}),
-      ...(options.sampleDurationMs != null
-        ? { sampleDurationMs: options.sampleDurationMs }
-        : {}),
-      preset:
-        options.preset ??
-        options.metadata?.preset ??
-        existingMeta?.preset ??
-        (existing ? undefined : DEFAULT_GEMINI_VOICE_PRESET),
-    },
+  const characterIdExplicit =
+    options.characterId !== undefined
+      ? options.characterId
+      : options.metadata && Object.prototype.hasOwnProperty.call(options.metadata, 'characterId')
+        ? options.metadata.characterId
+        : undefined;
+
+  const mergedInput: Partial<VoiceAssetMetadata> = {
+    ...existingMeta,
+    ...options.metadata,
     voiceName,
-  );
+    ...(sayThis !== undefined ? { sayThis } : {}),
+    ...(options.originalName != null ? { originalName: options.originalName } : {}),
+    ...(options.sampleDurationMs != null
+      ? { sampleDurationMs: options.sampleDurationMs }
+      : {}),
+    preset:
+      options.preset ??
+      options.metadata?.preset ??
+      existingMeta?.preset ??
+      (existing ? undefined : DEFAULT_GEMINI_VOICE_PRESET),
+  };
+  if (characterIdExplicit !== undefined) {
+    mergedInput.characterId = characterIdExplicit;
+  }
+
+  const mergedMeta = normalizeVoiceAssetMetadata(mergedInput, voiceName);
 
   const path = voicePath(id);
   const fileName = existing?.fileName || voiceFileName(id);
@@ -112,6 +123,21 @@ export async function saveVoice(options: SaveVoiceOptions = {}): Promise<AssetDo
 export async function renameVoice(id: string, voiceName: string): Promise<AssetDocument> {
   const trimmed = voiceName.trim() || DEFAULT_VOICE_NAME;
   return saveVoice({ id, voiceName: trimmed });
+}
+
+/** Set or clear the character this voice is assigned to. */
+export async function setVoiceCharacterId(
+  voiceAssetId: string,
+  characterId: string | null,
+): Promise<AssetDocument> {
+  const id = voiceAssetId.trim();
+  if (!id) {
+    throw new Error('voiceAssetId is required');
+  }
+  return saveVoice({
+    id,
+    characterId: characterId?.trim() || null,
+  });
 }
 
 export async function loadVoice(id: string): Promise<AssetDocument> {
