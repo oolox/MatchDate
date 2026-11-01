@@ -10,6 +10,10 @@ export type AssistantToolBlock = {
   id?: string;
   /** Character display name from data.name when present. */
   name?: string;
+  /** Traits entries in this tool's data (character update/create). */
+  traitCount?: number;
+  /** History entries in this tool's data. */
+  historyCount?: number;
   complete: boolean;
   /** Raw / pretty JSON body for expand toggle. */
   json: string;
@@ -133,6 +137,75 @@ function nameFromParsedData(data: unknown): string | undefined {
   return typeof name === 'string' && name.trim() ? name.trim() : undefined;
 }
 
+function countsFromCharacterData(data: unknown): {
+  traitCount: number;
+  historyCount: number;
+} {
+  if (!data || typeof data !== 'object') {
+    return { traitCount: 0, historyCount: 0 };
+  }
+  const record = data as { traits?: unknown; history?: unknown };
+  return {
+    traitCount: Array.isArray(record.traits) ? record.traits.length : 0,
+    historyCount: Array.isArray(record.history) ? record.history.length : 0,
+  };
+}
+
+/** Best-effort array length from incomplete streaming JSON. */
+function countArrayItemsInRaw(raw: string, key: 'traits' | 'history'): number {
+  const re = new RegExp(`"${key}"\\s*:\\s*\\[`, 'i');
+  const match = re.exec(raw);
+  if (!match || match.index === undefined) {
+    return 0;
+  }
+  const from = raw.slice(match.index + match[0].length);
+  let depth = 1;
+  let items = 0;
+  let inString = false;
+  let escape = false;
+  let sawValue = false;
+  for (let i = 0; i < from.length; i += 1) {
+    const ch = from[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      sawValue = true;
+      continue;
+    }
+    if (ch === '{' || ch === '[') {
+      depth += 1;
+      sawValue = true;
+      continue;
+    }
+    if (ch === '}' || ch === ']') {
+      depth -= 1;
+      if (depth === 0) {
+        if (sawValue) {
+          items += 1;
+        }
+        break;
+      }
+      continue;
+    }
+    if (ch === ',' && depth === 1) {
+      if (sawValue) {
+        items += 1;
+      }
+      sawValue = false;
+    }
+  }
+  return items;
+}
+
 function looksLikeCharacterTool(raw: string): boolean {
   return /"tool"\s*:\s*"character"/.test(raw);
 }
@@ -178,6 +251,7 @@ export function splitAssistantContent(
       }
 
       if (isCharacterToolMessage(parsed)) {
+        const counts = countsFromCharacterData(parsed.data);
         pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
         blocks.push({
           type: 'tool',
@@ -185,6 +259,8 @@ export function splitAssistantContent(
           action: parsed.action,
           id: parsed.id,
           name: nameFromParsedData(parsed.data),
+          traitCount: counts.traitCount,
+          historyCount: counts.historyCount,
           complete: true,
           json: JSON.stringify(parsed, null, 2),
         });
@@ -221,6 +297,8 @@ export function splitAssistantContent(
         action: fields.action,
         id: fields.id,
         name: fields.name,
+        traitCount: countArrayItemsInRaw(raw, 'traits'),
+        historyCount: countArrayItemsInRaw(raw, 'history'),
         complete: false,
         json: fence.body.replace(/^\s*\n/, ''),
       });

@@ -27,7 +27,7 @@ export function toolActionVerb(
   }
 }
 
-/** Streaming: "Updating Name" / Complete: "Updated Name" */
+/** Streaming: "Updating Name" / Complete: "Updated Name" (tests / aria helpers). */
 export function formatToolResponseLabel(options: {
   action?: string;
   name?: string;
@@ -37,4 +37,13 @@ export function formatToolResponseLabel(options: {
   const verb = toolActionVerb(options.action, options.complete);
   const display = toolDisplayName(options.name, options.id);
   return `${verb} ${display}`;
+}
+
+export function formatCharacterToolPatchSummary(
+  traitCount: number,
+  historyCount: number,
+): string {
+  const traitsLabel = traitCount === 1 ? '1 Trait' : `${traitCount} Traits`;
+  const historyLabel = historyCount === 1 ? '1 History' : `${historyCount} History`;
+  return `${traitsLabel}, ${historyLabel}`;
 }

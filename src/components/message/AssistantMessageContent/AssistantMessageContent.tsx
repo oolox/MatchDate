@@ -41,6 +41,8 @@ function AssistantMessageContentComponent({
               action={block.action}
               id={block.id}
               name={block.name}
+              traitCount={block.traitCount}
+              historyCount={block.historyCount}
               complete={block.complete}
               json={block.json}
             />

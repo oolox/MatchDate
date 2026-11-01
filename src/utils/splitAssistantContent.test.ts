@@ -16,7 +16,7 @@ describe('splitAssistantContent', () => {
     expect(blocks[0]).toEqual({ type: 'markdown', content });
   });
 
-  it('extracts completed character tool fences including data.name', () => {
+  it('extracts completed character tool fences including data.name and counts', () => {
     const content = `A story.
 
 \`\`\`json
@@ -25,7 +25,14 @@ describe('splitAssistantContent', () => {
   "origin": "agent",
   "action": "update",
   "id": "c4e8a12b-3d7f-4b1a-9e6c-2f8d05a713c9",
-  "data": { "name": "Man-4", "history": [] }
+  "data": {
+    "name": "Man-4",
+    "history": [{ "at": "2026-01-01T00:00:00.000Z", "summary": "Met" }],
+    "traits": [
+      { "at": "2026-01-01T00:00:00.000Z", "name": "eyes", "value": "green", "tags": ["Physical"] },
+      { "at": "2026-01-01T00:00:00.000Z", "name": "hair", "value": "dark", "tags": ["Physical"] }
+    ]
+  }
 }
 \`\`\`
 `;
@@ -38,6 +45,8 @@ describe('splitAssistantContent', () => {
       action: 'update',
       id: 'c4e8a12b-3d7f-4b1a-9e6c-2f8d05a713c9',
       name: 'Man-4',
+      traitCount: 2,
+      historyCount: 1,
       complete: true,
     });
   });
