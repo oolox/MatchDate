@@ -460,7 +460,9 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     async (options?: {
       /** Persist voice design after character has a stable id; returns voice asset id. */
       persistVoice?: (characterId: string) => Promise<string | null>;
-    }) => {
+      /** Skip success toast (e.g. auto-save before navigating from chat). */
+      silent?: boolean;
+    }): Promise<boolean> => {
       setIsBusy(true);
       try {
         let saved = await saveCharacter(character, characterId ?? undefined);
@@ -493,12 +495,16 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
           }),
         );
         lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
-        notify(`Saved ${saved.name}`);
+        if (!options?.silent) {
+          notify(`Saved ${saved.name}`);
+        }
         if (saved.id !== characterIdFromRoute) {
           navigate(`/character/${saved.id}`, { replace: true });
         }
+        return true;
       } catch (error) {
         notify(formatFailure('save', character.name || 'character', error));
+        return false;
       } finally {
         setIsBusy(false);
       }

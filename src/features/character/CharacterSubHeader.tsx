@@ -1,4 +1,5 @@
 import { Button } from '../../components/ui/Button';
+import { IconButton } from '../../components/ui/IconButton/IconButton';
 import { SubHeader } from '../../components/ui/SubHeader';
 import { SubHeaderNameField } from '../../components/ui/SubHeaderNameField';
 import type { CharacterIdentity } from '../../types/character';
@@ -15,6 +16,7 @@ export interface CharacterSubHeaderProps {
   onIdentityChange: (identity: CharacterIdentity) => void;
   onSave: () => void;
   onNew: () => void;
+  onBackToChat: () => void;
 }
 
 export function CharacterSubHeader({
@@ -27,6 +29,7 @@ export function CharacterSubHeader({
   onIdentityChange,
   onSave,
   onNew,
+  onBackToChat,
 }: CharacterSubHeaderProps) {
   return (
     <SubHeader
@@ -43,6 +46,14 @@ export function CharacterSubHeader({
       }
     >
       <div className={styles.content}>
+        <IconButton
+          className={styles.backButton}
+          icon="back"
+          label="Back to chat"
+          variant="secondary"
+          size="md"
+          onClick={onBackToChat}
+        />
         <SubHeaderNameField
           value={name}
           disabled={isBusy}

@@ -3,6 +3,7 @@ import { Icon } from '../../ui/Icon/Icon';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import { CodeBlock } from '../../markdown/CodeBlock/CodeBlock';
 import { LibraryCharacterThumb } from '../../library/LibraryList/LibraryCharacterThumb';
+import { useOpenCharacterFromChat } from '../../../features/character/openCharacterFromChat';
 import {
   formatCharacterToolPatchSummary,
   toolActionVerb,
@@ -31,13 +32,14 @@ export function ToolResponse({
   complete = true,
   json,
 }: ToolResponseProps) {
+  const openCharacter = useOpenCharacterFromChat();
   const [expanded, setExpanded] = useState(false);
   const displayName = toolDisplayName(name, id);
   const status = toolActionVerb(action, complete);
   const summary = formatCharacterToolPatchSummary(traitCount, historyCount);
   const caretIcon = expanded ? 'caret-up' : 'caret-down';
   const characterId = id?.trim() || '';
-  const showThumb = tool === 'character' && characterId.length > 0;
+  const canOpen = tool === 'character' && characterId.length > 0;
 
   return (
     <div
@@ -47,15 +49,24 @@ export function ToolResponse({
       aria-busy={complete ? undefined : true}
     >
       <div className={styles.row}>
-        <div className={styles.thumbSlot} aria-hidden="true">
-          {showThumb ? (
+        {canOpen ? (
+          <button
+            type="button"
+            className={styles.thumbButton}
+            aria-label={`Open ${displayName}`}
+            onClick={() => {
+              void openCharacter(characterId);
+            }}
+          >
             <LibraryCharacterThumb characterId={characterId} name={displayName} />
-          ) : (
+          </button>
+        ) : (
+          <div className={styles.thumbSlot} aria-hidden="true">
             <span className={styles.placeholder} title={displayName}>
               <Icon name="character" className={styles.placeholderIcon} />
             </span>
-          )}
-        </div>
+          </div>
+        )}
         <div className={styles.body}>
           <div className={styles.statusRow}>
             <Icon name="tool" className={styles.icon} />

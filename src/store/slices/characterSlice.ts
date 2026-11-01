@@ -39,6 +39,11 @@ export interface CharacterEditorState {
   characterId: string | null;
   character: Character;
   isDirty: boolean;
+  /**
+   * Chat route to return to from the character sheet (e.g. `/session/{id}`).
+   * Set when opening a character from chat tool chrome; null = no back target.
+   */
+  returnChatPath: string | null;
 }
 
 function createInitialState(): CharacterEditorState {
@@ -46,6 +51,7 @@ function createInitialState(): CharacterEditorState {
     characterId: null,
     character: createDefaultCharacter(),
     isDirty: false,
+    returnChatPath: null,
   };
 }
 
@@ -55,7 +61,10 @@ const characterSlice = createSlice({
   name: 'character',
   initialState,
   reducers: {
-    resetCharacterEditor: () => createInitialState(),
+    resetCharacterEditor: (state) => {
+      const returnChatPath = state.returnChatPath;
+      return { ...createInitialState(), returnChatPath };
+    },
     setCharacterEditorId: (state, action: PayloadAction<string | null>) => {
       state.characterId = action.payload;
     },
@@ -308,6 +317,10 @@ const characterSlice = createSlice({
     setCharacterEditorDirty: (state, action: PayloadAction<boolean>) => {
       state.isDirty = action.payload;
     },
+    setCharacterReturnChatPath: (state, action: PayloadAction<string | null>) => {
+      const next = action.payload?.trim() || null;
+      state.returnChatPath = next;
+    },
   },
 });
 
@@ -331,6 +344,7 @@ export const {
   replaceCharacterEditor,
   markCharacterEditorSaved,
   setCharacterEditorDirty,
+  setCharacterReturnChatPath,
 } = characterSlice.actions;
 
 export const selectCharacterEditorId = (state: { character: CharacterEditorState }) =>
@@ -339,5 +353,7 @@ export const selectCharacterEditorCharacter = (state: { character: CharacterEdit
   state.character.character;
 export const selectCharacterEditorDirty = (state: { character: CharacterEditorState }) =>
   state.character.isDirty;
+export const selectCharacterReturnChatPath = (state: { character: CharacterEditorState }) =>
+  state.character.returnChatPath;
 
 export default characterSlice.reducer;

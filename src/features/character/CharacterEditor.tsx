@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../components/notification/Notification/useNotification';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import type { VoiceGenderHint } from '../../services/fal/models/tts';
+import { useAppSelector } from '../../store/hooks';
+import { selectCharacterReturnChatPath } from '../../store/slices/characterSlice';
+import { selectSelectedSessionId } from '../../store/slices/sessionsSlice';
+import { createId } from '../../store/slices/threadSlice';
 import type { CharacterIdentity } from '../../types/character';
 import { nowIso } from '../../utils/id';
 import {
@@ -11,6 +16,7 @@ import {
 import { VoiceDesignerPanel } from '../voice/VoiceDesignerPanel';
 import type { VoiceEditor } from '../voice/useVoiceEditor';
 import type { CharacterEditorApi } from './CharacterEditorContext';
+import { registerCharacterEditorFlush } from './characterEditorFlush';
 import { CharacterCollapsibleCard } from './CharacterCollapsibleCard';
 import { CharacterHistoryAddCard } from './CharacterHistoryAddCard';
 import { CharacterHistoryEntry } from './CharacterHistoryEntry';
@@ -71,6 +77,9 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     handleSave,
     handleNew,
   } = editor;
+  const navigate = useNavigate();
+  const returnChatPath = useAppSelector(selectCharacterReturnChatPath);
+  const selectedSessionId = useAppSelector(selectSelectedSessionId);
   const { notify } = useNotification();
   const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [traitsExpanded, setTraitsExpanded] = useState(true);
@@ -158,15 +167,37 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     [addImagesFromLibrary, attachVoiceFromLibrary, sheetBusy],
   );
 
-  const handleCombinedSave = useCallback(() => {
-    void handleSave({
-      persistVoice: (savedCharacterId) =>
-        voiceEditor.persistVoiceDesign({
-          characterId: savedCharacterId,
-          voiceName: character.name.trim() || voiceEditor.voiceName,
-        }),
+  const handleCombinedSave = useCallback(
+    async (options?: { silent?: boolean }): Promise<boolean> => {
+      return handleSave({
+        silent: options?.silent,
+        persistVoice: (savedCharacterId) =>
+          voiceEditor.persistVoiceDesign({
+            characterId: savedCharacterId,
+            voiceName: character.name.trim() || voiceEditor.voiceName,
+          }),
+      });
+    },
+    [character.name, handleSave, voiceEditor],
+  );
+
+  useEffect(() => {
+    registerCharacterEditorFlush(async () => {
+      if (!canSave) {
+        return true;
+      }
+      return handleCombinedSave({ silent: true });
     });
-  }, [character.name, handleSave, voiceEditor]);
+    return () => {
+      registerCharacterEditorFlush(null);
+    };
+  }, [canSave, handleCombinedSave]);
+
+  const handleBackToChat = useCallback(() => {
+    const path =
+      returnChatPath?.trim() || `/session/${selectedSessionId ?? createId()}`;
+    navigate(path);
+  }, [navigate, returnChatPath, selectedSessionId]);
 
   const sheetEntryActionsDisabled =
     sheetBusy ||
@@ -202,7 +233,10 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
         onNameChange={setCharacterName}
         onClearName={clearCharacterName}
         onIdentityChange={setIdentity}
-        onSave={handleCombinedSave}
+        onSave={() => {
+          void handleCombinedSave();
+        }}
+        onBackToChat={handleBackToChat}
         onNew={() => {
           setImagesSheetEpoch((epoch) => epoch + 1);
           voiceSyncKeyRef.current = null;

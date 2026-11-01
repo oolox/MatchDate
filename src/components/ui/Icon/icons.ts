@@ -1,4 +1,5 @@
 import promptSvg from '../../../assets/icons/prompt.svg?raw';
+import backSvg from '../../../assets/icons/back.svg?raw';
 import binarySvg from '../../../assets/icons/binary.svg?raw';
 import calendarSvg from '../../../assets/icons/calendar.svg?raw';
 import caretDownSvg from '../../../assets/icons/caret-down.svg?raw';
@@ -29,6 +30,7 @@ import voiceSvg from '../../../assets/icons/voice.svg?raw';
 export const iconSources = {
   send: sendSvg,
   generate: generateSvg,
+  back: backSvg,
   close: closeSvg,
   copy: copySvg,
   edit: editSvg,
