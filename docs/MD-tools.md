@@ -84,13 +84,15 @@ Unified shape for user → agent and agent → user:
 
 ```ts
 interface ToolMessage {
-  tool: 'character'; // extensible later: 'script' | ...
+  tool: 'character'; // also: 'quote' (display-only — see MD-quotes.md)
   origin: 'user' | 'agent';
-  action: 'write' | 'update' | 'create' | 'read';
+  action: 'write' | 'update' | 'create' | 'read'; // quote uses action: 'display'
   id?: string;       // character UUID; required for write/update/read of existing
   data?: unknown;    // full character body or partial patch
 }
 ```
+
+Spoken dialogue uses a separate **`quote`** tool (`action: "display"`). See [`MD-quotes.md`](./MD-quotes.md).
 
 ### Action semantics
 

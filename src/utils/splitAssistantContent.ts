@@ -1,4 +1,5 @@
 import { isCharacterToolMessage } from '../features/chat/attach/parseCharacterTools';
+import { normalizeQuoteToolMessage } from '../features/chat/attach/parseQuoteTools';
 
 export type AssistantMarkdownBlock = { type: 'markdown'; content: string };
 
@@ -14,7 +15,19 @@ export type AssistantToolBlock = {
   json: string;
 };
 
-export type AssistantMessageBlock = AssistantMarkdownBlock | AssistantToolBlock;
+export type AssistantQuoteBlock = {
+  type: 'quote';
+  id: string;
+  quote: string;
+  speaker?: string;
+  speakerName: string;
+  complete: boolean;
+};
+
+export type AssistantMessageBlock =
+  | AssistantMarkdownBlock
+  | AssistantToolBlock
+  | AssistantQuoteBlock;
 
 export interface SplitAssistantContentOptions {
   isStreaming?: boolean;
@@ -79,6 +92,39 @@ export function extractDataName(raw: string): string | undefined {
   return value || undefined;
 }
 
+function extractQuoteFields(raw: string): {
+  id?: string;
+  quote?: string;
+  speaker?: string;
+  speakerName?: string;
+} {
+  const id = /"id"\s*:\s*"([^"]+)"/.exec(raw)?.[1]?.trim();
+  const dataMatch = /"data"\s*:\s*\{/.exec(raw);
+  const fromData =
+    dataMatch && dataMatch.index !== undefined
+      ? raw.slice(dataMatch.index + dataMatch[0].length)
+      : raw;
+  const quote = /"quote"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  const speaker = /"speaker"\s*:\s*"([^"]+)"/.exec(fromData)?.[1]?.trim();
+  const speakerName = /"speakerName"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  return {
+    ...(id ? { id } : {}),
+    ...(quote !== undefined ? { quote: unescapeJsonString(quote) } : {}),
+    ...(speaker ? { speaker } : {}),
+    ...(speakerName !== undefined
+      ? { speakerName: unescapeJsonString(speakerName).trim() }
+      : {}),
+  };
+}
+
+function unescapeJsonString(value: string): string {
+  try {
+    return JSON.parse(`"${value}"`) as string;
+  } catch {
+    return value;
+  }
+}
+
 function nameFromParsedData(data: unknown): string | undefined {
   if (!data || typeof data !== 'object') {
     return undefined;
@@ -89,6 +135,10 @@ function nameFromParsedData(data: unknown): string | undefined {
 
 function looksLikeCharacterTool(raw: string): boolean {
   return /"tool"\s*:\s*"character"/.test(raw);
+}
+
+function looksLikeQuoteTool(raw: string): boolean {
+  return /"tool"\s*:\s*"quote"/.test(raw);
 }
 
 function pushMarkdown(blocks: AssistantMessageBlock[], content: string) {
@@ -141,6 +191,22 @@ export function splitAssistantContent(
         cursor = fence.closeIndex! + 3;
         continue;
       }
+
+      const quote = normalizeQuoteToolMessage(parsed);
+      if (quote) {
+        pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+        blocks.push({
+          type: 'quote',
+          id: quote.id!,
+          quote: quote.data.quote,
+          speakerName: quote.data.speakerName,
+          complete: true,
+          ...(quote.data.speaker ? { speaker: quote.data.speaker } : {}),
+        });
+        cursor = fence.closeIndex! + 3;
+        continue;
+      }
+
       // Non-tool closed fence stays in markdown.
       continue;
     }
@@ -157,6 +223,23 @@ export function splitAssistantContent(
         name: fields.name,
         complete: false,
         json: fence.body.replace(/^\s*\n/, ''),
+      });
+      cursor = content.length;
+      break;
+    }
+
+    if (isStreaming && looksLikeQuoteTool(raw)) {
+      const fields = extractQuoteFields(raw);
+      const speakerName = fields.speakerName?.trim() || '…';
+      const quoteText = fields.quote?.trim() ?? '';
+      pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+      blocks.push({
+        type: 'quote',
+        id: fields.id?.trim() || `streaming-quote-${fence.openIndex}`,
+        quote: quoteText,
+        speakerName,
+        complete: false,
+        ...(fields.speaker ? { speaker: fields.speaker } : {}),
       });
       cursor = content.length;
       break;

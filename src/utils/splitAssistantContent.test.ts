@@ -70,6 +70,70 @@ describe('splitAssistantContent', () => {
     const blocks = splitAssistantContent(content, { isStreaming: true });
     expect(blocks).toEqual([{ type: 'markdown', content }]);
   });
+
+  it('extracts completed quote tool fences', () => {
+    const content = `They talk.
+
+\`\`\`json
+{
+  "tool": "quote",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "quote": "The weather is nice today.",
+    "speaker": "char-1",
+    "speakerName": "John"
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).toEqual({ type: 'markdown', content: 'They talk.\n\n' });
+    expect(blocks[1]).toMatchObject({
+      type: 'quote',
+      quote: 'The weather is nice today.',
+      speaker: 'char-1',
+      speakerName: 'John',
+      complete: true,
+    });
+    expect((blocks[1] as { id: string }).id).toMatch(/^quote-/);
+  });
+
+  it('shows a streaming incomplete quote fence as an incomplete quote block', () => {
+    const content = `Story
+
+\`\`\`json
+{
+  "tool": "quote",
+  "origin": "agent",
+  "action": "display",
+  "data": { "quote": "Hello there", "speakerName": "Sara"
+`;
+    const blocks = splitAssistantContent(content, { isStreaming: true });
+    expect(blocks).toHaveLength(2);
+    expect(blocks[1]).toMatchObject({
+      type: 'quote',
+      quote: 'Hello there',
+      speakerName: 'Sara',
+      complete: false,
+    });
+  });
+
+  it('skips quote fences with empty quote text', () => {
+    const content = `\`\`\`json
+{
+  "tool": "quote",
+  "origin": "agent",
+  "action": "display",
+  "data": { "quote": "   ", "speakerName": "John" }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.type).toBe('markdown');
+  });
 });
 
 describe('formatToolResponseLabel', () => {

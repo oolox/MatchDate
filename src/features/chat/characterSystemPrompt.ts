@@ -39,6 +39,24 @@ Anytime this conversation adds to a character's history, you MUST emit an update
 Always emit after writing a story about a character, inventing lasting narrative beats, or adding events/memories that belong in history.
 Pure Q&A that does not add story/events may stay prose-only.
 
+### Quote — spoken dialogue (display)
+Whenever a character speaks in a scene, emit a fenced JSON quote tool. Markdown prose is narration/action only — do not also write \`Name: "…"\` in prose when a quote covers the line.
+
+\`\`\`json
+{
+  "tool": "quote",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "quote": "<spoken line only — no Name: prefix>",
+    "speaker": "<character UUID from user write when known>",
+    "speakerName": "<first or short display name>"
+  }
+}
+\`\`\`
+
+One quote per spoken turn. \`speakerName\` is required. \`speaker\` is the attach UUID when known. Quote tools are display-only (not library writes). Same reply may mix narration, quotes, and character update/create.
+
 ### Update an existing character
 \`\`\`json
 {
@@ -88,4 +106,4 @@ Rules for updates:
 - Do not invent missing value scores; note gaps and reason from available data.
 - Do not moralize values; they are motivational priorities, not virtues or vices.
 - Do not replace an attached behavioral model with a generic dating-advice framework.
-- The app may display your tool JSON as a code block. Later it will ask the user to accept or reject before writing to the character library. Emit correct tool JSON regardless; do not narrate the accept/reject UI unless asked.`;
+- The app shows character tool JSON as a collapsible block; quote tools render as speaker + line. Creates may ask the user to accept or reject before writing to the library. Emit correct tool JSON regardless; do not narrate the accept/reject UI unless asked.`;

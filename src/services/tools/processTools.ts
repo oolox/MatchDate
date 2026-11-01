@@ -13,8 +13,12 @@ export type ProcessToolsResult = {
 };
 
 /**
- * Process tool envelopes in order. Currently routes `character` tools to
+ * Process tool envelopes in order. Routes `character` tools to
  * {@link processCharacterTool} (update / create → library).
+ *
+ * Display-only tools such as `quote` must not be passed here — parse with
+ * {@link parseCharacterToolMessages} (or filter `tool === "character"`) first.
+ * See docs/MD-quotes.md.
  */
 export async function processTools(
   messages: CharacterToolMessage[],
@@ -27,13 +31,8 @@ export async function processTools(
       results.push(await processCharacterTool(message, options));
       continue;
     }
-    results.push({
-      ok: false,
-      tool: CHARACTER_TOOL,
-      action: undefined,
-      reason: 'unsupported_action',
-      message: `Unsupported tool: ${String((message as { tool?: unknown }).tool)}`,
-    });
+    // Non-character envelopes should never reach this loop; ignore if they do.
+    continue;
   }
 
   return {
