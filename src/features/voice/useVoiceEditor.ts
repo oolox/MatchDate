@@ -92,7 +92,11 @@ export interface VoiceEditor extends VoiceEditorState {
    * Skips write when clean and already saved — still returns current id.
    */
   persistVoiceDesign: (options: PersistVoiceDesignOptions) => Promise<string | null>;
-  handleSayThis: () => Promise<void>;
+  /**
+   * Synthesize + play. Pass `utterance` from the live Say this field when available
+   * so we never speak a stale/persisted value instead of what’s on screen.
+   */
+  handleSayThis: (utterance?: string) => Promise<void>;
   loadVoiceAsset: (id: string) => Promise<void>;
   applyVoiceDocument: (doc: AssetDocument) => void;
 }
@@ -158,8 +162,24 @@ export function useVoiceEditor(): VoiceEditor {
 
   const objectUrlRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  /** Sync lock — React `isSaying` alone cannot block a second click in the same tick. */
+  const sayInFlightRef = useRef(false);
+  /** Settles the in-flight play wait when playback is revoked mid-play. */
+  const playWaitCancelRef = useRef<(() => void) | null>(null);
+  /** Always mirrors latest controlled values — Say reads these at click time. */
+  const sayTextRef = useRef(sayText);
+  const styleInstructionsRef = useRef(styleInstructions);
+  const voiceIdRef = useRef(voiceId);
+  const temperatureRef = useRef(temperature);
+
+  sayTextRef.current = sayText;
+  styleInstructionsRef.current = styleInstructions;
+  voiceIdRef.current = voiceId;
+  temperatureRef.current = temperature;
 
   const revokePlayback = useCallback(() => {
+    playWaitCancelRef.current?.();
+    playWaitCancelRef.current = null;
     audioRef.current?.pause();
     audioRef.current = null;
     if (objectUrlRef.current) {
@@ -421,42 +441,95 @@ export function useVoiceEditor(): VoiceEditor {
     voiceName,
   ]);
 
-  const handleSayThis = useCallback(async () => {
-    const text = sayText.trim();
-    if (!text || isSaying) {
-      return;
-    }
-    setIsSaying(true);
-    setLastError(null);
-    const controller = begin();
-    try {
-      const result = await synthesizeSpeech({
-        text,
-        modelId: DEFAULT_TTS_MODEL_ID,
-        voice: {
-          voiceId,
-          styleInstructions,
-          temperature,
-        },
-        signal: controller.signal,
-      });
-      revokePlayback();
-      const objectUrl = URL.createObjectURL(result.blob);
-      objectUrlRef.current = objectUrl;
-      const audio = new Audio(objectUrl);
-      audioRef.current = audio;
-      await audio.play();
-    } catch (error) {
-      if (controller.signal.aborted) {
+  const handleSayThis = useCallback(
+    async (utterance?: string) => {
+      // Prefer live field text (from the textarea) over any closed-over / persisted draft.
+      const live = typeof utterance === 'string' ? utterance : sayTextRef.current;
+      const text = live.trim();
+      if (!text || sayInFlightRef.current) {
         return;
       }
-      const message = formatFailure('synthesize speech', undefined, error);
-      setLastError(message);
-      notify(message);
-    } finally {
-      setIsSaying(false);
-    }
-  }, [begin, isSaying, notify, revokePlayback, sayText, styleInstructions, temperature, voiceId]);
+
+      if (text !== sayTextRef.current.trim()) {
+        setSayText(live);
+        sayTextRef.current = live;
+        markDirty();
+      }
+
+      const style = styleInstructionsRef.current.trim();
+      if (style && text === style) {
+        notify(
+          'Say this matches Style — that line will be spoken. Put the spoken line in Say this; keep delivery notes in Style.',
+        );
+      }
+
+      sayInFlightRef.current = true;
+      setIsSaying(true);
+      setLastError(null);
+      const controller = begin();
+      try {
+        const result = await synthesizeSpeech({
+          text,
+          modelId: DEFAULT_TTS_MODEL_ID,
+          voice: {
+            voiceId: voiceIdRef.current,
+            styleInstructions: styleInstructionsRef.current,
+            temperature: temperatureRef.current,
+          },
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) {
+          return;
+        }
+        revokePlayback();
+        const objectUrl = URL.createObjectURL(result.blob);
+        objectUrlRef.current = objectUrl;
+        const audio = new Audio(objectUrl);
+        audio.loop = false;
+        audioRef.current = audio;
+        // play() resolves when playback *starts*; wait for end so we don't unlock
+        // early and allow a second synthesize/play of the same line.
+        await new Promise<void>((resolve, reject) => {
+          let settled = false;
+          const settle = (fn: () => void) => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            if (playWaitCancelRef.current === cancel) {
+              playWaitCancelRef.current = null;
+            }
+            cleanup();
+            fn();
+          };
+          const onEnded = () => settle(() => resolve());
+          const onError = () => settle(() => reject(new Error('Audio playback failed')));
+          const cancel = () => settle(() => resolve());
+          const cleanup = () => {
+            audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('error', onError);
+          };
+          playWaitCancelRef.current = cancel;
+          audio.addEventListener('ended', onEnded);
+          audio.addEventListener('error', onError);
+          void audio.play().catch((error: unknown) => {
+            settle(() => reject(error));
+          });
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const message = formatFailure('synthesize speech', undefined, error);
+        setLastError(message);
+        notify(message);
+      } finally {
+        sayInFlightRef.current = false;
+        setIsSaying(false);
+      }
+    },
+    [begin, markDirty, notify, revokePlayback],
+  );
 
   const model = getTtsModel(DEFAULT_TTS_MODEL_ID);
   const costLabel = formatTtsCostLabel(sayText.trim().length, model.cost);

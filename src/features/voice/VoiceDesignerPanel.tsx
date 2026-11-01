@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { DropdownSelect } from '../../components/ui/DropdownSelect';
 import { Icon } from '../../components/ui/Icon/Icon';
 import { TextArea } from '../../components/ui/TextArea/TextArea';
@@ -80,12 +81,19 @@ export function VoiceDesignerPanel({
     handleSayThis,
   } = editor;
 
+  const sayTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
   const controlsDisabled = disabled || isSaying;
   const sayDisabled = controlsDisabled || !sayText.trim();
   const voiceOptions = geminiVoiceOptionsForGender(gender);
   const voiceLabel =
     ALL_VOICE_OPTIONS.find((option) => option.value === voiceId)?.label ?? voiceId;
   const stylePreview = styleInstructions.trim() || 'new voice';
+
+  const sayFromLiveInput = () => {
+    const fromDom = sayTextareaRef.current?.value;
+    void handleSayThis(typeof fromDom === 'string' ? fromDom : undefined);
+  };
 
   return (
     <div className={styles.panel} aria-label="Voice designer">
@@ -106,9 +114,7 @@ export function VoiceDesignerPanel({
             costLabel={costLabel}
             isSaying={isSaying}
             disabled={sayDisabled}
-            onSay={() => {
-              void handleSayThis();
-            }}
+            onSay={sayFromLiveInput}
           />
         </div>
       ) : (
@@ -162,6 +168,7 @@ export function VoiceDesignerPanel({
           <div className={styles.sayBlock}>
             <span className={styles.fieldLabel}>Say this</span>
             <TextArea
+              ref={sayTextareaRef}
               label="Utterance"
               hideLabel
               rows={4}
@@ -174,9 +181,7 @@ export function VoiceDesignerPanel({
               costLabel={costLabel}
               isSaying={isSaying}
               disabled={sayDisabled}
-              onSay={() => {
-                void handleSayThis();
-              }}
+              onSay={sayFromLiveInput}
             />
             {lastError ? <p className={styles.error}>{lastError}</p> : null}
           </div>

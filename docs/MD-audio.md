@@ -2,54 +2,57 @@
 
 > **Purpose:** Spec for text-to-speech and voice assets in MatchDate. Adapted from LuxNova research (`LN-audio`); scoped to **chat speech** and **character-attached voices**. Music / SFX / video foley are **out of scope** for now (kept briefly in §9 as deferred research).
 
-**Last updated:** 2026-10-23  
-**Status:** spec + codebase findings (§2) — no `src/services/fal/models/tts/` yet; no `voice` asset subtype in code.  
-**Related:** `docs/MD-AssetLibrary.md`, `docs/MD-Filesystem.md`, `docs/MD-Chat-Feature.md`, `docs/MD-Models.md`, `src/types/character.ts`, `src/types/opfsDoc.ts`, `src/services/fal/falClient.ts`
+**Last updated:** 2026-10-24  
+**Status:** spec + codebase findings (§2); Gemini single-speaker TTS shipped; multi-speaker `speakers[]` researched in §3.1a (not wired in `ttsService` yet).  
+**Related:** `docs/MD-AssetLibrary.md`, `docs/MD-Filesystem.md`, `docs/MD-Chat-Feature.md`, `docs/MD-Models.md`, `src/types/character.ts`, `src/types/opfsDoc.ts`, `src/services/fal/falClient.ts`, `src/services/fal/ttsService.ts`
 
-**Source of truth for prices / schemas:** each model’s `https://fal.ai/models/<id>/llms.txt` (research snapshotted 2026-09-24; re-verify before coding).
+**Source of truth for prices / schemas:** each model’s `https://fal.ai/models/<id>/llms.txt` (Gemini TTS re-fetched 2026-10-24; re-verify before coding).
 
 ---
 
 ## 0. TL;DR — MatchDate picks
 
-| Job | Model | Endpoint | Why |
-|-----|-------|----------|-----|
-| **Customizable TTS (no clone)** | **Gemini 3.1 Flash TTS** | `fal-ai/gemini-3.1-flash-tts` | **$0.05/1K**; natural-language **`style_instructions`** (accent, tone, pace, emotion); inline tags `[laughing]`/`[whispering]`; 30 voices; 80+ `language_code`s |
-| **Higher-end TTS + cloning** | MiniMax Speech 2.8 HD (+ Voice Clone) | `fal-ai/minimax/speech-2.8-hd` · `fal-ai/minimax/voice-clone` | Sample-backed character identity; expressive tags + `voice_modify`; `duration_ms`; `output_format: url` |
-| **Ultra-cheap fallback (optional)** | Kokoro | `fal-ai/kokoro/american-english` | **$0.02/1K** but **speed-only** — too limited for MatchDate character voice design; keep as cost escape hatch only |
-| **Zero-shot alt (no clone fee)** | Seed Audio 1.0 or Chatterbox | `bytedance/seed-audio-1.0` · `fal-ai/chatterbox/text-to-speech` | Pass sample URL every call; no 7-day MiniMax expiry |
+
+| Job                                 | Model                                 | Endpoint                                                        | Why                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Customizable TTS (no clone)**     | **Gemini 3.1 Flash TTS**              | `fal-ai/gemini-3.1-flash-tts`                                   | **$0.05/1K**; natural-language `**style_instructions`** (accent, tone, pace, emotion); inline tags `[laughing]`/`[whispering]`; 30 voices; 80+ `language_code`s |
+| **Higher-end TTS + cloning**        | MiniMax Speech 2.8 HD (+ Voice Clone) | `fal-ai/minimax/speech-2.8-hd` · `fal-ai/minimax/voice-clone`   | Sample-backed character identity; expressive tags + `voice_modify`; `duration_ms`; `output_format: url`                                                         |
+| **Ultra-cheap fallback (optional)** | Kokoro                                | `fal-ai/kokoro/american-english`                                | **$0.02/1K** but **speed-only** — too limited for MatchDate character voice design; keep as cost escape hatch only                                              |
+| **Zero-shot alt (no clone fee)**    | Seed Audio 1.0 or Chatterbox          | `bytedance/seed-audio-1.0` · `fal-ai/chatterbox/text-to-speech` | Pass sample URL every call; no 7-day MiniMax expiry                                                                                                             |
+
 
 **Why not Kokoro as the fast tier:** Kokoro only exposes `speed` + a fixed preset list. MatchDate needs **accent / style / tone** customization before cloning — Gemini’s `style_instructions` is free-form English (“British accent, warm, slightly teasing”) and maps cleanly onto character sheet fields.
 
 **Product shape (end state):**
 
-1. **`voice` asset subtype** in the library (GUID + `voiceName` + preset / sample).
+1. `**voice` asset subtype** in the library (GUID + `voiceName` + preset / sample).
 2. **Voice designer on the Character sheet** (collapsible Voice card under Images) — design → Say this → play (temp blob); Character SAVE persists the voice design. No standalone `/voice` app section.
 3. **Characters attach a voice** via `voiceAssetId` (drag from library ASSETS → VOICE).
 4. **Chat plays TTS** for assistant replies.
 
 **Build order (locked):** see §7 —
 
-1. **Phase A** — voice asset types / API / library  
-2. **Phase B** — VOICE view + Gemini scaffold (you test API here)  
-3. **Phase C** — voice on characters (after Phase B sign-off)  
-4. Later — chat TTS, MiniMax clone, optional `audio` assets  
+1. **Phase A** — voice asset types / API / library
+2. **Phase B** — VOICE view + Gemini scaffold (you test API here)
+3. **Phase C** — voice on characters (after Phase B sign-off)
+4. Later — chat TTS, MiniMax clone, optional `audio` assets
 
 ---
 
 ## 1. Goals (in scope)
 
-| Goal | Detail |
-|------|--------|
-| Voice library (first) | Types, persistence, Assets **VOICE** filter, save/rename/delete by GUID |
-| VOICE workspace (second) | Header nav view: controls + Say this + play; load via select/drag |
-| Controllable TTS | Gemini style / gender / pace; utterances = temporary blobs |
-| Character binding (third) | Sheet + attach `voiceAssetId` after VOICE scaffold is proven |
-| Chat speech (later) | Play assistant replies in a character’s voice |
-| Cost-aware | Rough cost on Say this |
 
-**Out of scope until after Phase B test:** MiniMax / cloning, chat Play, character binding (Phase C), music/SFX/lip-sync.
----
+| Goal                      | Detail                                                                  |
+| ------------------------- | ----------------------------------------------------------------------- |
+| Voice library (first)     | Types, persistence, Assets **VOICE** filter, save/rename/delete by GUID |
+| VOICE workspace (second)  | Header nav view: controls + Say this + play; load via select/drag       |
+| Controllable TTS          | Gemini style / gender / pace; utterances = temporary blobs              |
+| Character binding (third) | Sheet + attach `voiceAssetId` after VOICE scaffold is proven            |
+| Chat speech (later)       | Play assistant replies in a character’s voice                           |
+| Cost-aware                | Rough cost on Say this                                                  |
+
+
+## **Out of scope until after Phase B test:** MiniMax / cloning, chat Play, character binding (Phase C), music/SFX/lip-sync.
 
 ## 2. Codebase findings (review 2026-10-23)
 
@@ -57,54 +60,62 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 
 ### 2.1 What already exists
 
-| Layer | Finding | Key paths |
-|-------|---------|-----------|
-| **fal HTTP** | Thin `falFetch` only — no `@fal-ai/client`, no queue subscribe helper | `src/services/fal/falClient.ts` |
-| **Chat LLM** | OpenRouter via fal.run SSE (`chatService.streamCompletion`); registry under `models/chat/` | `chatService.ts`, `models/chat/*`, `MD-Models.md` |
-| **Vision** | Separate fal.run OpenRouter vision URL + constants; DESCRIBE uses trait JSON prompts | `visionService.ts`, `visionTraitExtract.ts` |
-| **Assets** | `OpfsAssetSubtype = 'image' \| 'video' \| 'frame' \| 'text'` only — **no `voice` / `audio`** | `src/types/opfsDoc.ts` |
-| **Asset blobs** | `/matchdate/assets/{img\|vid\|text}/` + `metadata/matchDate-asset-{id}.json` + `library.json` | `paths.ts`, `assetDocument.ts`, `MD-Filesystem.md` |
-| **Library UI** | Assets tab filters IMAGE / VIDEO / TEXT; characters are `kind: 'character'` (not assets) | `libraryBrowserSubtypes.ts`, `LibraryBrowser.tsx` |
-| **Character** | Top-level `identity` (`male` \| `female` \| `binary`) + `images[]`; **no voice field** | `src/types/character.ts` |
-| **Chat `@` attach** | Visible `@Name`; LLM also gets fenced `character`/`write` with `name`, **`identity`**, attributes, history, traits — **not voice** | `jsonAttach.ts`, `xmlAttach.ts` |
-| **Messages** | `ThreadMessage`: `content` / `apiContent` / `attachments` — **no speech cache fields** | `src/types/chat.ts` |
-| **Audio / TTS code** | **None** — no `models/tts/`, no `ttsService`, no voice storage | — |
+
+| Layer                | Finding                                                                                                                            | Key paths                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **fal HTTP**         | Thin `falFetch` only — no `@fal-ai/client`, no queue subscribe helper                                                              | `src/services/fal/falClient.ts`                    |
+| **Chat LLM**         | OpenRouter via fal.run SSE (`chatService.streamCompletion`); registry under `models/chat/`                                         | `chatService.ts`, `models/chat/`*, `MD-Models.md`  |
+| **Vision**           | Separate fal.run OpenRouter vision URL + constants; DESCRIBE uses trait JSON prompts                                               | `visionService.ts`, `visionTraitExtract.ts`        |
+| **Assets**           | `OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text'` only — **no `voice` / `audio`**                                          | `src/types/opfsDoc.ts`                             |
+| **Asset blobs**      | `/matchdate/assets/{img|vid|text}/` + `metadata/matchDate-asset-{id}.json` + `library.json`                                        | `paths.ts`, `assetDocument.ts`, `MD-Filesystem.md` |
+| **Library UI**       | Assets tab filters IMAGE / VIDEO / TEXT; characters are `kind: 'character'` (not assets)                                           | `libraryBrowserSubtypes.ts`, `LibraryBrowser.tsx`  |
+| **Character**        | Top-level `identity` (`male` | `female` | `binary`) + `images[]`; **no voice field**                                               | `src/types/character.ts`                           |
+| **Chat `@` attach**  | Visible `@Name`; LLM also gets fenced `character`/`write` with `name`, `**identity`**, attributes, history, traits — **not voice** | `jsonAttach.ts`, `xmlAttach.ts`                    |
+| **Messages**         | `ThreadMessage`: `content` / `apiContent` / `attachments` — **no speech cache fields**                                             | `src/types/chat.ts`                                |
+| **Audio / TTS code** | **None** — no `models/tts/`, no `ttsService`, no voice storage                                                                     | —                                                  |
+
 
 ### 2.2 LuxNova doc vs MatchDate (mismatches)
 
-| LN-audio assumption | MatchDate reality |
-|---------------------|-------------------|
-| `@fal-ai/client` `subscribe` like `videoService.ts` | No video/audio fal subscribe layer; only `falFetch` for chat + vision |
-| Paths `/luxnova/assets/aud/…` | Root is `/matchdate`; asset dirs are `img` / `vid` / `text` / `metadata` |
-| Character detail-chat TTS surface | MatchDate chat is session threads + `@` character tools (`MD-Chat-Feature.md`) |
-| Music / SFX / Kling lip-sync first-class | Not shipped; keep deferred (§9) |
-| `character.voiceAssetId` already sketched | Character sheet has identity + images; voice not started |
+
+| LN-audio assumption                                 | MatchDate reality                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `@fal-ai/client` `subscribe` like `videoService.ts` | No video/audio fal subscribe layer; only `falFetch` for chat + vision          |
+| Paths `/luxnova/assets/aud/…`                       | Root is `/matchdate`; asset dirs are `img` / `vid` / `text` / `metadata`       |
+| Character detail-chat TTS surface                   | MatchDate chat is session threads + `@` character tools (`MD-Chat-Feature.md`) |
+| Music / SFX / Kling lip-sync first-class            | Not shipped; keep deferred (§9)                                                |
+| `character.voiceAssetId` already sketched           | Character sheet has identity + images; voice not started                       |
+
 
 ### 2.3 Gaps to close (ordered — matches §7)
 
-1. **`voice` asset subtype** — types, paths, `assetDocument`, library reconcile, Assets **VOICE** filter (Phase A).
+1. `**voice` asset subtype** — types, paths, `assetDocument`, library reconcile, Assets **VOICE** filter (Phase A).
 2. **fal queue / subscribe + Gemini TTS** — beside `falFetch`; `audio.url` → temporary `Blob` (Phase B).
 3. **VOICE view UI** — nav, designer, Say this, save/load/drag (Phase B).
-4. **`character.voiceAssetId`** — sheet + attach (Phase C, after you verify B).
+4. `**character.voiceAssetId**` — sheet + attach (Phase C, after you verify B).
 5. **Chat Play UX** — later (Phase D).
 
 ### 2.4 Model-pick rationale (from LN research + MatchDate goals)
 
-| Need | Pick | Why it fits MatchDate |
-|------|------|------------------------|
-| Controllable voice (accent / style / tone) **without** a sample | **Gemini 3.1 Flash TTS** `$0.05/1K` | `style_instructions` is natural language; tags + `language_code` + `temperature`; 30 presets |
-| Character voice + **cloning** from audio | **MiniMax Speech 2.8 HD** + **Voice Clone** | Sample-backed identity; expressive tags; `duration_ms`; clone id usable for TTS (not Kling-only) |
-| Clone retention risk | Sample blob = source of truth; cache MiniMax id + `lastUsedAt` | MiniMax ids expire after **7 days idle** — OPFS sample lets us re-clone |
-| Avoid clone fee later | Seed Audio / Chatterbox (Phase F) | Zero-shot from sample URL; no persistent provider id |
+
+| Need                                                            | Pick                                                           | Why it fits MatchDate                                                                            |
+| --------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Controllable voice (accent / style / tone) **without** a sample | **Gemini 3.1 Flash TTS** `$0.05/1K`                            | `style_instructions` is natural language; tags + `language_code` + `temperature`; 30 presets     |
+| Character voice + **cloning** from audio                        | **MiniMax Speech 2.8 HD** + **Voice Clone**                    | Sample-backed identity; expressive tags; `duration_ms`; clone id usable for TTS (not Kling-only) |
+| Clone retention risk                                            | Sample blob = source of truth; cache MiniMax id + `lastUsedAt` | MiniMax ids expire after **7 days idle** — OPFS sample lets us re-clone                          |
+| Avoid clone fee later                                           | Seed Audio / Chatterbox (Phase F)                              | Zero-shot from sample URL; no persistent provider id                                             |
+
 
 **Rejected / demoted for the “fast” slot:**
 
-| Model | Why not default |
-|-------|-----------------|
-| **Kokoro** `$0.02/1K` | Only `speed` + preset enum — no accent/style/tone knobs |
+
+| Model                                | Why not default                                                                                                                                                                                                             |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Kokoro** `$0.02/1K`                | Only `speed` + preset enum — no accent/style/tone knobs                                                                                                                                                                     |
 | **ElevenLabs Turbo v2.5** `$0.05/1K` | Has `stability` / `similarity_boost` / `style` / `speed` / `language_code`, but **no free-form accent/tone prose**; accent is weaker than Gemini’s `style_instructions`. Keep as alternate if we want numeric style sliders |
-| **ElevenLabs Eleven v3** `$0.10/1K` | Inline audio tags (incl. accents) — good, but same price band as MiniMax HD without our clone path |
-| **Kling Create Voice** `$0.007` | Ids target Kling **video** `voice_ids`, not standalone chat TTS |
+| **ElevenLabs Eleven v3** `$0.10/1K`  | Inline audio tags (incl. accents) — good, but same price band as MiniMax HD without our clone path                                                                                                                          |
+| **Kling Create Voice** `$0.007`      | Ids target Kling **video** `voice_ids`, not standalone chat TTS                                                                                                                                                             |
+
 
 ---
 
@@ -112,18 +123,20 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 
 ### 3.1 Controllable preset — Gemini 3.1 Flash TTS *(replaces Kokoro as fast tier)*
 
-| | |
-|--|--|
-| **Endpoint** | `fal-ai/gemini-3.1-flash-tts` |
-| **Price** | **$0.05 / 1K chars** (verified live llms.txt 2026-10-23) |
-| **Voices** | 30 presets (Kore default; Puck, Charon, Zephyr, Aoede, …) |
-| **Accent / style / tone** | **`style_instructions`** — natural language, e.g. `"Use a British accent with a cheerful tone"`, `"Whisper mysteriously"`, `"Speak warmly and slowly"` |
-| **Inline tags** | `[sigh]`, `[laughing]`, `[whispering]`, `[short pause]` (also inline “Say cheerfully: …”) |
-| **Language** | Optional `language_code` (80+ locales) or auto-detect from text |
-| **Other** | `temperature` 0–2; optional multi-speaker `speakers[]` (date scenes later) |
-| **Cloning** | No — design the voice with instructions + preset, or graduate to MiniMax clone |
-| **Output** | `mp3` (default) / `wav` / `ogg_opus` |
-| **Use** | Default when character has **no sample**; store chosen `voice` + `style_instructions` (+ optional `language_code`) on the voice asset / character |
+
+|                           |                                                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Endpoint**              | `fal-ai/gemini-3.1-flash-tts`                                                                                                                          |
+| **Price**                 | **$0.05 / 1K chars** (verified live llms.txt 2026-10-23)                                                                                               |
+| **Voices**                | 30 presets (Kore default; Puck, Charon, Zephyr, Aoede, …)                                                                                              |
+| **Accent / style / tone** | `**style_instructions`** — natural language, e.g. `"Use a British accent with a cheerful tone"`, `"Whisper mysteriously"`, `"Speak warmly and slowly"` |
+| **Inline tags**           | `[sigh]`, `[laughing]`, `[whispering]`, `[short pause]` (also inline “Say cheerfully: …”)                                                              |
+| **Language**              | Optional `language_code` (80+ locales) or auto-detect from text                                                                                        |
+| **Other**                 | `temperature` 0–2; optional multi-speaker `speakers[]` — see **§3.1a** (date scenes later)                                                             |
+| **Cloning**               | No — design the voice with instructions + preset, or graduate to MiniMax clone                                                                         |
+| **Output**                | `mp3` (default) / `wav` / `ogg_opus`                                                                                                                   |
+| **Use**                   | Default when character has **no sample**; store chosen `voice` + `style_instructions` (+ optional `language_code`) on the voice asset / character      |
+
 
 **MatchDate mapping (proposed):**
 
@@ -140,29 +153,181 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 
 Sheet / library can edit style as a short text field (“soft Southern drawl, unhurried”) without uploading audio.
 
+### 3.1a Research — Multi-speaker `speakers[]` (Gemini 3.1 Flash TTS via fal)
+
+**Sources (2026-10-24):** [fal llms.txt](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) · [fal API docs / `SpeakerConfig`](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/api)  
+**MatchDate today:** `ttsService.synthesizeSpeech` is **single-speaker only** (`prompt` + top-level `voice`). `speakers` is not sent.
+
+> **Note — one style prompt for all speakers (confirmed):**  
+> fal exposes a single top-level `style_instructions` string for the whole request. `SpeakerConfig` is only `{ speaker_id, voice }` — **no per-speaker style field**.  
+> MatchDate stores style per voice asset (`preset.styleInstructions`). For multi-speaker calls we **must merge** those (plus any scene-level vibe) into **one** `style_instructions` string, keyed by `speaker_id` so the model can attribute delivery. Timbre still differs via each speaker’s `voice` preset; accent/tone/pace must ride in the combined style text (and/or inline tags in `prompt`).
+
+#### How it works
+
+
+| Piece | Behavior |
+|-------|----------|
+| **`speakers`** | Optional array of `{ speaker_id, voice }`. When **set**, fal switches to multi-speaker mode. |
+| **Top-level `voice`** | **Ignored** when `speakers` is present. Per-line casting uses each speaker’s `voice` only. |
+| **`prompt`** | Dialogue script. Prefix each spoken turn with the matching `speaker_id` + colon, e.g. `Host: …` / `DrChen: …`. |
+| **`style_instructions`** | **One string for the entire cast** — fal prepends it to the prompt. Not per speaker. |
+| **`language_code` / `temperature` / `output_format`** | Same as single-speaker; one shared audio file out. |
+| **Price** | Same **$0.05 / 1K chars** (char count = `prompt` length; style text may also count — measure on spike). |
+| **Output** | One `audio.url` (mp3/wav/ogg_opus) — not separate stems per speaker. |
+
+
+#### `SpeakerConfig` (fal schema)
+
+```ts
+interface SpeakerConfig {
+  /** Alias referenced in prompt lines. Must be alphanumeric with **no whitespace**. */
+  speaker_id: string; // required
+  /** Same VoiceEnum as single-speaker (Kore, Puck, Charon, …). */
+  voice: GeminiTtsVoiceId; // required
+}
+```
+
+Rules from fal:
+
+1. `speaker_id` **must match** the prefix used in `prompt` (`Host:` ↔ `"speaker_id": "Host"`).
+2. `speaker_id` is **alphanumeric, no spaces** — use `DrChen` / `Alex` / `Speaker1`, not `"Dr Chen"` or `"Alex!"`.
+3. Each entry needs its own `voice` preset; two speakers may share a voice (not useful for dates) or use distinct presets.
+4. Inline tags (`[laughing]`, `[whispering]`, …) still belong **inside** the spoken text after the prefix.
+
+#### Minimal working request (fal.run)
+
+```json
+{
+  "prompt": "Host: Welcome to MatchDate night.\nDrChen: Thanks for having me. [laughing] Shall we order?\nHost: Absolutely — tell me about your week.",
+  "style_instructions": "Natural dinner-date conversation, warm and lightly playful",
+  "speakers": [
+    { "speaker_id": "Host", "voice": "Charon" },
+    { "speaker_id": "DrChen", "voice": "Kore" }
+  ],
+  "language_code": "English (US)",
+  "temperature": 1,
+  "output_format": "mp3"
+}
+```
+
+**Do not** rely on top-level `"voice": "Kore"` in this mode — fal documents it as ignored when `speakers` is set. Omitting top-level `voice` is clearer.
+
+#### Prompt formatting patterns
+
+
+| Pattern           | Example                      | Notes                                                                                            |
+| ----------------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| One turn per line | `Alex: Hi.\nSam: Hey.`       | Clearest; preferred for our formatter                                                            |
+| Same line turns   | `Alex: Hi! Sam: Hey!`        | Documented by fal; riskier for long lines                                                        |
+| Tags after alias  | `Alex: [sigh] I don’t know.` | Alias first, then delivery tags / text                                                           |
+| Narration         | *(no alias)*                 | Unlabeled text may be spoken by an arbitrary speaker or mishandled — **label every spoken line** |
+
+
+Sanitize display names → `speaker_id`:
+
+```ts
+// e.g. "Dr. Chen" → "DrChen"; "Alex!" → "Alex"; empty → "Speaker1"
+function toSpeakerId(name: string, fallbackIndex: number): string {
+  const id = name.replace(/[^A-Za-z0-9]/g, '');
+  return id || `Speaker${fallbackIndex}`;
+}
+```
+
+Keep a map `{ speaker_id → characterId / voiceAssetId }` so UI labels stay human while the API gets safe ids.
+
+#### Count / limits (verify on spike)
+
+
+| Claim                                                                    | Source                                                         | Confidence                                                               |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Array of `{ speaker_id, voice }`                                         | fal llms.txt + API `SpeakerConfig`                             | **High**                                                                 |
+| Example uses **exactly two** speakers                                    | fal full example                                               | **High** (example only)                                                  |
+| fal schema does **not** document min/max length                          | llms.txt                                                       | **High**                                                                 |
+| Third-party wrapper docs claim **exactly two** speakers                  | [APIDot](https://apidot.ai/docs/gemini-3-1-flash-tts)          | **Low** — re-test 1 / 2 / 3 speakers on fal before locking product rules |
+| Google Cloud Gemini-TTS “multi-speaker” elsewhere often = **two** voices | Cloud TTS / Interactions API docs (different surface than fal) | **Medium** — treat as a likely product limit until fal spike             |
+
+
+**Spike checklist before wiring MatchDate:**
+
+1. Call fal with **2** speakers (happy path above).
+2. Try **1** speaker in `speakers[]` (vs omitting the field).
+3. Try **3** speakers — accept or reject for date scenes.
+4. Confirm char billing includes only `prompt` vs `prompt` + `style_instructions`.
+5. Confirm unlabeled narration lines (stage directions) are skipped or spoken — decide whether our script formatter strips them.
+
+#### MatchDate mapping (proposed, not implemented)
+
+
+| Product idea | API shape |
+|--------------|-----------|
+| Two characters on a date scene Play | Build `speakers` from each character’s Gemini `preset.voiceId`; `speaker_id` = sanitized short name / slug |
+| Dialogue source | Chat transcript or LLM-emitted turns → `SpeakerId: line\n…` |
+| **Combined style prompt** | Merge each cast member’s `preset.styleInstructions` (+ optional scene vibe) into **one** `style_instructions` — see combiner below |
+| Single-character Say this / chat Play | Keep current path: omit `speakers`, send top-level `voice` |
+
+```ts
+// proposed synthesizeSpeech extension (sketch)
+speakers?: Array<{ speakerId: string; voiceId: GeminiTtsVoiceId }>;
+
+// when speakers?.length:
+body.prompt = formattedDialogue;      // must include SpeakerId: prefixes
+body.speakers = speakers.map((s) => ({
+  speaker_id: s.speakerId,
+  voice: s.voiceId,
+}));
+body.style_instructions = combineSpeakerStyles(cast, sceneStyle);
+// omit body.voice
+
+/** Merge per-character voice styles into fal's single style_instructions. */
+function combineSpeakerStyles(
+  cast: Array<{ speakerId: string; styleInstructions?: string }>,
+  sceneStyle?: string,
+): string {
+  const parts: string[] = [];
+  const scene = sceneStyle?.trim();
+  if (scene) {
+    parts.push(scene);
+  }
+  for (const member of cast) {
+    const style = member.styleInstructions?.trim();
+    if (style) {
+      parts.push(`${member.speakerId}: ${style}`);
+    }
+  }
+  return parts.join(' ');
+  // e.g. "Intimate cafe date. Alex: soft Southern drawl, unhurried. Sam: clipped British, dry wit."
+}
+```
+
+**Product deferral:** keep multi-speaker out of Phase D single-bubble Play; schedule for **date-scene / dialogue Play** once the spike confirms speaker count and prompt hygiene. See §9.
+
 ### 3.1b Alternate controllable (numeric knobs) — ElevenLabs Turbo v2.5
 
 Same **$0.05/1K**. Knobs: `stability`, `similarity_boost`, `style` (0–1 exaggeration), `speed` 0.7–1.2, `language_code`, chunk continuity via `previous_text` / `next_text`. Prefer Gemini when the product wants **prose** style; prefer Turbo if we want sliders only.
 
 ### 3.1c Ultra-cheap (demoted) — Kokoro
 
-| | |
-|--|--|
-| **Endpoint** | `fal-ai/kokoro/american-english` |
-| **Price** | **$0.02 / 1K chars** |
-| **Controls** | `speed` only |
-| **Use** | Optional Phase F “economy mode” — **not** initial default |
+
+|              |                                                           |
+| ------------ | --------------------------------------------------------- |
+| **Endpoint** | `fal-ai/kokoro/american-english`                          |
+| **Price**    | **$0.02 / 1K chars**                                      |
+| **Controls** | `speed` only                                              |
+| **Use**      | Optional Phase F “economy mode” — **not** initial default |
+
 
 ### 3.2 Higher-end — MiniMax Speech 2.8 HD + Voice Clone
 
-| | TTS | Clone |
-|--|-----|-------|
-| **Endpoint** | `fal-ai/minimax/speech-2.8-hd` | `fal-ai/minimax/voice-clone` |
-| **Price** | **$0.10 / 1K chars** (Turbo sibling **$0.06 / 1K**) | **$1.50** / clone (+ optional preview) |
-| **Voices** | 300+ presets via `voice_setting`, or `custom_voice_id` | Sample ≥10 s |
-| **Controls** | Pause tags `<#x#>`, `(laughs)` / `(sighs)`, `voice_modify`, `language_boost` | — |
-| **Persistence** | — | `custom_voice_id` **deleted after 7 days unless used** with MiniMax TTS |
-| **Output** | MP3 + `duration_ms` — set **`output_format: "url"`** (default `hex` inlines bytes) | preview MP3 optional |
+
+|                 | TTS                                                                                | Clone                                                                   |
+| --------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Endpoint**    | `fal-ai/minimax/speech-2.8-hd`                                                     | `fal-ai/minimax/voice-clone`                                            |
+| **Price**       | **$0.10 / 1K chars** (Turbo sibling **$0.06 / 1K**)                                | **$1.50** / clone (+ optional preview)                                  |
+| **Voices**      | 300+ presets via `voice_setting`, or `custom_voice_id`                             | Sample ≥10 s                                                            |
+| **Controls**    | Pause tags `<#x#>`, `(laughs)` / `(sighs)`, `voice_modify`, `language_boost`       | —                                                                       |
+| **Persistence** | —                                                                                  | `custom_voice_id` **deleted after 7 days unless used** with MiniMax TTS |
+| **Output**      | MP3 + `duration_ms` — set `**output_format: "url"`** (default `hex` inlines bytes) | preview MP3 optional                                                    |
+
 
 **Turbo vs HD:** ship HD as the premium registry entry; allow Turbo later as a cost toggle if latency/cost matters.
 
@@ -170,10 +335,12 @@ Same **$0.05/1K**. Knobs: `stability`, `similarity_boost`, `style` (0–1 exagge
 
 If MiniMax’s 7-day idle expiry is too risky for MatchDate’s “save once, speak anytime” model:
 
-| Model | Endpoint | Idea |
-|-------|----------|------|
-| Seed Audio 1.0 | `bytedance/seed-audio-1.0` | `audio_urls: [sample]` + `@Audio1` in prompt; **$0.1875 / min** output; no clone id |
-| Chatterbox | `fal-ai/chatterbox/text-to-speech` | `audio_url` + text; **$0.025 / 1K**; expressive |
+
+| Model          | Endpoint                           | Idea                                                                                |
+| -------------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| Seed Audio 1.0 | `bytedance/seed-audio-1.0`         | `audio_urls: [sample]` + `@Audio1` in prompt; **$0.1875 / min** output; no clone id |
+| Chatterbox     | `fal-ai/chatterbox/text-to-speech` | `audio_url` + text; **$0.025 / 1K**; expressive                                     |
+
 
 **v1 recommendation:** store the **sample blob** as the source of truth on the voice asset; cache MiniMax `custom_voice_id` + `lastUsedAt` in metadata; on TTS, if id missing/expired → re-clone from sample (or fall back to Seed/Chatterbox later).
 
@@ -201,15 +368,17 @@ library.json   ← catalog row kind: 'asset', subtype: 'voice'
 
 **Identity vs display name:**
 
-| Field | Role |
-|-------|------|
-| `AssetDocument.id` | **Stable GUID** — only identity for refs, drag payloads, `character.voiceAssetId`, library catalog |
-| `VoiceAssetMetadata.voiceName` | **Display name** — user-editable anytime; rename does not change id |
-| `AssetDocument.name` / `library.json` `name` | Mirror of `voiceName` for list UI (keep in sync on save/rename) |
+
+| Field                                        | Role                                                                                               |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `AssetDocument.id`                           | **Stable GUID** — only identity for refs, drag payloads, `character.voiceAssetId`, library catalog |
+| `VoiceAssetMetadata.voiceName`               | **Display name** — user-editable anytime; rename does not change id                                |
+| `AssetDocument.name` / `library.json` `name` | Mirror of `voiceName` for list UI (keep in sync on save/rename)                                    |
+
 
 Never key characters, drag/drop, or favorites by display name.
 
-**`AssetDocument` for voice** — `metadata` shape (proposed):
+`**AssetDocument` for voice** — `metadata` shape (proposed):
 
 ```ts
 interface VoiceAssetMetadata {
@@ -269,14 +438,17 @@ interface Character {
 - Renaming a voice does not break character links.
 - Sheet UI: picker / clear (Assets → VOICE or character-scoped drop).
 - Chat attach (`buildCharacterWriteTool`): include `voiceAssetId` (GUID); optional `voiceName` for LLM readability — **do not** send blob bytes in the tool JSON.
+
 ### 4.3 Generated speech = temporary blobs (for now)
 
 **VOICE view and early chat TTS do not persist synthesis output to OPFS.**
 
-| Artifact | Now | Later (optional) |
-|----------|-----|------------------|
-| **TTS result** (“Say this” / chat Play) | In-memory `Blob` + object URL; play then revoke / GC | New asset subtype **`audio`** (utterance clip) if we want library history / replay after reload |
-| **Voice design** (`voice` asset) | Saved: GUID + `voiceName` + preset knobs (and later sample blob for clones) | Unchanged — voice ≠ utterance |
+
+| Artifact                                | Now                                                                         | Later (optional)                                                                                |
+| --------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **TTS result** (“Say this” / chat Play) | In-memory `Blob` + object URL; play then revoke / GC                        | New asset subtype `**audio`** (utterance clip) if we want library history / replay after reload |
+| **Voice design** (`voice` asset)        | Saved: GUID + `voiceName` + preset knobs (and later sample blob for clones) | Unchanged — voice ≠ utterance                                                                   |
+
 
 Rules for the initial VOICE view:
 
@@ -326,10 +498,12 @@ export interface TtsModelConfig {
 
 **Defaults:**
 
-| Registry id | Endpoint | Role |
-|-------------|----------|------|
-| `gemini/3.1-flash-tts` | `fal-ai/gemini-3.1-flash-tts` | Default controllable (accent/style/tone) |
-| `minimax/speech-2.8-hd` | `fal-ai/minimax/speech-2.8-hd` | Premium / cloned character voice |
+
+| Registry id             | Endpoint                       | Role                                     |
+| ----------------------- | ------------------------------ | ---------------------------------------- |
+| `gemini/3.1-flash-tts`  | `fal-ai/gemini-3.1-flash-tts`  | Default controllable (accent/style/tone) |
+| `minimax/speech-2.8-hd` | `fal-ai/minimax/speech-2.8-hd` | Premium / cloned character voice         |
+
 
 ### 5.2 Service
 
@@ -341,11 +515,13 @@ src/services/fal/ttsService.ts
 
 `voice` resolution:
 
-| Character state | Model | Input |
-|-----------------|-------|--------|
-| No `voiceAssetId` | Gemini | default voice (e.g. Kore/Puck from `identity`) + optional default style |
-| Preset voice asset | Gemini (or MiniMax stock) | `voice` + `style_instructions` / `language_code` from `metadata.preset` |
-| Sample voice asset | MiniMax HD | ensure `providerIds.minimax.id` (clone if needed) + `voice_setting.voice_id` |
+
+| Character state    | Model                     | Input                                                                        |
+| ------------------ | ------------------------- | ---------------------------------------------------------------------------- |
+| No `voiceAssetId`  | Gemini                    | default voice (e.g. Kore/Puck from `identity`) + optional default style      |
+| Preset voice asset | Gemini (or MiniMax stock) | `voice` + `style_instructions` / `language_code` from `metadata.preset`      |
+| Sample voice asset | MiniMax HD                | ensure `providerIds.minimax.id` (clone if needed) + `voice_setting.voice_id` |
+
 
 ### 5.3 Call transport
 
@@ -364,14 +540,16 @@ Normalize audio result: `{ url }` object **or** bare string URL → `fetch` → 
 
 Top-level route (e.g. `/voice`), header nav **VOICE** beside CHAT / CHARACTER / PROMPTS / CONFIG (`AppMainNavId` += `'voice'`).
 
-| Area | Behavior |
-|------|----------|
-| **Voice controls** | Style instruction text; gender → Gemini preset (e.g. male/female/neutral → Puck/Kore/…); pace via style text and/or `temperature` (Gemini has no numeric `speed`) |
-| **`voiceName` field** | Editable display name; identity remains asset GUID when saved |
-| **Say this** | Text area + submit; calls Gemini; plays **temporary blob**; revoke prior object URL on next say / unmount |
-| **Save** | Persist **voice design** (`voice` asset: GUID + `voiceName` + `preset`); not the utterance |
-| **Load** | Select from library and/or **drag** a `voice` asset into the view; hydrate controls from `metadata` |
-| **Busy / error** | Disable Say this while in flight; surface fal errors |
+
+| Area                  | Behavior                                                                                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Voice controls**    | Style instruction text; gender → Gemini preset (e.g. male/female/neutral → Puck/Kore/…); pace via style text and/or `temperature` (Gemini has no numeric `speed`) |
+| `**voiceName` field** | Editable display name; identity remains asset GUID when saved                                                                                                     |
+| **Say this**          | Text area + submit; calls Gemini; plays **temporary blob**; revoke prior object URL on next say / unmount                                                         |
+| **Save**              | Persist **voice design** (`voice` asset: GUID + `voiceName` + `preset`); not the utterance                                                                        |
+| **Load**              | Select from library and/or **drag** a `voice` asset into the view; hydrate controls from `metadata`                                                               |
+| **Busy / error**      | Disable Say this while in flight; surface fal errors                                                                                                              |
+
 
 Layout can mirror Prompts/Config: main panel = designer; library sidebar still lists assets (VOICE subtype filter from Phase A).
 
@@ -460,28 +638,30 @@ No fal TTS required yet.
 
 ### Phase F — Polish (optional)
 
-- Optional **`audio`** asset subtype for persisted utterances.
+- Optional `**audio**` asset subtype for persisted utterances.
 - Identity → default Gemini voice; economy Kokoro; Turbo sliders; cost UI; abort on navigate.
 
 ---
 
 ## 8. Spec decisions (locked for v1)
 
-| Decision | Choice |
-|----------|--------|
-| Build order | **A** library → **B** VOICE+Gemini (you test) → **C** characters → D chat → E clone |
-| Controllable (no clone) model | **Gemini 3.1 Flash TTS** — `style_instructions` for accent/style/tone |
-| Premium + clone model | MiniMax Speech 2.8 HD + Voice Clone |
-| Demoted | Kokoro (speed-only) — optional economy later |
-| Cloning | MiniMax Voice Clone; sample blob is source of truth |
-| Asset subtype (now) | `voice` = design (preset / clone sample); **not** spoken lines |
-| TTS / Say this output | **Temporary in-memory blobs** only |
-| Asset subtype (later) | Optional `audio` for persisted utterances — deferred |
-| Voice identity | `AssetDocument.id` (GUID); display name = `metadata.voiceName` (renameable) |
-| Character field | `voiceAssetId?: string` (GUID, never voiceName) |
-| Autoplay | Off; explicit Play / Say this |
-| Music / SFX / lip-sync | Deferred (§9) |
-| fal client | Extend with queue/subscribe; do not route TTS through OpenRouter chat |
+
+| Decision                      | Choice                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| Build order                   | **A** library → **B** VOICE+Gemini (you test) → **C** characters → D chat → E clone |
+| Controllable (no clone) model | **Gemini 3.1 Flash TTS** — `style_instructions` for accent/style/tone               |
+| Premium + clone model         | MiniMax Speech 2.8 HD + Voice Clone                                                 |
+| Demoted                       | Kokoro (speed-only) — optional economy later                                        |
+| Cloning                       | MiniMax Voice Clone; sample blob is source of truth                                 |
+| Asset subtype (now)           | `voice` = design (preset / clone sample); **not** spoken lines                      |
+| TTS / Say this output         | **Temporary in-memory blobs** only                                                  |
+| Asset subtype (later)         | Optional `audio` for persisted utterances — deferred                                |
+| Voice identity                | `AssetDocument.id` (GUID); display name = `metadata.voiceName` (renameable)         |
+| Character field               | `voiceAssetId?: string` (GUID, never voiceName)                                     |
+| Autoplay                      | Off; explicit Play / Say this                                                       |
+| Music / SFX / lip-sync        | Deferred (§9)                                                                       |
+| fal client                    | Extend with queue/subscribe; do not route TTS through OpenRouter chat               |
+
 
 ---
 
@@ -489,14 +669,16 @@ No fal TTS required yet.
 
 Not implementing now; keep for later MatchDate media work:
 
-| Area | Prior shortlist |
-|------|-----------------|
-| **`audio` asset subtype** | Persist TTS utterances (distinct from `voice` design assets) |
-| Music | Lyria 3 Pro, ACE-Step, MiniMax Music 2.6 |
-| SFX | ElevenLabs SFX v2, MMAudio V2 |
-| Multi-speaker dialogue | Gemini 3.1 Flash TTS multi-speaker, ElevenLabs Text-to-Dialogue |
-| Video voice / lip-sync | Kling Create Voice + LipSync, ffmpeg merge |
-| Zero-shot TTS without MiniMax expiry | Seed Audio 1.0, Chatterbox |
+
+| Area                                 | Prior shortlist                                                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `**audio` asset subtype**            | Persist TTS utterances (distinct from `voice` design assets)                                    |
+| Music                                | Lyria 3 Pro, ACE-Step, MiniMax Music 2.6                                                        |
+| SFX                                  | ElevenLabs SFX v2, MMAudio V2                                                                   |
+| Multi-speaker dialogue               | Gemini 3.1 Flash TTS `speakers[]` — researched in **§3.1a**; ElevenLabs Text-to-Dialogue as alt |
+| Video voice / lip-sync               | Kling Create Voice + LipSync, ffmpeg merge                                                      |
+| Zero-shot TTS without MiniMax expiry | Seed Audio 1.0, Chatterbox                                                                      |
+
 
 Full candidate tables, prices, and case studies lived in the prior LuxNova-oriented draft of this file (git history / 2026-09-29 research). Re-verify `llms.txt` before any deferred work.
 
@@ -504,17 +686,20 @@ Full candidate tables, prices, and case studies lived in the prior LuxNova-orien
 
 ## 10. Price / schema re-verify checklist (before / during Phase B)
 
-| Item | Action |
-|------|--------|
-| Gemini 3.1 Flash TTS (`style_instructions`, voices) | [llms.txt](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) — re-fetched 2026-10-23 |
-| fal queue / `fal.run` auth with `VITE_FAL_KEY` | Spike in Phase B with same key as chat |
-| MiniMax Speech 2.8 HD / Voice Clone | Before Phase E only |
-| ElevenLabs Turbo / Seed Audio / Kokoro | Phase F alternate only |
+
+| Item                                                              | Action                                                                                                                       |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Gemini 3.1 Flash TTS (`style_instructions`, voices, `speakers[]`) | [llms.txt](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) — re-fetched 2026-10-24; multi-speaker spike in §3.1a |
+| fal queue / `fal.run` auth with `VITE_FAL_KEY`                    | Spike in Phase B with same key as chat                                                                                       |
+| MiniMax Speech 2.8 HD / Voice Clone                               | Before Phase E only                                                                                                          |
+| ElevenLabs Turbo / Seed Audio / Kokoro                            | Phase F alternate only                                                                                                       |
+
 
 ---
 
 ## 11. Sources
 
 - fal explore: [Text-to-Speech APIs](https://fal.ai/explore/text-to-speech-apis)
-- TTS: [gemini-3.1-flash-tts](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) · [elevenlabs/tts/turbo-v2.5](https://fal.ai/models/fal-ai/elevenlabs/tts/turbo-v2.5/llms.txt) · [minimax/speech-2.8-hd](https://fal.ai/models/fal-ai/minimax/speech-2.8-hd/llms.txt) · [minimax/voice-clone](https://fal.ai/models/fal-ai/minimax/voice-clone/llms.txt) · [kokoro/american-english](https://fal.ai/models/fal-ai/kokoro/american-english/llms.txt) · [seed-audio-1.0](https://fal.ai/models/bytedance/seed-audio-1.0/llms.txt) · [chatterbox](https://fal.ai/models/fal-ai/chatterbox/text-to-speech/llms.txt)
+- TTS: [gemini-3.1-flash-tts](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) · [gemini-3.1-flash-tts API / SpeakerConfig](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/api) · [elevenlabs/tts/turbo-v2.5](https://fal.ai/models/fal-ai/elevenlabs/tts/turbo-v2.5/llms.txt) · [minimax/speech-2.8-hd](https://fal.ai/models/fal-ai/minimax/speech-2.8-hd/llms.txt) · [minimax/voice-clone](https://fal.ai/models/fal-ai/minimax/voice-clone/llms.txt) · [kokoro/american-english](https://fal.ai/models/fal-ai/kokoro/american-english/llms.txt) · [seed-audio-1.0](https://fal.ai/models/bytedance/seed-audio-1.0/llms.txt) · [chatterbox](https://fal.ai/models/fal-ai/chatterbox/text-to-speech/llms.txt)
 - MatchDate: `src/services/fal/falClient.ts`, `src/services/fal/models/chat/`, `src/types/opfsDoc.ts`, `src/types/character.ts`, `src/features/chat/attach/jsonAttach.ts`, `docs/MD-AssetLibrary.md`, `docs/MD-Chat-Feature.md`
+
