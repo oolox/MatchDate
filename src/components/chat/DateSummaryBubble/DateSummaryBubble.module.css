@@ -180,6 +180,11 @@
   color: var(--color-text-secondary);
 }
 
+.scoreValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .shortSummary,
 .justification,
 .review {

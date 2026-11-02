@@ -165,6 +165,10 @@
   min-height: 0;
 }
 
+.datesBody {
+  min-height: 0;
+}
+
 .traitsBody {
   min-height: 0;
 }
@@ -193,6 +197,16 @@
   min-width: 0;
 }
 
+.datesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-sm);
+  min-height: 0;
+}
+
+.emptyDates,
 .emptyHistory {
   margin: 0;
   padding: var(--space-sm);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DateSummaryBubble } from '../../components/chat/DateSummaryBubble/DateSummaryBubble';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import type { VoiceGenderHint } from '../../services/fal/models/tts';
 import { useAppSelector } from '../../store/hooks';
@@ -7,6 +8,7 @@ import { selectCharacterReturnChatPath } from '../../store/slices/characterSlice
 import { selectSelectedSessionId } from '../../store/slices/sessionsSlice';
 import { createId } from '../../store/slices/threadSlice';
 import type { CharacterIdentity } from '../../types/character';
+import type { DateSummaryData } from '../../types/dateSummary';
 import { nowIso } from '../../utils/id';
 import {
   dataTransferHasMatchDateLibrary,
@@ -51,6 +53,17 @@ function sortByAtDesc<T extends { at: string }>(items: T[]): T[] {
   });
 }
 
+function dateSummarySortKey(summary: DateSummaryData): number {
+  const raw = summary.dateTime.trim();
+  const first = raw.split(/\s+(?:to|–|-|—)\s+/i)[0] ?? raw;
+  const time = Date.parse(first);
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function sortDateSummariesNewestFirst(items: DateSummaryData[]): DateSummaryData[] {
+  return [...items].sort((a, b) => dateSummarySortKey(b) - dateSummarySortKey(a));
+}
+
 export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const {
     characterId,
@@ -84,6 +97,7 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const [imagesExpanded, setImagesExpanded] = useState(true);
   const [voiceExpanded, setVoiceExpanded] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [datesExpanded, setDatesExpanded] = useState(true);
   const [addingTrait, setAddingTrait] = useState(false);
   const [addingHistory, setAddingHistory] = useState(false);
   const [editingTraitOriginalName, setEditingTraitOriginalName] = useState<string | null>(
@@ -207,6 +221,10 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const traitsNewestFirst = useMemo(
     () => sortByAtDesc(character.traits ?? []),
     [character.traits],
+  );
+  const datesNewestFirst = useMemo(
+    () => sortDateSummariesNewestFirst(character.dateSummary ?? []),
+    [character.dateSummary],
   );
 
   return (
@@ -515,6 +533,33 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
               })}
             </ul>
           ) : null}
+        </CharacterCollapsibleCard>
+
+        <CharacterCollapsibleCard
+          title="Dates"
+          expanded={datesExpanded}
+          onExpandedChange={setDatesExpanded}
+          hideBodyWhenCollapsed
+          bodyClassName={styles.datesBody}
+        >
+          {datesNewestFirst.length === 0 ? (
+            <p className={styles.emptyDates}>No dates yet.</p>
+          ) : (
+            <div className={styles.datesList}>
+              {datesNewestFirst.map((summary, index) => (
+                <DateSummaryBubble
+                  key={summary.id?.trim() || `${summary.dateTime}-${summary.chatId}-${index}`}
+                  shortSummary={summary.shortSummary}
+                  location={summary.location}
+                  justification={summary.justification}
+                  character={summary.character}
+                  dateTime={summary.dateTime}
+                  chatId={summary.chatId}
+                  complete
+                />
+              ))}
+            </div>
+          )}
         </CharacterCollapsibleCard>
       </div>
     </section>

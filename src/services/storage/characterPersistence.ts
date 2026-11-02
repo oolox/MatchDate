@@ -255,7 +255,9 @@ export async function saveCharacterDocument(
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
+    dateSummary: document.dateSummary ?? [],
     images: document.images ?? [],
+    voiceAssetId: document.voiceAssetId,
   });
 
   const saved: CharacterDocument = {
@@ -268,10 +270,15 @@ export async function saveCharacterDocument(
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
+    dateSummary: normalized.dateSummary,
     images: normalized.images,
+    ...(normalized.voiceAssetId ? { voiceAssetId: normalized.voiceAssetId } : {}),
     createdAt,
     updatedAt: now,
   };
+  if (!normalized.voiceAssetId) {
+    delete saved.voiceAssetId;
+  }
 
   await storage.write(path, JSON.stringify(saved, null, 2));
   await upsertLibraryItem(storage, {

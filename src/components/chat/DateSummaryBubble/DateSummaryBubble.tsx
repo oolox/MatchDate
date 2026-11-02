@@ -67,6 +67,16 @@ function formatScore(value: number): string {
   return String(Math.round(value));
 }
 
+/** 1 → red … 10 → green (HSL hue 0→120). */
+function scoreColor(value: number): string | undefined {
+  if (!Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  const clamped = Math.min(10, Math.max(1, Math.round(value)));
+  const hue = ((clamped - 1) / 9) * 120;
+  return `hsl(${hue} 72% 38%)`;
+}
+
 export function DateSummaryBubble({
   shortSummary,
   location,
@@ -179,9 +189,25 @@ export function DateSummaryBubble({
                       </button>
                       {hasScores ? (
                         <p className={styles.scores}>
-                          <span>Score {formatScore(entry.dateScore)}/10</span>
+                          <span>
+                            Score{' '}
+                            <span
+                              className={styles.scoreValue}
+                              style={{ color: scoreColor(entry.dateScore) }}
+                            >
+                              {formatScore(entry.dateScore)}/10
+                            </span>
+                          </span>
                           <span aria-hidden="true"> · </span>
-                          <span>Fit {formatScore(entry.dateFit)}/10</span>
+                          <span>
+                            Fit{' '}
+                            <span
+                              className={styles.scoreValue}
+                              style={{ color: scoreColor(entry.dateFit) }}
+                            >
+                              {formatScore(entry.dateFit)}/10
+                            </span>
+                          </span>
                         </p>
                       ) : null}
                     </header>
