@@ -11,19 +11,22 @@ export function isDateSummaryToolMessage(value: unknown): value is DateSummaryTo
   if (!value || typeof value !== 'object') {
     return false;
   }
-  const message = value as Partial<DateSummaryToolMessage>;
+  const message = value as Partial<DateSummaryToolMessage> & { id?: unknown };
   if (
     message.tool !== DATE_SUMMARY_TOOL ||
     message.origin !== 'agent' ||
-    message.action !== 'display' ||
-    (message.id !== undefined && typeof message.id !== 'string')
+    message.action !== 'display'
   ) {
+    return false;
+  }
+  // Prefer data; legacy envelope `id` is accepted and folded in on normalize.
+  if (message.id !== undefined && typeof message.id !== 'string') {
     return false;
   }
   return dateSummaryDataFromUnknown(message.data) != null;
 }
 
-/** Normalize a parsed dateSummary tool (validate data + stamp stable id if missing). */
+/** Normalize a parsed dateSummary tool (validate data + stamp stable data.id if missing). */
 export function normalizeDateSummaryToolMessage(
   value: unknown,
 ): DateSummaryToolMessage | null {
@@ -34,12 +37,22 @@ export function normalizeDateSummaryToolMessage(
   if (!data) {
     return null;
   }
+  const legacyEnvelopeId =
+    typeof (value as { id?: unknown }).id === 'string'
+      ? ((value as { id: string }).id).trim()
+      : '';
   return ensureDateSummaryToolId({
     tool: DATE_SUMMARY_TOOL,
     origin: 'agent',
     action: 'display',
-    ...(value.id?.trim() ? { id: value.id.trim() } : {}),
-    data,
+    data: {
+      ...data,
+      ...(data.id?.trim()
+        ? {}
+        : legacyEnvelopeId
+          ? { id: legacyEnvelopeId }
+          : {}),
+    },
   });
 }
 

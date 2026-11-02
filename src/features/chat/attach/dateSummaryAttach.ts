@@ -1,43 +1,21 @@
 /** Fenced JSON dateSummary tool — display-only date report (prompt-matchDate Date section). */
 
+import type { DateSummaryCharacterEntry, DateSummaryData } from '../../../types/dateSummary';
+
 export const DATE_SUMMARY_TOOL = 'dateSummary' as const;
 
 export type DateSummaryToolOrigin = 'agent';
 export type DateSummaryToolAction = 'display';
 
-export interface DateSummaryCharacterEntry {
-  /** Character document GUID. */
-  id: string;
-  /** ~50–100 words: how the date went from this character’s POV (feelings, opinions, honest feedback). */
-  dateReview: string;
-  /** How the date went (1 awful / terrible … 10 dream date). 0 = missing (legacy). */
-  dateScore: number;
-  /** How well this date type matches their ideal (1 nightmare … 10 perfect). 0 = missing (legacy). */
-  dateFit: number;
-}
-
-export interface DateSummaryToolData {
-  /** Few sentences on how the date went and the outcome vibe. */
-  shortSummary: string;
-  /** Concise compatibility justification (2–4 sentences). */
-  justification: string;
-  /** ~10–20 words describing where the date took place. */
-  location: string;
-  /** Per-character review + scores for everyone on the date. */
-  character: DateSummaryCharacterEntry[];
-  /** When the date happens (ISO-8601 preferred; human-readable / ranges allowed). */
-  dateTime: string;
-  /** Chat / session id this summary belongs to. */
-  chatId: string;
-}
+export type { DateSummaryCharacterEntry, DateSummaryData };
+/** @deprecated Prefer {@link DateSummaryData}. */
+export type DateSummaryToolData = DateSummaryData;
 
 export interface DateSummaryToolMessage {
   tool: typeof DATE_SUMMARY_TOOL;
   origin: DateSummaryToolOrigin;
   action: DateSummaryToolAction;
-  /** Summary instance id. Optional from the model; normalized if missing. */
-  id?: string;
-  data: DateSummaryToolData;
+  data: DateSummaryData;
 }
 
 function clampScore(value: unknown): number {
@@ -104,9 +82,9 @@ function characterEntriesFromData(record: Record<string, unknown>): DateSummaryC
   return [];
 }
 
-/** Stable non-UUID id when the model omits `id` (safe across re-renders). */
+/** Stable non-UUID id when the model omits `data.id` (safe across re-renders). */
 export function stableDateSummaryId(
-  data: Pick<DateSummaryToolData, 'shortSummary' | 'dateTime' | 'chatId' | 'character'>,
+  data: Pick<DateSummaryData, 'shortSummary' | 'dateTime' | 'chatId' | 'character'>,
 ): string {
   const ids = data.character.map((entry) => entry.id).join(',');
   const raw = `${data.chatId.trim()}|${data.dateTime.trim()}|${ids}|${data.shortSummary.trim()}`;
@@ -119,18 +97,22 @@ export function stableDateSummaryId(
 }
 
 export function ensureDateSummaryToolId(message: DateSummaryToolMessage): DateSummaryToolMessage {
-  const id = message.id?.trim();
+  const id = message.data.id?.trim();
   if (id) {
-    return { ...message, id };
+    return { ...message, data: { ...message.data, id } };
   }
-  return { ...message, id: stableDateSummaryId(message.data) };
+  return {
+    ...message,
+    data: { ...message.data, id: stableDateSummaryId(message.data) },
+  };
 }
 
-export function dateSummaryDataFromUnknown(data: unknown): DateSummaryToolData | null {
+export function dateSummaryDataFromUnknown(data: unknown): DateSummaryData | null {
   if (!data || typeof data !== 'object') {
     return null;
   }
   const record = data as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id.trim() : '';
   const shortSummary =
     typeof record.shortSummary === 'string' ? record.shortSummary.trim() : '';
   const justification =
@@ -150,6 +132,7 @@ export function dateSummaryDataFromUnknown(data: unknown): DateSummaryToolData |
   }
 
   return {
+    ...(id ? { id } : {}),
     shortSummary,
     justification,
     location,
@@ -157,4 +140,17 @@ export function dateSummaryDataFromUnknown(data: unknown): DateSummaryToolData |
     dateTime,
     chatId,
   };
+}
+
+/** Append summary if not already present (dedupe by `id` when set). */
+export function appendDateSummaryEntry(
+  existing: DateSummaryData[] | undefined,
+  entry: DateSummaryData,
+): DateSummaryData[] {
+  const list = Array.isArray(existing) ? existing : [];
+  const id = entry.id?.trim();
+  if (id && list.some((item) => item.id?.trim() === id)) {
+    return list;
+  }
+  return [...list, entry];
 }

@@ -15,6 +15,19 @@ describe('jsonAttach', () => {
       summary: 'Met at a cafe',
       sessionId: 'sess-1',
     });
+    character.dateSummary = [
+      {
+        id: 'summary-1',
+        shortSummary: 'Quiet evening.',
+        location: 'Garden.',
+        justification: 'Aligned.',
+        character: [
+          { id: 'char-1', dateReview: 'Nice.', dateScore: 8, dateFit: 8 },
+        ],
+        dateTime: '2028-09-12T19:00:00-04:00',
+        chatId: 'chat-1',
+      },
+    ];
     const payload = buildCharacterWriteTool(character, 'char-1');
     expect(payload.tool).toBe(CHARACTER_TOOL);
     expect(payload.origin).toBe('user');
@@ -26,8 +39,11 @@ describe('jsonAttach', () => {
       attributes: character.attributes,
       history: character.history,
       traits: [],
-      voiceAssetId: 'voice-1',
     });
+    expect(payload.data).not.toHaveProperty('dateSummary');
+    expect(payload.data).not.toHaveProperty('voiceAssetId');
+    expect(JSON.stringify(payload)).not.toContain('dateSummary');
+    expect(JSON.stringify(payload)).not.toContain('voiceAssetId');
   });
 
   it('wraps write tool in a json fence', () => {

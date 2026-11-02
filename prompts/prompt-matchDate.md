@@ -104,6 +104,7 @@ After a date (or similar shared romantic outing) between attached characters, em
   "origin": "agent",
   "action": "display",
   "data": {
+    "id": "<optional summary instance UUID>",
     "shortSummary": "<a few sentences on how the date went and the outcome vibe>",
     "location": "<10–20 words: where the date took place>",
     "justification": "<2–4 sentences: why this weight + sheet/value-model read produced that outcome>",
@@ -136,7 +137,7 @@ Rules:
 - `shortSummary` = outcome vibe (spark, awkward, warm, strained, etc.). History `update` summaries should match this.
 - Live scene spoken lines still use **`quote`** tools; do not emit a separate transcript field.
 - `justification` may name values briefly; do not dump raw numeric ValueScores unless the user asks. `dateScore` / `dateFit` belong in the tool only (not spoken in scene dialogue).
-- Envelope `id` is optional (the app can stamp one). Never reuse a character UUID as the dateSummary `id`.
+- `data.id` is optional (the app can stamp one). Never reuse a character UUID as the dateSummary `data.id`.
 - Display-only (not a library write). Same reply may mix narration + quotes + `dateSummary` + character `update`/`create`.
 
 ### `update` — existing attached character

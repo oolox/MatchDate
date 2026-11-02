@@ -66,6 +66,7 @@ After a date between attached characters, emit one fenced JSON dateSummary tool 
   "origin": "agent",
   "action": "display",
   "data": {
+    "id": "<optional summary instance UUID>",
     "shortSummary": "<how the date went / outcome vibe>",
     "location": "<10–20 words: where the date took place>",
     "justification": "<2–4 sentences on weighted value-model fit>",
@@ -83,7 +84,7 @@ After a date between attached characters, emit one fenced JSON dateSummary tool 
 }
 \`\`\`
 
-\`character\` = one entry per person (\`id\`, \`dateReview\`, \`dateScore\` 1–10 how it went, \`dateFit\` 1–10 date-type vs ideal). \`location\`, \`dateTime\`, and \`chatId\` required. Display-only. History updates should match \`shortSummary\`. Live spoken lines still use quote tools.
+\`character\` = one entry per person (\`id\`, \`dateReview\`, \`dateScore\` 1–10 how it went, \`dateFit\` 1–10 date-type vs ideal). \`location\`, \`dateTime\`, and \`chatId\` required. \`data.id\` optional (app can stamp). Display-only. History updates should match \`shortSummary\`. Live spoken lines still use quote tools.
 
 ### Update an existing character
 \`\`\`json

@@ -182,6 +182,14 @@ function extractDateSummaryCharacterEntries(raw: string): DateSummaryCharacterEn
   return [];
 }
 
+/** Prefer `data.id` before the `character` array (avoid grabbing a character GUID). */
+function extractDateSummaryInstanceId(fromData: string): string | undefined {
+  const characterIndex = fromData.search(/"character"\s*:|"characters"\s*:/);
+  const head = characterIndex >= 0 ? fromData.slice(0, characterIndex) : fromData;
+  const id = /"id"\s*:\s*"([^"]+)"/.exec(head)?.[1]?.trim();
+  return id || undefined;
+}
+
 function extractDateSummaryFields(raw: string): {
   id?: string;
   shortSummary?: string;
@@ -191,12 +199,12 @@ function extractDateSummaryFields(raw: string): {
   chatId?: string;
   character: DateSummaryCharacterEntry[];
 } {
-  const id = /"id"\s*:\s*"([^"]+)"/.exec(raw)?.[1]?.trim();
   const dataMatch = /"data"\s*:\s*\{/.exec(raw);
   const fromData =
     dataMatch && dataMatch.index !== undefined
       ? raw.slice(dataMatch.index + dataMatch[0].length)
       : raw;
+  const id = extractDateSummaryInstanceId(fromData);
   const shortSummary = /"shortSummary"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
   const location = /"location"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
   const justification = /"justification"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
@@ -388,7 +396,7 @@ export function splitAssistantContent(
         pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
         blocks.push({
           type: 'dateSummary',
-          id: dateSummary.id!,
+          id: dateSummary.data.id!,
           shortSummary: dateSummary.data.shortSummary,
           location: dateSummary.data.location,
           justification: dateSummary.data.justification,

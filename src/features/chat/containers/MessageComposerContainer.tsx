@@ -23,9 +23,16 @@ import {
 import { apiContentForMessage } from '../attach/xmlAttach';
 import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
+import { parseDateSummaryToolMessages } from '../attach/parseDateSummaryTools';
+import {
+  appendDateSummaryEntry,
+  ensureDateSummaryToolId,
+} from '../attach/dateSummaryAttach';
 import { useTxtChatAttachments, type DraftAttachment } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
+import { useStore } from 'react-redux';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import type { RootState } from '../../../store';
 import {
   clearComposerDraft,
   selectComposerDraft,
@@ -43,10 +50,16 @@ import {
   selectActiveMessages,
   updateMessage,
 } from '../../../store/slices/threadSlice';
+import {
+  markCharacterEditorSaved,
+  selectCharacterEditorCharacter,
+  selectCharacterEditorId,
+} from '../../../store/slices/characterSlice';
 import type { Thread, ThreadId } from '../../../types/chat';
 import {
   characterFromCreateData,
   processCharacterTool,
+  processDateSummaryTool,
   processTools,
 } from '../../../services/tools';
 import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
@@ -63,6 +76,7 @@ type PendingCharacterCreate = {
 
 export function MessageComposerContainer({ threadId }: MessageComposerContainerProps) {
   const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
   const { notify } = useNotification();
   const draft = useAppSelector(selectComposerDraft);
   const isStreaming = useAppSelector(selectIsStreaming);
@@ -273,26 +287,62 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         );
         dispatch(setIsStreaming(false));
         void (async () => {
-          // Character tools only — quote / dateSummary display tools are render-only.
+          // Character tools apply to library; dateSummary also persists onto character sheets.
           const agentTools = parseCharacterToolMessages(accumulated).filter(
             (tool) => tool.origin === 'agent',
           );
           const updates = agentTools.filter((tool) => tool.action === 'update');
           const creates = agentTools.filter((tool) => tool.action === 'create');
+          const dateSummaries = parseDateSummaryToolMessages(accumulated);
+
+          let libraryChanged = false;
 
           if (updates.length > 0) {
             const { results } = await processTools(updates, { sessionId: threadId });
-            let applied = false;
             for (const result of results) {
               if (result.ok) {
-                applied = true;
+                libraryChanged = true;
               } else {
                 notify(result.message);
               }
             }
-            if (applied) {
-              dispatch(bumpLibraryEpoch());
+          }
+
+          for (const rawSummary of dateSummaries) {
+            const stamped = ensureDateSummaryToolId(rawSummary);
+            // Optimistic: patch open character editor before OPFS write so the sheet doesn't flash.
+            const editorId = selectCharacterEditorId(store.getState());
+            if (
+              editorId &&
+              stamped.data.character.some((entry) => entry.id.trim() === editorId)
+            ) {
+              const editorCharacter = selectCharacterEditorCharacter(store.getState());
+              dispatch(
+                markCharacterEditorSaved({
+                  characterId: editorId,
+                  character: {
+                    ...editorCharacter,
+                    dateSummary: appendDateSummaryEntry(
+                      editorCharacter.dateSummary,
+                      stamped.data,
+                    ),
+                  },
+                }),
+              );
             }
+            const result = await processDateSummaryTool(stamped);
+            if (result.ok) {
+              libraryChanged = true;
+            } else if (result.updatedCharacterIds.length === 0) {
+              notify(result.message);
+            } else {
+              libraryChanged = true;
+              notify(result.message);
+            }
+          }
+
+          if (libraryChanged) {
+            dispatch(bumpLibraryEpoch());
           }
 
           const nextCreates: PendingCharacterCreate[] = [];
@@ -335,6 +385,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     messages,
     notify,
     persistAfterTurn,
+    store,
     storedPrepromptId,
     thread,
     threadId,

@@ -8,4 +8,8 @@ export {
   type ProcessCharacterToolResult,
   type ProcessCharacterToolSuccess,
 } from './processCharacterTool';
+export {
+  processDateSummaryTool,
+  type ProcessDateSummaryResult,
+} from './processDateSummaryTool';
 export { processTools, type ProcessToolsResult } from './processTools';

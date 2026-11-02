@@ -1,3 +1,4 @@
+import type { DateSummaryData } from './dateSummary';
 import type { SavedImageRef } from './savedImage';
 
 export const BASIC_VALUES = [
@@ -84,6 +85,8 @@ export interface Character {
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
+  /** Past dateSummary tool payloads involving this character. */
+  dateSummary: DateSummaryData[];
   /** Image asset refs (by guid / `SavedImageRef.id`), LuxNova-style. */
   images: SavedImageRef[];
   /**
@@ -102,6 +105,8 @@ export interface CharacterDocument {
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
+  /** Past dateSummary tool payloads involving this character. */
+  dateSummary?: DateSummaryData[];
   /** Image asset refs keyed by asset id. */
   images?: SavedImageRef[];
   /** Library voice asset GUID when bound. */
@@ -125,6 +130,7 @@ export function createDefaultCharacter(name = ''): Character {
     attributes: createDefaultValueScores(),
     history: [],
     traits: [],
+    dateSummary: [],
     images: [],
   };
 }
