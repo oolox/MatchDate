@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { MarkdownContent } from '../../markdown/MarkdownContent/MarkdownContent';
+import { DateSummaryBubble } from '../../chat/DateSummaryBubble/DateSummaryBubble';
 import { QuoteBubble } from '../../chat/QuoteBubble/QuoteBubble';
 import { ToolResponse } from '../../chat/ToolResponse/ToolResponse';
 import { splitAssistantContent } from '../../../utils/splitAssistantContent';
@@ -29,6 +30,20 @@ function AssistantMessageContentComponent({
               quote={block.quote}
               speakerName={block.speakerName}
               speaker={block.speaker}
+              complete={block.complete}
+            />
+          );
+        }
+        if (block.type === 'dateSummary') {
+          return (
+            <DateSummaryBubble
+              key={`dateSummary-${index}-${block.id}`}
+              shortSummary={block.shortSummary}
+              transcript={block.transcript}
+              justification={block.justification}
+              characters={block.characters}
+              dateTime={block.dateTime}
+              chatId={block.chatId}
               complete={block.complete}
             />
           );

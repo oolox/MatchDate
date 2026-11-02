@@ -275,7 +275,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         );
         dispatch(setIsStreaming(false));
         void (async () => {
-          // Character tools only — quote display tools are render-only (MD-quotes.md).
+          // Character tools only — quote / dateSummary display tools are render-only.
           const agentTools = parseCharacterToolMessages(accumulated).filter(
             (tool) => tool.origin === 'agent',
           );

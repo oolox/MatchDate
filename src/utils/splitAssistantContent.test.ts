@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { formatToolResponseLabel } from '../components/chat/ToolResponse/toolResponseLabel';
+import {
+  formatCharacterToolPatchSummary,
+  formatToolResponseLabel,
+} from '../components/chat/ToolResponse/toolResponseLabel';
 import { splitAssistantContent } from './splitAssistantContent';
 
 describe('splitAssistantContent', () => {
@@ -143,10 +146,87 @@ describe('splitAssistantContent', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.type).toBe('markdown');
   });
+
+  it('extracts completed dateSummary tool fences', () => {
+    const content = `After the date.
+
+\`\`\`json
+{
+  "tool": "dateSummary",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "shortSummary": "Warm but tentative.",
+    "transcript": "Cafe · they talk about travel.",
+    "justification": "Adjacent priorities softened friction.",
+    "characters": ["char-1", "char-2"],
+    "dateTime": "2026-11-01T19:00:00.000Z",
+    "chatId": "sess-9"
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).toEqual({ type: 'markdown', content: 'After the date.\n\n' });
+    expect(blocks[1]).toMatchObject({
+      type: 'dateSummary',
+      shortSummary: 'Warm but tentative.',
+      transcript: 'Cafe · they talk about travel.',
+      justification: 'Adjacent priorities softened friction.',
+      characters: ['char-1', 'char-2'],
+      dateTime: '2026-11-01T19:00:00.000Z',
+      chatId: 'sess-9',
+      complete: true,
+    });
+    expect((blocks[1] as { id: string }).id).toMatch(/^dateSummary-/);
+  });
+
+  it('shows a streaming incomplete dateSummary fence as an incomplete block', () => {
+    const content = `Story
+
+\`\`\`json
+{
+  "tool": "dateSummary",
+  "origin": "agent",
+  "action": "display",
+  "data": { "shortSummary": "Awkward start", "characters": ["char-1", "char-2"], "dateTime": "2026-11-01T19:00:00.000Z"
+`;
+    const blocks = splitAssistantContent(content, { isStreaming: true });
+    expect(blocks).toHaveLength(2);
+    expect(blocks[1]).toMatchObject({
+      type: 'dateSummary',
+      shortSummary: 'Awkward start',
+      characters: ['char-1', 'char-2'],
+      dateTime: '2026-11-01T19:00:00.000Z',
+      complete: false,
+    });
+  });
+
+  it('skips dateSummary fences missing required fields', () => {
+    const content = `\`\`\`json
+{
+  "tool": "dateSummary",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "shortSummary": "Warm.",
+    "transcript": "They met.",
+    "justification": "Fit.",
+    "characters": ["char-1"],
+    "dateTime": "2026-11-01T19:00:00.000Z"
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.type).toBe('markdown');
+  });
 });
 
 describe('formatToolResponseLabel', () => {
-  it('uses Updating/Updated with character name', () => {
+  it('uses UPDATING/UPDATED with character name', () => {
     expect(
       formatToolResponseLabel({
         action: 'update',
@@ -154,7 +234,7 @@ describe('formatToolResponseLabel', () => {
         id: 'c4e8a12b-3d7f-4b1a-9e6c-2f8d05a713c9',
         complete: false,
       }),
-    ).toBe('Updating Man-4');
+    ).toBe('UPDATING : Man-4');
     expect(
       formatToolResponseLabel({
         action: 'update',
@@ -162,24 +242,24 @@ describe('formatToolResponseLabel', () => {
         id: 'c4e8a12b-3d7f-4b1a-9e6c-2f8d05a713c9',
         complete: true,
       }),
-    ).toBe('Updated Man-4');
+    ).toBe('UPDATED : Man-4');
   });
 
-  it('uses Creating/Created with character name', () => {
+  it('uses CREATING/CREATED with character name', () => {
     expect(
       formatToolResponseLabel({
         action: 'create',
         name: 'Alex',
         complete: false,
       }),
-    ).toBe('Creating Alex');
+    ).toBe('CREATING : Alex');
     expect(
       formatToolResponseLabel({
         action: 'create',
         name: 'Alex',
         complete: true,
       }),
-    ).toBe('Created Alex');
+    ).toBe('CREATED : Alex');
   });
 
   it('falls back to last 8 id digits when name is missing', () => {
@@ -189,6 +269,15 @@ describe('formatToolResponseLabel', () => {
         id: 'c4e8a12b-3d7f-4b1a-9e6c-2f8d05a713c9',
         complete: true,
       }),
-    ).toBe('Updated 05a713c9');
+    ).toBe('UPDATED : 05a713c9');
+  });
+});
+
+describe('formatCharacterToolPatchSummary', () => {
+  it('omits zero counts and wraps in parentheses', () => {
+    expect(formatCharacterToolPatchSummary(2, 1)).toBe('(2 traits,1 history)');
+    expect(formatCharacterToolPatchSummary(0, 1)).toBe('(1 history)');
+    expect(formatCharacterToolPatchSummary(1, 0)).toBe('(1 trait)');
+    expect(formatCharacterToolPatchSummary(0, 0)).toBe('');
   });
 });

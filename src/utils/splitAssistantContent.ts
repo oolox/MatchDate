@@ -1,4 +1,5 @@
 import { isCharacterToolMessage } from '../features/chat/attach/parseCharacterTools';
+import { normalizeDateSummaryToolMessage } from '../features/chat/attach/parseDateSummaryTools';
 import { normalizeQuoteToolMessage } from '../features/chat/attach/parseQuoteTools';
 
 export type AssistantMarkdownBlock = { type: 'markdown'; content: string };
@@ -28,10 +29,23 @@ export type AssistantQuoteBlock = {
   complete: boolean;
 };
 
+export type AssistantDateSummaryBlock = {
+  type: 'dateSummary';
+  id: string;
+  shortSummary: string;
+  transcript: string;
+  justification: string;
+  characters: string[];
+  dateTime: string;
+  chatId: string;
+  complete: boolean;
+};
+
 export type AssistantMessageBlock =
   | AssistantMarkdownBlock
   | AssistantToolBlock
-  | AssistantQuoteBlock;
+  | AssistantQuoteBlock
+  | AssistantDateSummaryBlock;
 
 export interface SplitAssistantContentOptions {
   isStreaming?: boolean;
@@ -118,6 +132,53 @@ function extractQuoteFields(raw: string): {
     ...(speakerName !== undefined
       ? { speakerName: unescapeJsonString(speakerName).trim() }
       : {}),
+  };
+}
+
+function extractDateSummaryFields(raw: string): {
+  id?: string;
+  shortSummary?: string;
+  transcript?: string;
+  justification?: string;
+  dateTime?: string;
+  chatId?: string;
+  characters: string[];
+} {
+  const id = /"id"\s*:\s*"([^"]+)"/.exec(raw)?.[1]?.trim();
+  const dataMatch = /"data"\s*:\s*\{/.exec(raw);
+  const fromData =
+    dataMatch && dataMatch.index !== undefined
+      ? raw.slice(dataMatch.index + dataMatch[0].length)
+      : raw;
+  const shortSummary = /"shortSummary"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  const transcript = /"transcript"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  const justification = /"justification"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  const dateTime = /"dateTime"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  const chatId = /"chatId"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
+  const characters: string[] = [];
+  const charactersMatch = /"characters"\s*:\s*\[([^\]]*)\]/.exec(fromData);
+  if (charactersMatch?.[1]) {
+    for (const idMatch of charactersMatch[1].matchAll(/"([^"]+)"/g)) {
+      const value = idMatch[1]?.trim();
+      if (value) {
+        characters.push(value);
+      }
+    }
+  }
+  return {
+    characters,
+    ...(id ? { id } : {}),
+    ...(shortSummary !== undefined
+      ? { shortSummary: unescapeJsonString(shortSummary).trim() }
+      : {}),
+    ...(transcript !== undefined
+      ? { transcript: unescapeJsonString(transcript).trim() }
+      : {}),
+    ...(justification !== undefined
+      ? { justification: unescapeJsonString(justification).trim() }
+      : {}),
+    ...(dateTime !== undefined ? { dateTime: unescapeJsonString(dateTime).trim() } : {}),
+    ...(chatId !== undefined ? { chatId: unescapeJsonString(chatId).trim() } : {}),
   };
 }
 
@@ -214,6 +275,10 @@ function looksLikeQuoteTool(raw: string): boolean {
   return /"tool"\s*:\s*"quote"/.test(raw);
 }
 
+function looksLikeDateSummaryTool(raw: string): boolean {
+  return /"tool"\s*:\s*"dateSummary"/.test(raw);
+}
+
 function pushMarkdown(blocks: AssistantMessageBlock[], content: string) {
   if (!content.trim()) {
     return;
@@ -283,6 +348,24 @@ export function splitAssistantContent(
         continue;
       }
 
+      const dateSummary = normalizeDateSummaryToolMessage(parsed);
+      if (dateSummary) {
+        pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+        blocks.push({
+          type: 'dateSummary',
+          id: dateSummary.id!,
+          shortSummary: dateSummary.data.shortSummary,
+          transcript: dateSummary.data.transcript,
+          justification: dateSummary.data.justification,
+          characters: dateSummary.data.characters,
+          dateTime: dateSummary.data.dateTime,
+          chatId: dateSummary.data.chatId,
+          complete: true,
+        });
+        cursor = fence.closeIndex! + 3;
+        continue;
+      }
+
       // Non-tool closed fence stays in markdown.
       continue;
     }
@@ -318,6 +401,24 @@ export function splitAssistantContent(
         speakerName,
         complete: false,
         ...(fields.speaker ? { speaker: fields.speaker } : {}),
+      });
+      cursor = content.length;
+      break;
+    }
+
+    if (isStreaming && looksLikeDateSummaryTool(raw)) {
+      const fields = extractDateSummaryFields(raw);
+      pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+      blocks.push({
+        type: 'dateSummary',
+        id: fields.id?.trim() || `streaming-dateSummary-${fence.openIndex}`,
+        shortSummary: fields.shortSummary?.trim() ?? '',
+        transcript: fields.transcript?.trim() ?? '',
+        justification: fields.justification?.trim() ?? '',
+        characters: fields.characters,
+        dateTime: fields.dateTime?.trim() ?? '',
+        chatId: fields.chatId?.trim() ?? '',
+        complete: false,
       });
       cursor = content.length;
       break;

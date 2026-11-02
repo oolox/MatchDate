@@ -57,6 +57,27 @@ Whenever a character speaks in a scene, emit a fenced JSON quote tool. Markdown 
 
 One quote per spoken turn. \`speakerName\` is required. \`speaker\` is the attach UUID when known. Quote tools are display-only (not library writes). Same reply may mix narration, quotes, and character update/create.
 
+### Date summary — date report (display)
+After a date between attached characters, emit one fenced JSON dateSummary tool (do not write the report as free prose instead).
+
+\`\`\`json
+{
+  "tool": "dateSummary",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "shortSummary": "<how the date went / outcome vibe>",
+    "transcript": "<dialogue/action log with location; beats in order>",
+    "justification": "<2–4 sentences on weighted value-model fit>",
+    "characters": ["<character UUID>", "<character UUID>"],
+    "dateTime": "<when the date happens — ISO-8601 preferred>",
+    "chatId": "<current chat / session id>"
+  }
+}
+\`\`\`
+
+\`characters\` = every character GUID in the date. \`dateTime\` and \`chatId\` are required. Display-only. History updates should match \`shortSummary\`. Live spoken lines still use quote tools.
+
 ### Update an existing character
 \`\`\`json
 {
@@ -106,4 +127,4 @@ Rules for updates:
 - Do not invent missing value scores; note gaps and reason from available data.
 - Do not moralize values; they are motivational priorities, not virtues or vices.
 - Do not replace an attached behavioral model with a generic dating-advice framework.
-- The app shows character tool JSON as a collapsible block; quote tools render as speaker + line. Creates may ask the user to accept or reject before writing to the library. Emit correct tool JSON regardless; do not narrate the accept/reject UI unless asked.`;
+- The app shows character tool JSON as a collapsible block; quote tools render as speaker + line; dateSummary tools render as a multi-thumb date report. Creates may ask the user to accept or reject before writing to the library. Emit correct tool JSON regardless; do not narrate the accept/reject UI unless asked.`;
