@@ -556,6 +556,7 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
                   dateTime={summary.dateTime}
                   chatId={summary.chatId}
                   complete
+                  collapsible
                 />
               ))}
             </div>

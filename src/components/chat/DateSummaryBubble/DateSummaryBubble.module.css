@@ -66,6 +66,37 @@
   min-width: 0;
 }
 
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.headerMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.collapseCaret {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.collapsed {
+  padding-bottom: 0.5rem;
+}
+
 .names {
   display: block;
   font-style: normal;

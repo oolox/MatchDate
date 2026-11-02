@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Icon } from '../../ui/Icon/Icon';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import { LibraryCharacterThumb } from '../../library/LibraryList/LibraryCharacterThumb';
@@ -17,6 +17,8 @@ export interface DateSummaryBubbleProps {
   dateTime: string;
   chatId?: string;
   complete?: boolean;
+  /** Sheet-only: names/date stay visible; caret collapses the rest. */
+  collapsible?: boolean;
 }
 
 function tryParseDate(value: string): Date | null {
@@ -85,13 +87,17 @@ export function DateSummaryBubble({
   dateTime,
   chatId,
   complete = true,
+  collapsible = false,
 }: DateSummaryBubbleProps) {
   const openCharacter = useOpenCharacterFromChat();
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
+  const detailsId = useId();
   const entries = character.filter((entry) => entry.id.trim());
   const ids = entries.map((entry) => entry.id.trim());
   const [namesById, setNamesById] = useState<Record<string, string>>({});
   const [compatibilityOpen, setCompatibilityOpen] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const showDetails = !collapsible || expanded;
 
   useEffect(() => {
     let cancelled = false;
@@ -135,126 +141,165 @@ export function DateSummaryBubble({
   const summary = shortSummary.trim();
   const why = justification.trim();
 
+  const header = collapsible ? (
+    <div className={styles.headerRow}>
+      <div className={styles.headerMeta}>
+        <cite className={styles.names}>{nameLine}</cite>
+        <p className={styles.dateTime}>{when}</p>
+      </div>
+      <IconButton
+        icon={expanded ? 'caret-up' : 'caret-down'}
+        label={expanded ? 'Collapse date summary' : 'Expand date summary'}
+        variant="secondary"
+        size="xs"
+        className={styles.collapseCaret}
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        onClick={() => setExpanded((open) => !open)}
+      />
+    </div>
+  ) : (
+    <>
+      <cite className={styles.names}>{nameLine}</cite>
+      <p className={styles.dateTime}>{when}</p>
+    </>
+  );
+
   return (
     <figure
-      className={[styles.root, complete ? '' : styles.streaming].filter(Boolean).join(' ')}
+      className={[
+        styles.root,
+        complete ? '' : styles.streaming,
+        collapsible && !expanded ? styles.collapsed : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       aria-label={`Date summary · ${nameLine || 'characters'} · ${when || 'date'}`}
       aria-busy={complete ? undefined : true}
       data-chat-id={chatId?.trim() || undefined}
     >
       <blockquote className={styles.body}>
-        <cite className={styles.names}>{nameLine}</cite>
-        <p className={styles.dateTime}>{when}</p>
-        {where || !complete ? (
-          <p className={[styles.location, where ? '' : styles.empty].filter(Boolean).join(' ')}>
-            {where || '…'}
-          </p>
-        ) : null}
-        <p
-          className={[styles.shortSummary, summary ? '' : styles.empty].filter(Boolean).join(' ')}
-        >
-          {summary || (complete ? '' : '…')}
-        </p>
+        {header}
+        {showDetails ? (
+          <div id={collapsible ? detailsId : undefined} className={styles.details}>
+            {where || !complete ? (
+              <p
+                className={[styles.location, where ? '' : styles.empty]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {where || '…'}
+              </p>
+            ) : null}
+            <p
+              className={[styles.shortSummary, summary ? '' : styles.empty]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {summary || (complete ? '' : '…')}
+            </p>
 
-        {entries.length > 0 ? (
-          <div className={styles.reviews}>
-            {entries.map((entry) => {
-              const id = entry.id.trim();
-              const name = namesById[id] ?? id.slice(-8);
-              const displayName = firstName(name) || name;
-              const review = entry.dateReview.trim();
-              const hasScores = entry.dateScore > 0 || entry.dateFit > 0;
-              return (
-                <section key={id} className={styles.reviewCard}>
-                  <button
-                    type="button"
-                    className={styles.thumbButton}
-                    aria-label={`Open ${displayName}`}
-                    onClick={() => {
-                      void openCharacter(id);
-                    }}
-                  >
-                    <LibraryCharacterThumb characterId={id} name={name} />
-                  </button>
-                  <div className={styles.reviewBody}>
-                    <header className={styles.reviewHeader}>
+            {entries.length > 0 ? (
+              <div className={styles.reviews}>
+                {entries.map((entry) => {
+                  const id = entry.id.trim();
+                  const name = namesById[id] ?? id.slice(-8);
+                  const displayName = firstName(name) || name;
+                  const review = entry.dateReview.trim();
+                  const hasScores = entry.dateScore > 0 || entry.dateFit > 0;
+                  return (
+                    <section key={id} className={styles.reviewCard}>
                       <button
                         type="button"
-                        className={styles.reviewNameButton}
+                        className={styles.thumbButton}
+                        aria-label={`Open ${displayName}`}
                         onClick={() => {
                           void openCharacter(id);
                         }}
                       >
-                        {displayName}
+                        <LibraryCharacterThumb characterId={id} name={name} />
                       </button>
-                      {hasScores ? (
-                        <p className={styles.scores}>
-                          <span>
-                            Score{' '}
-                            <span
-                              className={styles.scoreValue}
-                              style={{ color: scoreColor(entry.dateScore) }}
-                            >
-                              {formatScore(entry.dateScore)}/10
-                            </span>
-                          </span>
-                          <span aria-hidden="true"> · </span>
-                          <span>
-                            Fit{' '}
-                            <span
-                              className={styles.scoreValue}
-                              style={{ color: scoreColor(entry.dateFit) }}
-                            >
-                              {formatScore(entry.dateFit)}/10
-                            </span>
-                          </span>
-                        </p>
-                      ) : null}
-                    </header>
-                    {review || !complete ? (
-                      <p
-                        className={[styles.review, review ? '' : styles.empty]
-                          .filter(Boolean)
-                          .join(' ')}
-                      >
-                        {review || '…'}
-                      </p>
-                    ) : null}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        ) : (
-          <div className={styles.thumbSlot} aria-hidden="true">
-            <span className={styles.placeholder}>
-              <Icon name="character" className={styles.placeholderIcon} />
-            </span>
-          </div>
-        )}
+                      <div className={styles.reviewBody}>
+                        <header className={styles.reviewHeader}>
+                          <button
+                            type="button"
+                            className={styles.reviewNameButton}
+                            onClick={() => {
+                              void openCharacter(id);
+                            }}
+                          >
+                            {displayName}
+                          </button>
+                          {hasScores ? (
+                            <p className={styles.scores}>
+                              <span>
+                                Score{' '}
+                                <span
+                                  className={styles.scoreValue}
+                                  style={{ color: scoreColor(entry.dateScore) }}
+                                >
+                                  {formatScore(entry.dateScore)}/10
+                                </span>
+                              </span>
+                              <span aria-hidden="true"> · </span>
+                              <span>
+                                Fit{' '}
+                                <span
+                                  className={styles.scoreValue}
+                                  style={{ color: scoreColor(entry.dateFit) }}
+                                >
+                                  {formatScore(entry.dateFit)}/10
+                                </span>
+                              </span>
+                            </p>
+                          ) : null}
+                        </header>
+                        {review || !complete ? (
+                          <p
+                            className={[styles.review, review ? '' : styles.empty]
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            {review || '…'}
+                          </p>
+                        ) : null}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.thumbSlot} aria-hidden="true">
+                <span className={styles.placeholder}>
+                  <Icon name="character" className={styles.placeholderIcon} />
+                </span>
+              </div>
+            )}
 
-        <div className={styles.compatibilityBox}>
-          <div className={styles.compatibilityHeader}>
-            <IconButton
-              icon={compatibilityOpen ? 'caret-up' : 'caret-down'}
-              label={compatibilityOpen ? 'Hide analysis' : 'Show analysis'}
-              variant="secondary"
-              size="xs"
-              className={styles.compatibilityCaret}
-              onClick={() => setCompatibilityOpen((open) => !open)}
-            />
-            <p className={styles.sectionLabel}>ANALYSIS</p>
+            <div className={styles.compatibilityBox}>
+              <div className={styles.compatibilityHeader}>
+                <IconButton
+                  icon={compatibilityOpen ? 'caret-up' : 'caret-down'}
+                  label={compatibilityOpen ? 'Hide analysis' : 'Show analysis'}
+                  variant="secondary"
+                  size="xs"
+                  className={styles.compatibilityCaret}
+                  onClick={() => setCompatibilityOpen((open) => !open)}
+                />
+                <p className={styles.sectionLabel}>ANALYSIS</p>
+              </div>
+              {compatibilityOpen ? (
+                <p
+                  className={[styles.justification, why ? '' : styles.empty]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {why || (complete ? '' : '…')}
+                </p>
+              ) : null}
+            </div>
           </div>
-          {compatibilityOpen ? (
-            <p
-              className={[styles.justification, why ? '' : styles.empty]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {why || (complete ? '' : '…')}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
       </blockquote>
     </figure>
   );
