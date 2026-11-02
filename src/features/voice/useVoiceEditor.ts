@@ -388,7 +388,6 @@ export function useVoiceEditor(): VoiceEditor {
         setVoiceName(saved.name);
         setIsDirty(false);
         dispatch(bumpLibraryEpoch());
-        notify(`Saved ${saved.name}`);
         return;
       }
       const savedId = await persistVoiceDesign({
@@ -419,7 +418,6 @@ export function useVoiceEditor(): VoiceEditor {
         notify(formatFailure('link voice to character', voiceName, linkError));
       }
       dispatch(bumpLibraryEpoch());
-      notify(`Saved ${voiceName.trim() || DEFAULT_VOICE_NAME}`);
     } catch (error) {
       const message = formatFailure('save voice', voiceName, error);
       setLastError(message);
@@ -454,13 +452,6 @@ export function useVoiceEditor(): VoiceEditor {
         setSayText(live);
         sayTextRef.current = live;
         markDirty();
-      }
-
-      const style = styleInstructionsRef.current.trim();
-      if (style && text === style) {
-        notify(
-          'Say this matches Style — that line will be spoken. Put the spoken line in Say this; keep delivery notes in Style.',
-        );
       }
 
       sayInFlightRef.current = true;

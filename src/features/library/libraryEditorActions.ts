@@ -19,7 +19,6 @@ export function createToggleFavoriteHandler(options: {
     try {
       await toggleFavorite(kind, id);
       await refreshCatalog();
-      notify(`Updated favorite for ${name}`);
     } catch (error) {
       notify(formatFailure('update favorite for', name, error));
     } finally {

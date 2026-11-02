@@ -101,34 +101,6 @@ function mergeAttributePatches(
   );
 }
 
-function fieldLabel(field: 'history' | 'attributes' | 'traits'): string {
-  switch (field) {
-    case 'history':
-      return 'History';
-    case 'traits':
-      return 'Trait';
-    case 'attributes':
-      return 'Attributes';
-  }
-}
-
-/** Toast copy after a successful character update/create apply. */
-export function formatCharacterToolToast(result: ProcessCharacterToolSuccess): string {
-  if (result.action === 'create') {
-    return `Created ${result.name}`;
-  }
-  const parts = result.updatedFields
-    .filter(
-      (field): field is 'history' | 'attributes' | 'traits' =>
-        field === 'history' || field === 'attributes' || field === 'traits',
-    )
-    .map(fieldLabel);
-  if (parts.length === 0) {
-    return `Updated ${result.name}`;
-  }
-  return `Updated ${result.name} ${parts.join(' | ')}`;
-}
-
 /**
  * Build a Character from an agent `character.create` data payload.
  * Requires a non-empty name; fills default ValueScores and merges any patch fields.

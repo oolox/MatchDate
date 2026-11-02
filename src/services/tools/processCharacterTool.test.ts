@@ -7,7 +7,6 @@ import { loadCharacter, saveCharacter } from '../storage/persistenceService';
 import {
   applyCharacterUpdatePatch,
   characterFromCreateData,
-  formatCharacterToolToast,
   processCharacterTool,
   processTools,
 } from './index';
@@ -125,76 +124,6 @@ describe('applyCharacterUpdatePatch', () => {
   });
 });
 
-describe('formatCharacterToolToast', () => {
-  it('names history and attributes in the toast', () => {
-    expect(
-      formatCharacterToolToast({
-        ok: true,
-        tool: 'character',
-        action: 'update',
-        id: '1',
-        name: 'Man-4',
-        document: {
-          type: 'character',
-          id: '1',
-          name: 'Man-4',
-          attributes: [],
-          history: [],
-          traits: [],
-          createdAt: '',
-          updatedAt: '',
-        },
-        appendedHistoryCount: 1,
-        updatedFields: ['history'],
-      }),
-    ).toBe('Updated Man-4 History');
-
-    expect(
-      formatCharacterToolToast({
-        ok: true,
-        tool: 'character',
-        action: 'update',
-        id: '1',
-        name: 'Man-4',
-        document: {
-          type: 'character',
-          id: '1',
-          name: 'Man-4',
-          attributes: [],
-          history: [],
-          traits: [],
-          createdAt: '',
-          updatedAt: '',
-        },
-        appendedHistoryCount: 1,
-        updatedFields: ['history', 'traits'],
-      }),
-    ).toBe('Updated Man-4 History | Trait');
-
-    expect(
-      formatCharacterToolToast({
-        ok: true,
-        tool: 'character',
-        action: 'update',
-        id: '1',
-        name: 'Man-4',
-        document: {
-          type: 'character',
-          id: '1',
-          name: 'Man-4',
-          attributes: [],
-          history: [],
-          traits: [],
-          createdAt: '',
-          updatedAt: '',
-        },
-        appendedHistoryCount: 1,
-        updatedFields: ['history', 'attributes'],
-      }),
-    ).toBe('Updated Man-4 History | Attributes');
-  });
-});
-
 describe('processCharacterTool', () => {
   beforeEach(() => {
     setFileStorageForTests(inMemoryFileStorage);
@@ -231,7 +160,6 @@ describe('processCharacterTool', () => {
     expect(result.appendedHistoryCount).toBe(1);
     expect(result.updatedFields).toEqual(['history']);
     expect(result.name).toBe('Man-4');
-    expect(formatCharacterToolToast(result)).toBe('Updated Man-4 History');
     expect(result.document.history).toHaveLength(1);
 
     const loaded = await loadCharacter(saved.id);
@@ -285,7 +213,6 @@ describe('processCharacterTool', () => {
     }
     expect(result.action).toBe('create');
     expect(result.name).toBe('Lumberjack');
-    expect(formatCharacterToolToast(result)).toBe('Created Lumberjack');
     const loaded = await loadCharacter(result.id);
     expect(loaded.name).toBe('Lumberjack');
     expect(loaded.history).toEqual([

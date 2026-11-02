@@ -81,7 +81,6 @@ export function usePromptsEditor() {
             prompt: preset.systemPrompt,
           }),
         );
-        notify(`Activated ${preset.name}`);
       } catch (error) {
         notify(formatFailure('activate', name, error));
       } finally {
@@ -94,7 +93,6 @@ export function usePromptsEditor() {
   const handleSave = useCallback(async () => {
     const name = presetName.trim();
     if (!name || !systemPrompt.trim()) {
-      notify('Enter a name and prompt before saving');
       return;
     }
 
@@ -121,7 +119,6 @@ export function usePromptsEditor() {
 
       await refreshCatalog();
       dispatch(bumpLibraryEpoch());
-      notify(`Saved ${saved.name}`);
     } catch (error) {
       notify(formatFailure('save', name, error));
     } finally {
@@ -167,7 +164,6 @@ export function usePromptsEditor() {
 
         await refreshCatalog();
         dispatch(bumpLibraryEpoch());
-        notify(`Deleted ${name}`);
       } catch (error) {
         notify(formatFailure('delete', name, error));
       } finally {

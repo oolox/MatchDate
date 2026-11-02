@@ -67,16 +67,23 @@ After a date between attached characters, emit one fenced JSON dateSummary tool 
   "action": "display",
   "data": {
     "shortSummary": "<how the date went / outcome vibe>",
-    "transcript": "<dialogue/action log with location; beats in order>",
+    "location": "<10–20 words: where the date took place>",
     "justification": "<2–4 sentences on weighted value-model fit>",
-    "characters": ["<character UUID>", "<character UUID>"],
+    "character": [
+      {
+        "id": "<character UUID>",
+        "dateReview": "<50–100 words: feelings, opinions, honest feedback>",
+        "dateScore": 7,
+        "dateFit": 8
+      }
+    ],
     "dateTime": "<when the date happens — ISO-8601 preferred>",
     "chatId": "<current chat / session id>"
   }
 }
 \`\`\`
 
-\`characters\` = every character GUID in the date. \`dateTime\` and \`chatId\` are required. Display-only. History updates should match \`shortSummary\`. Live spoken lines still use quote tools.
+\`character\` = one entry per person (\`id\`, \`dateReview\`, \`dateScore\` 1–10 how it went, \`dateFit\` 1–10 date-type vs ideal). \`location\`, \`dateTime\`, and \`chatId\` required. Display-only. History updates should match \`shortSummary\`. Live spoken lines still use quote tools.
 
 ### Update an existing character
 \`\`\`json

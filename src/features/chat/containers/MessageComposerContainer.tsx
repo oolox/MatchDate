@@ -46,7 +46,6 @@ import {
 import type { Thread, ThreadId } from '../../../types/chat';
 import {
   characterFromCreateData,
-  formatCharacterToolToast,
   processCharacterTool,
   processTools,
 } from '../../../services/tools';
@@ -155,7 +154,6 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           sessionId: threadId,
         });
         if (result.ok) {
-          notify(formatCharacterToolToast(result));
           dispatch(bumpLibraryEpoch());
         } else {
           notify(result.message);
@@ -288,7 +286,8 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
             for (const result of results) {
               if (result.ok) {
                 applied = true;
-                notify(formatCharacterToolToast(result));
+              } else {
+                notify(result.message);
               }
             }
             if (applied) {

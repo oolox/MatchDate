@@ -314,7 +314,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
       try {
         const asset = await loadAsset(id);
         if (asset.subtype !== 'voice') {
-          notify('Drop a voice asset onto the character sheet');
           return;
         }
         const previous = characterRef.current.voiceAssetId;
@@ -333,7 +332,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     async (refs: SavedImageRef[]) => {
       const { next, added } = prependUniqueImages(characterRef.current.images, refs);
       if (added.length === 0) {
-        notify('Image already on this character');
         return;
       }
       dispatch(prependCharacterEditorImages(added));
@@ -351,7 +349,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     async (files: File[]) => {
       const imageFiles = files.filter((file) => file.type.startsWith('image/'));
       if (imageFiles.length === 0) {
-        notify('Drop image files (PNG, JPEG, …)');
         return;
       }
       setIsBusy(true);
@@ -362,7 +359,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
         }
         dispatch(bumpLibraryEpoch());
         await attachImageRefs(refs);
-        notify(refs.length === 1 ? 'Image added' : `Added ${refs.length} images`);
       } catch (error) {
         notify(formatFailure('upload image', undefined, error));
       } finally {
@@ -378,7 +374,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
         (item) => item.kind === 'asset' && (item.subtype === 'image' || item.subtype === undefined),
       );
       if (imageItems.length === 0) {
-        notify('Drop an IMAGE asset from the library');
         return;
       }
       setIsBusy(true);
@@ -387,15 +382,11 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
         for (const item of imageItems) {
           const asset = await loadAsset(item.id);
           if (!isImageLikeAssetSubtype(asset.subtype)) {
-            notify(`Skipped non-image asset: ${asset.name}`);
             continue;
           }
           refs.push(savedImageRefFromAsset(asset));
         }
         await attachImageRefs(refs);
-        if (refs.length > 0) {
-          notify(refs.length === 1 ? 'Image linked' : `Linked ${refs.length} images`);
-        }
       } catch (error) {
         notify(formatFailure('link image', undefined, error));
       } finally {
@@ -460,8 +451,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     async (options?: {
       /** Persist voice design after character has a stable id; returns voice asset id. */
       persistVoice?: (characterId: string) => Promise<string | null>;
-      /** Skip success toast (e.g. auto-save before navigating from chat). */
-      silent?: boolean;
     }): Promise<boolean> => {
       setIsBusy(true);
       try {
@@ -495,9 +484,6 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
           }),
         );
         lastLoadKeyRef.current = `${saved.id}:${libraryEpoch + 1}`;
-        if (!options?.silent) {
-          notify(`Saved ${saved.name}`);
-        }
         if (saved.id !== characterIdFromRoute) {
           navigate(`/character/${saved.id}`, { replace: true });
         }

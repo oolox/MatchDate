@@ -1,7 +1,5 @@
 .root {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -14,16 +12,6 @@
 
 .streaming {
   opacity: 0.85;
-}
-
-.thumbs {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  max-width: 7.5rem;
 }
 
 .thumbButton {
@@ -69,14 +57,13 @@
 }
 
 .body {
-  flex: 1;
-  min-width: 0;
   margin: 0;
   padding: 0;
   border: none;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 0;
 }
 
 .names {
@@ -90,7 +77,8 @@
   white-space: nowrap;
 }
 
-.dateTime {
+.dateTime,
+.location {
   margin: 0;
   font-size: var(--font-size-sm);
   font-weight: 500;
@@ -100,22 +88,111 @@
   white-space: nowrap;
 }
 
+.location {
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-overflow: unset;
+  overflow: visible;
+}
+
 .sectionLabel {
-  margin: 0.35rem 0 0;
+  margin: 0;
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
 }
 
+.compatibilityBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.compatibilityHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.compatibilityCaret {
+  flex-shrink: 0;
+}
+
+.reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.reviewCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.reviewBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.reviewHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  min-width: 0;
+}
+
+.reviewNameButton {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+
+.reviewNameButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.scores {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
 .shortSummary,
-.transcript,
-.justification {
+.justification,
+.review {
   margin: 0;
   font-size: var(--font-size-md, 1rem);
   line-height: 1.45;
   color: var(--color-text-primary);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.review {
+  font-size: var(--font-size-sm);
 }
 
 .empty {

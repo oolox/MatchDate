@@ -226,7 +226,6 @@ export function LibraryBrowser({
             prompt: preset.systemPrompt,
           }),
         );
-        notify(`Activated ${preset.name}`);
       } catch (error) {
         notify(`Could not activate ${item.name}`);
         console.info('Activate preset failed', error);
@@ -273,10 +272,9 @@ export function LibraryBrowser({
       }
       setActionBusy(true);
       try {
-        const saved = await duplicateCharacter(item.id);
+        await duplicateCharacter(item.id);
         dispatch(bumpLibraryEpoch());
         onCatalogMutated?.();
-        notify(`Copied as ${saved.name}`);
       } catch (error) {
         notify(formatFailure('copy character', item.name, error));
       } finally {

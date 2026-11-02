@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../../components/notification/Notification/useNotification';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
 import type { VoiceGenderHint } from '../../services/fal/models/tts';
 import { useAppSelector } from '../../store/hooks';
@@ -80,7 +79,6 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const navigate = useNavigate();
   const returnChatPath = useAppSelector(selectCharacterReturnChatPath);
   const selectedSessionId = useAppSelector(selectSelectedSessionId);
-  const { notify } = useNotification();
   const [attributesExpanded, setAttributesExpanded] = useState(false);
   const [traitsExpanded, setTraitsExpanded] = useState(true);
   const [imagesExpanded, setImagesExpanded] = useState(true);
@@ -167,26 +165,22 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     [addImagesFromLibrary, attachVoiceFromLibrary, sheetBusy],
   );
 
-  const handleCombinedSave = useCallback(
-    async (options?: { silent?: boolean }): Promise<boolean> => {
-      return handleSave({
-        silent: options?.silent,
-        persistVoice: (savedCharacterId) =>
-          voiceEditor.persistVoiceDesign({
-            characterId: savedCharacterId,
-            voiceName: character.name.trim() || voiceEditor.voiceName,
-          }),
-      });
-    },
-    [character.name, handleSave, voiceEditor],
-  );
+  const handleCombinedSave = useCallback(async (): Promise<boolean> => {
+    return handleSave({
+      persistVoice: (savedCharacterId) =>
+        voiceEditor.persistVoiceDesign({
+          characterId: savedCharacterId,
+          voiceName: character.name.trim() || voiceEditor.voiceName,
+        }),
+    });
+  }, [character.name, handleSave, voiceEditor]);
 
   useEffect(() => {
     registerCharacterEditorFlush(async () => {
       if (!canSave) {
         return true;
       }
-      return handleCombinedSave({ silent: true });
+      return handleCombinedSave();
     });
     return () => {
       registerCharacterEditorFlush(null);
@@ -279,11 +273,6 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
                 });
               }
               setTraitsExpanded(true);
-              notify(
-                traits.length === 1
-                  ? 'Applied 1 trait from images'
-                  : `Applied ${traits.length} traits from images`,
-              );
             }}
           />
         </CharacterCollapsibleCard>

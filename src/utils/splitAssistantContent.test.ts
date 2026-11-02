@@ -157,9 +157,22 @@ describe('splitAssistantContent', () => {
   "action": "display",
   "data": {
     "shortSummary": "Warm but tentative.",
-    "transcript": "Cafe · they talk about travel.",
+    "location": "Corner cafe on Market Street overlooking the square.",
     "justification": "Adjacent priorities softened friction.",
-    "characters": ["char-1", "char-2"],
+    "character": [
+      {
+        "id": "char-1",
+        "dateReview": "Felt hopeful after the coffee talk.",
+        "dateScore": 7,
+        "dateFit": 8
+      },
+      {
+        "id": "char-2",
+        "dateReview": "Liked the pace but stayed cautious.",
+        "dateScore": 6,
+        "dateFit": 5
+      }
+    ],
     "dateTime": "2026-11-01T19:00:00.000Z",
     "chatId": "sess-9"
   }
@@ -172,9 +185,22 @@ describe('splitAssistantContent', () => {
     expect(blocks[1]).toMatchObject({
       type: 'dateSummary',
       shortSummary: 'Warm but tentative.',
-      transcript: 'Cafe · they talk about travel.',
+      location: 'Corner cafe on Market Street overlooking the square.',
       justification: 'Adjacent priorities softened friction.',
-      characters: ['char-1', 'char-2'],
+      character: [
+        {
+          id: 'char-1',
+          dateReview: 'Felt hopeful after the coffee talk.',
+          dateScore: 7,
+          dateFit: 8,
+        },
+        {
+          id: 'char-2',
+          dateReview: 'Liked the pace but stayed cautious.',
+          dateScore: 6,
+          dateFit: 5,
+        },
+      ],
       dateTime: '2026-11-01T19:00:00.000Z',
       chatId: 'sess-9',
       complete: true,
@@ -190,14 +216,21 @@ describe('splitAssistantContent', () => {
   "tool": "dateSummary",
   "origin": "agent",
   "action": "display",
-  "data": { "shortSummary": "Awkward start", "characters": ["char-1", "char-2"], "dateTime": "2026-11-01T19:00:00.000Z"
+  "data": { "shortSummary": "Awkward start", "character": [{ "id": "char-1", "dateReview": "Nervous", "dateScore": 4, "dateFit": 3 }], "dateTime": "2026-11-01T19:00:00.000Z"
 `;
     const blocks = splitAssistantContent(content, { isStreaming: true });
     expect(blocks).toHaveLength(2);
     expect(blocks[1]).toMatchObject({
       type: 'dateSummary',
       shortSummary: 'Awkward start',
-      characters: ['char-1', 'char-2'],
+      character: [
+        {
+          id: 'char-1',
+          dateReview: 'Nervous',
+          dateScore: 4,
+          dateFit: 3,
+        },
+      ],
       dateTime: '2026-11-01T19:00:00.000Z',
       complete: false,
     });
@@ -211,9 +244,9 @@ describe('splitAssistantContent', () => {
   "action": "display",
   "data": {
     "shortSummary": "Warm.",
-    "transcript": "They met.",
+    "location": "A quiet bar downtown.",
     "justification": "Fit.",
-    "characters": ["char-1"],
+    "character": [{ "id": "char-1", "dateReview": "Nice.", "dateScore": 7, "dateFit": 8 }],
     "dateTime": "2026-11-01T19:00:00.000Z"
   }
 }
@@ -222,6 +255,50 @@ describe('splitAssistantContent', () => {
     const blocks = splitAssistantContent(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.type).toBe('markdown');
+  });
+
+  it('accepts legacy dateSummary characters GUID array', () => {
+    const content = `\`\`\`json
+{
+  "tool": "dateSummary",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "shortSummary": "A quiet evening.",
+    "justification": "Aligned values.",
+    "characters": [
+      "b97ca029-9b7b-495c-8b8a-ac924e6ed0f6",
+      "0a4fa111-89b6-459f-a3d4-af278e293034"
+    ],
+    "dateTime": "2028-09-12T19:00:00-04:00",
+    "chatId": "chat-dates"
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'dateSummary',
+      shortSummary: 'A quiet evening.',
+      location: '',
+      chatId: 'chat-dates',
+      character: [
+        {
+          id: 'b97ca029-9b7b-495c-8b8a-ac924e6ed0f6',
+          dateReview: '',
+          dateScore: 0,
+          dateFit: 0,
+        },
+        {
+          id: '0a4fa111-89b6-459f-a3d4-af278e293034',
+          dateReview: '',
+          dateScore: 0,
+          dateFit: 0,
+        },
+      ],
+      complete: true,
+    });
   });
 });
 

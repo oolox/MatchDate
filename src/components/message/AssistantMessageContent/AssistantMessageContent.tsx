@@ -39,9 +39,9 @@ function AssistantMessageContentComponent({
             <DateSummaryBubble
               key={`dateSummary-${index}-${block.id}`}
               shortSummary={block.shortSummary}
-              transcript={block.transcript}
+              location={block.location}
               justification={block.justification}
-              characters={block.characters}
+              character={block.character}
               dateTime={block.dateTime}
               chatId={block.chatId}
               complete={block.complete}
