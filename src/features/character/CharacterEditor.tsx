@@ -80,6 +80,7 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     appendHistoryEntry,
     updateHistoryEntry,
     removeTrait,
+    removeDateSummary,
     upsertTrait,
     updateTrait,
     addImagesFromFiles,
@@ -557,6 +558,14 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
                   chatId={summary.chatId}
                   complete
                   collapsible
+                  removeDisabled={sheetEntryActionsDisabled}
+                  onRemove={() => {
+                    removeDateSummary({
+                      id: summary.id,
+                      dateTime: summary.dateTime,
+                      chatId: summary.chatId,
+                    });
+                  }}
                 />
               ))}
             </div>

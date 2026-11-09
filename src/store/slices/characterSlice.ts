@@ -169,6 +169,36 @@ const characterSlice = createSlice({
       state.character.traits = next;
       state.isDirty = true;
     },
+    /** Remove one dateSummary entry by id, or dateTime+chatId fallback. */
+    removeCharacterEditorDateSummary: (
+      state,
+      action: PayloadAction<{ id?: string; dateTime: string; chatId: string }>,
+    ) => {
+      const list = state.character.dateSummary ?? [];
+      if (list.length === 0) {
+        return;
+      }
+      const id = action.payload.id?.trim();
+      const dateTime = action.payload.dateTime;
+      const chatId = action.payload.chatId;
+      let index = -1;
+      if (id) {
+        index = list.findIndex((entry) => entry.id?.trim() === id);
+      }
+      if (index < 0) {
+        index = list.findIndex(
+          (entry) => entry.dateTime === dateTime && entry.chatId === chatId,
+        );
+      }
+      if (index < 0) {
+        return;
+      }
+      state.character.dateSummary = [
+        ...list.slice(0, index),
+        ...list.slice(index + 1),
+      ];
+      state.isDirty = true;
+    },
     /** Upsert trait by name (case-insensitive); stamps sessionId `user`. */
     upsertCharacterEditorTrait: (
       state,
@@ -337,6 +367,7 @@ export const {
   appendCharacterEditorHistoryEntry,
   updateCharacterEditorHistoryEntry,
   removeCharacterEditorTrait,
+  removeCharacterEditorDateSummary,
   upsertCharacterEditorTrait,
   updateCharacterEditorTrait,
   prependCharacterEditorImages,

@@ -19,6 +19,9 @@ export interface DateSummaryBubbleProps {
   complete?: boolean;
   /** Sheet-only: names/date stay visible; caret collapses the rest. */
   collapsible?: boolean;
+  /** Sheet-only: shown next to the collapse caret. */
+  onRemove?: () => void;
+  removeDisabled?: boolean;
 }
 
 function tryParseDate(value: string): Date | null {
@@ -88,6 +91,8 @@ export function DateSummaryBubble({
   chatId,
   complete = true,
   collapsible = false,
+  onRemove,
+  removeDisabled = false,
 }: DateSummaryBubbleProps) {
   const openCharacter = useOpenCharacterFromChat();
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
@@ -147,16 +152,29 @@ export function DateSummaryBubble({
         <cite className={styles.names}>{nameLine}</cite>
         <p className={styles.dateTime}>{when}</p>
       </div>
-      <IconButton
-        icon={expanded ? 'caret-up' : 'caret-down'}
-        label={expanded ? 'Collapse date summary' : 'Expand date summary'}
-        variant="secondary"
-        size="xs"
-        className={styles.collapseCaret}
-        aria-expanded={expanded}
-        aria-controls={detailsId}
-        onClick={() => setExpanded((open) => !open)}
-      />
+      <div className={styles.headerActions}>
+        {onRemove ? (
+          <IconButton
+            icon="close"
+            label="Remove date summary"
+            variant="secondary"
+            size="xs"
+            className={styles.removeButton}
+            disabled={removeDisabled}
+            onClick={onRemove}
+          />
+        ) : null}
+        <IconButton
+          icon={expanded ? 'caret-up' : 'caret-down'}
+          label={expanded ? 'Collapse date summary' : 'Expand date summary'}
+          variant="secondary"
+          size="xs"
+          className={styles.collapseCaret}
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          onClick={() => setExpanded((open) => !open)}
+        />
+      </div>
     </div>
   ) : (
     <>

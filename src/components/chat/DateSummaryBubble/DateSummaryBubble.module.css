@@ -81,9 +81,22 @@
   gap: 0.35rem;
 }
 
-.collapseCaret {
+.headerActions {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
   flex-shrink: 0;
   margin-left: auto;
+}
+
+/* Close glyph fills more of the viewBox than the caret; shrink to match optically. */
+.removeButton :global(svg) {
+  transform: scale(0.72);
+  transform-origin: center;
+}
+
+.collapseCaret {
+  flex-shrink: 0;
 }
 
 .details {

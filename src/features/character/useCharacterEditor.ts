@@ -35,6 +35,7 @@ import {
   selectCharacterEditorId,
   setCharacterEditorAttributeValue,
   removeCharacterEditorHistoryEntry,
+  removeCharacterEditorDateSummary,
   removeCharacterEditorTrait,
   setCharacterEditorIdentity,
   setCharacterEditorVoiceAssetId,
@@ -257,6 +258,13 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   const removeTrait = useCallback(
     (name: string) => {
       dispatch(removeCharacterEditorTrait(name));
+    },
+    [dispatch],
+  );
+
+  const removeDateSummary = useCallback(
+    (payload: { id?: string; dateTime: string; chatId: string }) => {
+      dispatch(removeCharacterEditorDateSummary(payload));
     },
     [dispatch],
   );
@@ -520,6 +528,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     appendHistoryEntry,
     updateHistoryEntry,
     removeTrait,
+    removeDateSummary,
     upsertTrait,
     updateTrait,
     addImagesFromFiles,
