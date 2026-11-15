@@ -15,7 +15,7 @@ import {
 } from '../../services/storage/textStorage';
 import type { Character } from '../../types/character';
 import type { ChatAttachment, ChatAttachmentKind } from '../../types/chat';
-import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDrag';
+import type { MasterDaterLibraryDragPayload } from '../../utils/masterdaterLibraryDrag';
 import { bumpLibraryEpoch } from '../../store/slices/appShellSlice';
 import { useAppDispatch } from '../../store/hooks';
 import { findAtQuery, stripAtQuery } from './attach/atQuery';
@@ -347,7 +347,7 @@ export function useTxtChatAttachments(threadId: string) {
   );
 
   const addLibraryItems = useCallback(
-    async (items: MatchDateLibraryDragPayload[]): Promise<DraftAttachment[]> => {
+    async (items: MasterDaterLibraryDragPayload[]): Promise<DraftAttachment[]> => {
       const added: DraftAttachment[] = [];
       for (const item of items) {
         if (item.kind === 'character') {

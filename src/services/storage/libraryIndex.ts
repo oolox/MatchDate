@@ -14,6 +14,7 @@ import {
   assetPath,
   characterDocumentFileName,
   characterDocumentPath,
+  parseSessionIdFromFileName as parseSessionIdFromBrandFileName,
 } from './paths';
 import { getAssetRegistration, getCharacterRegistration } from './libraryRegistry';
 import { parseStorageJson } from './parseStorageJson';
@@ -27,8 +28,6 @@ import type {
   SystemPromptPreset,
 } from './types';
 import { StorageError } from './types';
-
-const SESSION_PREFIX = 'matchDate-';
 
 function itemKey(kind: LibraryItemKind, id: string): string {
   return `${kind}:${id}`;
@@ -134,11 +133,7 @@ export async function loadLibraryIndex(storage: FileStorageService): Promise<Lib
 }
 
 function parseSessionIdFromFileName(fileName: string): string | null {
-  if (!fileName.startsWith(SESSION_PREFIX) || !fileName.endsWith('.json')) {
-    return null;
-  }
-  const id = fileName.slice(SESSION_PREFIX.length, -'.json'.length);
-  return id.trim() ? id : null;
+  return parseSessionIdFromBrandFileName(fileName);
 }
 
 function parsePresetSlugFromFileName(fileName: string): string | null {

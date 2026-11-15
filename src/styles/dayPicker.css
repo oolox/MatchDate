@@ -1,6 +1,6 @@
 @import '@daypicker/react/style.css';
 
-/* Map DayPicker tokens onto MatchDate theme. */
+/* Map DayPicker tokens onto MasterDater theme. */
 .rdp-root {
   --rdp-accent-color: var(--color-accent);
   --rdp-accent-background-color: color-mix(in srgb, var(--color-accent) 22%, transparent);

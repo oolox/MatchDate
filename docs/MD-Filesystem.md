@@ -1,6 +1,6 @@
-# MatchDate — Filesystem Port Guide (OPFS / ODSF)
+# MasterDater — Filesystem Port Guide (OPFS / ODSF)
 
-> **Purpose:** Document MatchDate's browser filesystem layer — **chat persistence**, **system prompt storage**, and the **asset library UI**.
+> **Purpose:** Document MasterDater's browser filesystem layer — **chat persistence**, **system prompt storage**, and the **asset library UI**.
 
 **Last updated:** 2026-08-31  
 **Scope:** OPFS storage services, chat/session save-load, preset save-load, library catalog and browser UI.  
@@ -12,7 +12,7 @@ Related: `docs/MD-ODSF.md` (scaling research), `docs/MD-Chat-Feature.md` (chat U
 
 ## 1. Architecture Overview
 
-All app data lives under `/matchdate` in the origin's private file system (`navigator.storage.getDirectory()`). There is **no backend database** — the browser is the source of truth.
+All app data lives under `/masterdater` in the origin's private file system (`navigator.storage.getDirectory()`). There is **no backend database** — the browser is the source of truth.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -81,12 +81,12 @@ export interface FileStorageService {
 ```ts
 // localOpfsStorage.ts
 const root = await navigator.storage.getDirectory();
-// normalizePath('/matchdate/prompts/sessions/foo.json')
-//   → ['matchdate', 'prompts', 'sessions', 'foo.json']
+// normalizePath('/masterdater/prompts/sessions/foo.json')
+//   → ['masterdater', 'prompts', 'sessions', 'foo.json']
 // getDirectoryHandle per segment, then getFileHandle for the file
 ```
 
-Paths are POSIX-style strings starting with `/matchdate`. `normalizePath()` rejects `..` segments.
+Paths are POSIX-style strings starting with `/masterdater`. `normalizePath()` rejects `..` segments.
 
 ### 2.4 Errors
 
@@ -106,15 +106,15 @@ All parsers use `parseStorageJson()` (`src/services/storage/parseStorageJson.ts`
 **Path constants:** `src/services/storage/paths.ts`
 
 ```
-/matchdate/
+/masterdater/
   config.json                    # Active slugs + active session id
   library.json                   # Catalog index (items[])
 
   assets/
-    img/                         # Image blobs: matchDate-img-{id}.png
-    vid/                         # Video blobs: matchDate-vid-{id}.mp4 (+ poster/end JPEGs)
-    text/                        # Text blobs: matchDate-text-{id}.txt
-    metadata/                    # Asset JSON: matchDate-asset-{id}.json
+    img/                         # Image blobs: masterDater-img-{id}.png
+    vid/                         # Video blobs: masterDater-vid-{id}.mp4 (+ poster/end JPEGs)
+    text/                        # Text blobs: masterDater-text-{id}.txt
+    metadata/                    # Asset JSON: masterDater-asset-{id}.json
 
   prompts/
     sessions/                    # ★ Unified SessionDocument (canonical chat)
@@ -133,13 +133,13 @@ All parsers use `parseStorageJson()` (`src/services/storage/parseStorageJson.ts`
 
 | Builder | Resolves to |
 |---------|-------------|
-| `sessionDocumentPath(id)` | `/matchdate/prompts/sessions/matchDate-{id}.json` |
-| `presetPath(slug)` | `/matchdate/prompts/session/{slug}.json` |
-| `txtPromptPath(id)` | `/matchdate/prompts/txt/matchDate-{id}.json` |
-| `textPath(id)` | `/matchdate/assets/text/matchDate-text-{id}.txt` |
-| `assetPath(id)` | `/matchdate/assets/metadata/matchDate-asset-{id}.json` |
-| `CONFIG_PATH` | `/matchdate/config.json` |
-| `LIBRARY_PATH` | `/matchdate/library.json` |
+| `sessionDocumentPath(id)` | `/masterdater/prompts/sessions/masterDater-{id}.json` |
+| `presetPath(slug)` | `/masterdater/prompts/session/{slug}.json` |
+| `txtPromptPath(id)` | `/masterdater/prompts/txt/masterDater-{id}.json` |
+| `textPath(id)` | `/masterdater/assets/text/masterDater-text-{id}.txt` |
+| `assetPath(id)` | `/masterdater/assets/metadata/masterDater-asset-{id}.json` |
+| `CONFIG_PATH` | `/masterdater/config.json` |
+| `LIBRARY_PATH` | `/masterdater/library.json` |
 
 ---
 
@@ -286,7 +286,7 @@ Preserves `createdAt` from existing file; bumps `updatedAt`.
 ```
 loadSessionDocument(id)
   │
-  ├─ 1. /prompts/sessions/matchDate-{id}.json exists?
+  ├─ 1. /prompts/sessions/masterDater-{id}.json exists?
   │       parseSessionDocument → hydrateSession → return
   │
   ├─ 2. Else try legacy txt paths (/prompts/txt/, /chat/sessions/, /sessions/)
@@ -357,7 +357,7 @@ export interface SystemPromptPreset {
 }
 ```
 
-**On disk:** `/matchdate/prompts/session/{slug}.json`
+**On disk:** `/masterdater/prompts/session/{slug}.json`
 
 Example:
 
@@ -377,7 +377,7 @@ Example:
 
 ### 6.2 Config manifest (active presets)
 
-**File:** `/matchdate/config.json`
+**File:** `/masterdater/config.json`
 
 ```ts
 export interface ConfigManifest {
@@ -495,8 +495,8 @@ Used by `useTxtChatAttachments` when user picks "Upload file…" or selects a li
       "kind": "session",
       "id": "abc123",
       "name": "My chat",
-      "fileName": "matchDate-abc123.json",
-      "path": "/matchdate/prompts/sessions/matchDate-abc123.json",
+      "fileName": "masterDater-abc123.json",
+      "path": "/masterdater/prompts/sessions/masterDater-abc123.json",
       "isFavorite": false,
       "createdAt": "…",
       "updatedAt": "…",
@@ -607,7 +607,7 @@ saveText (via textStorage)    loadTextContent
 ### Backup
 
 ```ts
-// opfsBackup.ts — zip export/import of entire /matchdate tree
+// opfsBackup.ts — zip export/import of entire /masterdater tree
 collectOpfsTree / exportOpfsZip / importOpfsZip
 ```
 
@@ -899,14 +899,14 @@ if (await storage.exists(path)) {
 
 ## 14. Minimal Port Checklist (Chat + Prompts Only)
 
-For MatchDate v1 (chats and system prompts only):
+For MasterDater v1 (chats and system prompts only):
 
 1. **Implement `FileStorageService`** — OPFS or IndexedDB fallback
 2. **Path layout** — at minimum:
-   - `/matchdate/prompts/sessions/` — chat sessions
-   - `/matchdate/prompts/session/` — system prompts
-   - `/matchdate/config.json` — active slugs
-   - `/matchdate/library.json` — catalog (optional but needed for library UI)
+   - `/masterdater/prompts/sessions/` — chat sessions
+   - `/masterdater/prompts/session/` — system prompts
+   - `/masterdater/config.json` — active slugs
+   - `/masterdater/library.json` — catalog (optional but needed for library UI)
 3. **Define types** — `SessionDocument.text.messages`, `SystemPromptPreset`
 4. **Implement save/load** — `saveSessionDocument`, `loadSessionDocument`, `savePreset`, `loadPreset`, `setActivePrompt`
 5. **Boot** — `loadPromptsState()` + load last active session from `config.activeSessionId`
@@ -935,11 +935,11 @@ interface ChatDocument {
 }
 ```
 
-Omit `assets`, `image`, `video`, `game` fields. Keep the same path (`/prompts/sessions/`) for MatchDate data compatibility.
+Omit `assets`, `image`, `video`, `game` fields. Keep the same path (`/prompts/sessions/`) for MasterDater data compatibility.
 
 ---
 
-## 15. What MatchDate Does NOT Do
+## 15. What MasterDater Does NOT Do
 
 - No server sync — OPFS is per-origin, per-browser
 - No multi-device access without export/import zip

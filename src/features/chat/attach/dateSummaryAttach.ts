@@ -1,4 +1,4 @@
-/** Fenced JSON dateSummary tool — display-only date report (prompt-matchDate Date section). */
+/** Fenced JSON dateSummary tool — display-only date report (prompt-MasterDater Date section). */
 
 import type { DateSummaryCharacterEntry, DateSummaryData } from '../../../types/dateSummary';
 

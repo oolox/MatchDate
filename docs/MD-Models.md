@@ -1,6 +1,6 @@
-# MatchDate — Models
+# MasterDater — Models
 
-> **Purpose:** Document how MatchDate talks to LLMs through FAL/OpenRouter — current models, registry design, request flow, and how to add or switch models.
+> **Purpose:** Document how MasterDater talks to LLMs through FAL/OpenRouter — current models, registry design, request flow, and how to add or switch models.
 
 **Last updated:** 2026-09-01  
 **Scope:** FAL chat completions, model registry, per-session overrides, and planned model picker work.
@@ -11,7 +11,7 @@ Related: [`MD-Chat-Feature.md`](./MD-Chat-Feature.md) (full chat pipeline), [`MD
 
 ## 1. Architecture overview
 
-MatchDate does **not** call model providers directly. All chat traffic goes through **fal.ai’s OpenRouter router**, which exposes an OpenAI-compatible chat completions API.
+MasterDater does **not** call model providers directly. All chat traffic goes through **fal.ai’s OpenRouter router**, which exposes an OpenAI-compatible chat completions API.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -64,7 +64,7 @@ Keep these distinct:
 | **Registry id** | `deepseek/deepseek-v4-flash` | Redux, `localStorage`, `thread.modelId`, `streamCompletion({ model })` |
 | **OpenRouter slug** | `deepseek/deepseek-v4-flash` | `body.model` in the FAL POST (from `ChatModelConfig.modelName`) |
 
-In MatchDate v1, registry ids and OpenRouter slugs are **the same string** for every model. The registry exists so the UI can show friendly labels and so legacy ids can be remapped without touching stored session data.
+In MasterDater v1, registry ids and OpenRouter slugs are **the same string** for every model. The registry exists so the UI can show friendly labels and so legacy ids can be remapped without touching stored session data.
 
 ---
 
@@ -137,7 +137,7 @@ As of Phase 3, the registry contains **one** model:
 
 ## 4. Planned model lineup
 
-The porting guide and LuxNova reference target **four** chat models on the same FAL/OpenRouter path. These are documented for UI/picker work; only Flash is registered in MatchDate today.
+The porting guide and LuxNova reference target **four** chat models on the same FAL/OpenRouter path. These are documented for UI/picker work; only Flash is registered in MasterDater today.
 
 | Registry id | Label | Short | Best for | Notes |
 |-------------|-------|-------|----------|-------|
@@ -150,7 +150,7 @@ Reference implementations (including `cost` and `contextLength` fields) live in 
 
 ### 4.1 Extended registry type (target)
 
-MatchDate’s `ChatModelConfig` is currently slim:
+MasterDater’s `ChatModelConfig` is currently slim:
 
 ```ts
 // src/services/fal/models/chatTypes.ts (today)
@@ -250,7 +250,7 @@ When sending a message, the effective model id should resolve as:
 2. **Global preference** — `localStorage` key `txtModel` (planned)
 3. **Default** — `DEFAULT_CHAT_MODEL_ID`
 
-Planned helper (not yet in MatchDate; pattern from porting docs):
+Planned helper (not yet in MasterDater; pattern from porting docs):
 
 ```ts
 export function resolveThreadChatModel(

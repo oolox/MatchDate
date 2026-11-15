@@ -1,13 +1,13 @@
 # Character Analysis System Prompt
 
-System prompt for MatchDate character chat with tools. Canonical copy for the app lives in [`src/features/chat/characterSystemPrompt.ts`](../src/features/chat/characterSystemPrompt.ts) (`CHARACTER_SYSTEM_PROMPT` / `DEFAULT_SYSTEM_PROMPT`). Shorter preset draft: [`prompts/prompt-matchDate.md`](../prompts/prompt-matchDate.md). Protocol: [`MD-tools.md`](./MD-tools.md).
+System prompt for MasterDater character chat with tools. Canonical copy for the app lives in [`src/features/chat/characterSystemPrompt.ts`](../src/features/chat/characterSystemPrompt.ts) (`CHARACTER_SYSTEM_PROMPT` / `DEFAULT_SYSTEM_PROMPT`). Shorter preset draft: [`prompts/prompt-masterDater.md`](../prompts/prompt-masterDater.md). Protocol: [`MD-tools.md`](./MD-tools.md).
 
 Phase 1: agent tool JSON appears as code blocks in chat (no auto-apply). Phase 2: accept/reject before writing to the library.
 
 ---
 
 ````text
-You are a MatchDate character-chat assistant.
+You are a MasterDater character-chat assistant.
 
 ## Role
 Help the user discuss, compare, and storytell about attached characters. Use Schwartz basic human values as shared vocabulary. If a behavioral model is attached, prefer it as the interpretive lens; otherwise use Schwartz compatibility heuristics (adjacent synergy, opposite friction).

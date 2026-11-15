@@ -48,7 +48,7 @@ async function spikeChatStream(apiKey) {
         response_format: { type: 'text' },
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
-          { role: 'user', content: 'Reply with exactly: matchdate-phase0-ok' },
+          { role: 'user', content: 'Reply with exactly: masterdater-phase0-ok' },
         ],
       }),
     },

@@ -1,6 +1,6 @@
-# MatchDate — Chat Feature Port Guide
+# MasterDater — Chat Feature Port Guide
 
-> **Purpose:** Document MatchDate's chat architecture — FAL.ai LLM integration, code patterns, UI components, and state flow.
+> **Purpose:** Document MasterDater's chat architecture — FAL.ai LLM integration, code patterns, UI components, and state flow.
 
 **Last updated:** 2026-08-31  
 **Scope:** Text chat (TXT generator) — streaming LLM turns via FAL OpenRouter, `@` text attachments, system prompts.  
@@ -12,7 +12,7 @@ Related: `docs/MD-FalRefactor.md`, `docs/MD-attach.md`, `docs/MD-refiners.md`.
 
 ## 1. Architecture Overview
 
-MatchDate chat is a **browser-only** integration. There is no backend chat proxy. The UI calls FAL's OpenAI-compatible endpoint directly with `fetch` and parses SSE in the client.
+MasterDater chat is a **browser-only** integration. There is no backend chat proxy. The UI calls FAL's OpenAI-compatible endpoint directly with `fetch` and parses SSE in the client.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -179,7 +179,7 @@ export const chatService = {
 
 ```ts
 export type ChatModelConfig = {
-  id: string;           // MatchDate registry / preference key
+  id: string;           // MasterDater registry / preference key
   label: string;
   modelName: string;    // OpenRouter slug sent to FAL
   shortLabel?: string;
@@ -284,7 +284,7 @@ Use `apiContentForMessage(message)` (`src/features/chat/attach/xmlAttach.ts`) wh
 
 ### 3.1 Component hierarchy
 
-MatchDate mounts text chat inside the session view (`/session/:sessionId`). The message tree can also be embedded on other routes if needed:
+MasterDater mounts text chat inside the session view (`/session/:sessionId`). The message tree can also be embedded on other routes if needed:
 
 ```
 MessageThreadContainer
@@ -356,7 +356,7 @@ MessageThreadContainer
 
 ### 3.4 Secondary chat pattern — `useConversation`
 
-For isolated chat panels (prompt refine, character edit), MatchDate uses the same message UI with a different state slice:
+For isolated chat panels (prompt refine, character edit), MasterDater uses the same message UI with a different state slice:
 
 | Pattern | State | Used for |
 |---------|-------|----------|
@@ -467,7 +467,7 @@ This is the complete pipeline in `MessageComposerContainer.handleSend()`:
 
 ## 6. The `@` Attachment Pattern
 
-In MatchDate, `@` in the composer means **“attach a text entity”** (library file or upload) — not email or user mentions. The pattern is modeled after Cursor, ChatGPT, and ChatKit: a caret-triggered menu, fuzzy filter, keyboard navigation, and **chips** in the composer that expand to file contents at send time.
+In MasterDater, `@` in the composer means **“attach a text entity”** (library file or upload) — not email or user mentions. The pattern is modeled after Cursor, ChatGPT, and ChatKit: a caret-triggered menu, fuzzy filter, keyboard navigation, and **chips** in the composer that expand to file contents at send time.
 
 > **Key principle:** The LLM has no native file API. Files are read in the browser, wrapped as labeled XML, and injected into the user message string. The transcript shows filenames only.
 
@@ -676,7 +676,7 @@ See `docs/MD-attach.md` for product research and v1 decisions.
 
 ## 7. System Prompts
 
-MatchDate sends a **system message** as the first entry in every chat API payload. System prompts control assistant behavior (persona, output format, constraints). There are three layers: a hardcoded fallback, a global active preset, and an optional per-thread override.
+MasterDater sends a **system message** as the first entry in every chat API payload. System prompts control assistant behavior (persona, output format, constraints). There are three layers: a hardcoded fallback, a global active preset, and an optional per-thread override.
 
 ### 7.1 Message assembly
 
@@ -842,9 +842,9 @@ await streamChatTurn({
 
 ### 7.6 Persistence model (for porting)
 
-MatchDate stores prompts as OPFS presets (`kind: 'prompt'`, `type: 'system'`). v1 can omit negative/refiner types:
+MasterDater stores prompts as OPFS presets (`kind: 'prompt'`, `type: 'system'`). v1 can omit negative/refiner types:
 
-| Full schema | MatchDate v1 |
+| Full schema | MasterDater v1 |
 |---------|--------------|
 | OPFS preset library + activate | Single `systemPrompt` string in config/localStorage |
 | Per-thread `systemPromptSlug` | Per-conversation `systemPrompt` field |
@@ -1013,7 +1013,7 @@ async function sendChat(messages: { role: string; content: string }[]) {
 }
 ```
 
-Then layer in MatchDate's registry, `streamChatTurn`, Redux slices, and UI components as needed.
+Then layer in MasterDater's registry, `streamChatTurn`, Redux slices, and UI components as needed.
 
 ---
 
@@ -1032,7 +1032,7 @@ From `package.json` — chat-relevant only:
 
 ---
 
-## 12. What MatchDate Does NOT Do for Chat
+## 12. What MasterDater Does NOT Do for Chat
 
 - No server-side chat proxy or session API
 - No WebSocket — SSE over HTTP only

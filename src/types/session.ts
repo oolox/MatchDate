@@ -6,7 +6,7 @@ export interface SessionTextFields {
   modelId?: string;
 }
 
-/** Chat-only session document (MatchDate v1). */
+/** Chat-only session document (MasterDater v1). */
 export interface SessionDocument {
   schemaVersion: number;
   type: 'generator';

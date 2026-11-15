@@ -10,6 +10,8 @@ import {
   characterDocumentFileName,
   characterDocumentPath,
   CHARACTERS_DIR,
+  parseAssetIdFromFileName,
+  parseCharacterIdFromFileName,
 } from './paths';
 import { parseStorageJson } from './parseStorageJson';
 import type {
@@ -19,7 +21,6 @@ import type {
 } from './types';
 import { StorageError } from './types';
 
-const ASSET_FILE_PREFIX = 'matchDate-asset-';
 
 function backfillCreatedAt(createdAt: string | undefined, updatedAt: string): string {
   return createdAt || updatedAt;
@@ -103,7 +104,6 @@ async function listJsonIds(
   storage: FileStorageService,
   directory: string,
   options: {
-    prefix: string;
     idFromFileName: (fileName: string) => string | null;
   },
 ): Promise<string[]> {
@@ -131,13 +131,7 @@ const assetRegistration: LibraryKindRegistration = {
   }),
   listIdsFromDisk: (storage) =>
     listJsonIds(storage, ASSETS_METADATA_DIR, {
-      prefix: ASSET_FILE_PREFIX,
-      idFromFileName: (fileName) => {
-        if (!fileName.startsWith(ASSET_FILE_PREFIX) || !fileName.endsWith('.json')) {
-          return null;
-        }
-        return fileName.slice(ASSET_FILE_PREFIX.length, -'.json'.length) || null;
-      },
+      idFromFileName: parseAssetIdFromFileName,
     }),
   readCatalogFields: async (storage, id) => {
     const path = assetPath(id);
@@ -152,8 +146,6 @@ const assetRegistration: LibraryKindRegistration = {
   },
 };
 
-const CHARACTER_FILE_PREFIX = 'matchDate-char-';
-
 const characterRegistration: LibraryKindRegistration = {
   kind: 'character',
   directory: CHARACTERS_DIR,
@@ -163,13 +155,7 @@ const characterRegistration: LibraryKindRegistration = {
   }),
   listIdsFromDisk: (storage) =>
     listJsonIds(storage, CHARACTERS_DIR, {
-      prefix: CHARACTER_FILE_PREFIX,
-      idFromFileName: (fileName) => {
-        if (!fileName.startsWith(CHARACTER_FILE_PREFIX) || !fileName.endsWith('.json')) {
-          return null;
-        }
-        return fileName.slice(CHARACTER_FILE_PREFIX.length, -'.json'.length) || null;
-      },
+      idFromFileName: parseCharacterIdFromFileName,
     }),
   readCatalogFields: async (storage, id) => {
     const path = characterDocumentPath(id);

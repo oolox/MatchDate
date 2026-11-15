@@ -1,6 +1,6 @@
-# MatchDate — fal audio (TTS · voice assets · chat speech)
+# MasterDater — fal audio (TTS · voice assets · chat speech)
 
-> **Purpose:** Spec for text-to-speech and voice assets in MatchDate. Adapted from LuxNova research (`LN-audio`); scoped to **chat speech** and **character-attached voices**. Music / SFX / video foley are **out of scope** for now (kept briefly in §9 as deferred research).
+> **Purpose:** Spec for text-to-speech and voice assets in MasterDater. Adapted from LuxNova research (`LN-audio`); scoped to **chat speech** and **character-attached voices**. Music / SFX / video foley are **out of scope** for now (kept briefly in §9 as deferred research).
 
 **Last updated:** 2026-10-24  
 **Status:** spec + codebase findings (§2); Gemini single-speaker TTS shipped; multi-speaker `speakers[]` researched in §3.1a (not wired in `ttsService` yet).  
@@ -10,18 +10,18 @@
 
 ---
 
-## 0. TL;DR — MatchDate picks
+## 0. TL;DR — MasterDater picks
 
 
 | Job                                 | Model                                 | Endpoint                                                        | Why                                                                                                                                                             |
 | ----------------------------------- | ------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Customizable TTS (no clone)**     | **Gemini 3.1 Flash TTS**              | `fal-ai/gemini-3.1-flash-tts`                                   | **$0.05/1K**; natural-language `**style_instructions`** (accent, tone, pace, emotion); inline tags `[laughing]`/`[whispering]`; 30 voices; 80+ `language_code`s |
 | **Higher-end TTS + cloning**        | MiniMax Speech 2.8 HD (+ Voice Clone) | `fal-ai/minimax/speech-2.8-hd` · `fal-ai/minimax/voice-clone`   | Sample-backed character identity; expressive tags + `voice_modify`; `duration_ms`; `output_format: url`                                                         |
-| **Ultra-cheap fallback (optional)** | Kokoro                                | `fal-ai/kokoro/american-english`                                | **$0.02/1K** but **speed-only** — too limited for MatchDate character voice design; keep as cost escape hatch only                                              |
+| **Ultra-cheap fallback (optional)** | Kokoro                                | `fal-ai/kokoro/american-english`                                | **$0.02/1K** but **speed-only** — too limited for MasterDater character voice design; keep as cost escape hatch only                                              |
 | **Zero-shot alt (no clone fee)**    | Seed Audio 1.0 or Chatterbox          | `bytedance/seed-audio-1.0` · `fal-ai/chatterbox/text-to-speech` | Pass sample URL every call; no 7-day MiniMax expiry                                                                                                             |
 
 
-**Why not Kokoro as the fast tier:** Kokoro only exposes `speed` + a fixed preset list. MatchDate needs **accent / style / tone** customization before cloning — Gemini’s `style_instructions` is free-form English (“British accent, warm, slightly teasing”) and maps cleanly onto character sheet fields.
+**Why not Kokoro as the fast tier:** Kokoro only exposes `speed` + a fixed preset list. MasterDater needs **accent / style / tone** customization before cloning — Gemini’s `style_instructions` is free-form English (“British accent, warm, slightly teasing”) and maps cleanly onto character sheet fields.
 
 **Product shape (end state):**
 
@@ -56,7 +56,7 @@
 
 ## 2. Codebase findings (review 2026-10-23)
 
-Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it exists today. These drive the phases in §7.
+Findings from comparing the LuxNova-oriented LN-audio draft to MasterDater as it exists today. These drive the phases in §7.
 
 ### 2.1 What already exists
 
@@ -67,7 +67,7 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 | **Chat LLM**         | OpenRouter via fal.run SSE (`chatService.streamCompletion`); registry under `models/chat/`                                         | `chatService.ts`, `models/chat/`*, `MD-Models.md`  |
 | **Vision**           | Separate fal.run OpenRouter vision URL + constants; DESCRIBE uses trait JSON prompts                                               | `visionService.ts`, `visionTraitExtract.ts`        |
 | **Assets**           | `OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text'` only — **no `voice` / `audio`**                                          | `src/types/opfsDoc.ts`                             |
-| **Asset blobs**      | `/matchdate/assets/{img|vid|text}/` + `metadata/matchDate-asset-{id}.json` + `library.json`                                        | `paths.ts`, `assetDocument.ts`, `MD-Filesystem.md` |
+| **Asset blobs**      | `/masterdater/assets/{img|vid|text}/` + `metadata/masterDater-asset-{id}.json` + `library.json`                                        | `paths.ts`, `assetDocument.ts`, `MD-Filesystem.md` |
 | **Library UI**       | Assets tab filters IMAGE / VIDEO / TEXT; characters are `kind: 'character'` (not assets)                                           | `libraryBrowserSubtypes.ts`, `LibraryBrowser.tsx`  |
 | **Character**        | Top-level `identity` (`male` | `female` | `binary`) + `images[]`; **no voice field**                                               | `src/types/character.ts`                           |
 | **Chat `@` attach**  | Visible `@Name`; LLM also gets fenced `character`/`write` with `name`, `**identity`**, attributes, history, traits — **not voice** | `jsonAttach.ts`, `xmlAttach.ts`                    |
@@ -75,14 +75,14 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 | **Audio / TTS code** | **None** — no `models/tts/`, no `ttsService`, no voice storage                                                                     | —                                                  |
 
 
-### 2.2 LuxNova doc vs MatchDate (mismatches)
+### 2.2 LuxNova doc vs MasterDater (mismatches)
 
 
-| LN-audio assumption                                 | MatchDate reality                                                              |
+| LN-audio assumption                                 | MasterDater reality                                                              |
 | --------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `@fal-ai/client` `subscribe` like `videoService.ts` | No video/audio fal subscribe layer; only `falFetch` for chat + vision          |
-| Paths `/luxnova/assets/aud/…`                       | Root is `/matchdate`; asset dirs are `img` / `vid` / `text` / `metadata`       |
-| Character detail-chat TTS surface                   | MatchDate chat is session threads + `@` character tools (`MD-Chat-Feature.md`) |
+| Paths `/luxnova/assets/aud/…`                       | Root is `/masterdater`; asset dirs are `img` / `vid` / `text` / `metadata`       |
+| Character detail-chat TTS surface                   | MasterDater chat is session threads + `@` character tools (`MD-Chat-Feature.md`) |
 | Music / SFX / Kling lip-sync first-class            | Not shipped; keep deferred (§9)                                                |
 | `character.voiceAssetId` already sketched           | Character sheet has identity + images; voice not started                       |
 
@@ -95,10 +95,10 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 4. `**character.voiceAssetId**` — sheet + attach (Phase C, after you verify B).
 5. **Chat Play UX** — later (Phase D).
 
-### 2.4 Model-pick rationale (from LN research + MatchDate goals)
+### 2.4 Model-pick rationale (from LN research + MasterDater goals)
 
 
-| Need                                                            | Pick                                                           | Why it fits MatchDate                                                                            |
+| Need                                                            | Pick                                                           | Why it fits MasterDater                                                                            |
 | --------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Controllable voice (accent / style / tone) **without** a sample | **Gemini 3.1 Flash TTS** `$0.05/1K`                            | `style_instructions` is natural language; tags + `language_code` + `temperature`; 30 presets     |
 | Character voice + **cloning** from audio                        | **MiniMax Speech 2.8 HD** + **Voice Clone**                    | Sample-backed identity; expressive tags; `duration_ms`; clone id usable for TTS (not Kling-only) |
@@ -138,7 +138,7 @@ Findings from comparing the LuxNova-oriented LN-audio draft to MatchDate as it e
 | **Use**                   | Default when character has **no sample**; store chosen `voice` + `style_instructions` (+ optional `language_code`) on the voice asset / character      |
 
 
-**MatchDate mapping (proposed):**
+**MasterDater mapping (proposed):**
 
 ```ts
 // on VoiceAssetMetadata.preset when provider === 'gemini'
@@ -156,11 +156,11 @@ Sheet / library can edit style as a short text field (“soft Southern drawl, un
 ### 3.1a Research — Multi-speaker `speakers[]` (Gemini 3.1 Flash TTS via fal)
 
 **Sources (2026-10-24):** [fal llms.txt](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) · [fal API docs / `SpeakerConfig`](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/api)  
-**MatchDate today:** `ttsService.synthesizeSpeech` is **single-speaker only** (`prompt` + top-level `voice`). `speakers` is not sent.
+**MasterDater today:** `ttsService.synthesizeSpeech` is **single-speaker only** (`prompt` + top-level `voice`). `speakers` is not sent.
 
 > **Note — one style prompt for all speakers (confirmed):**  
 > fal exposes a single top-level `style_instructions` string for the whole request. `SpeakerConfig` is only `{ speaker_id, voice }` — **no per-speaker style field**.  
-> MatchDate stores style per voice asset (`preset.styleInstructions`). For multi-speaker calls we **must merge** those (plus any scene-level vibe) into **one** `style_instructions` string, keyed by `speaker_id` so the model can attribute delivery. Timbre still differs via each speaker’s `voice` preset; accent/tone/pace must ride in the combined style text (and/or inline tags in `prompt`).
+> MasterDater stores style per voice asset (`preset.styleInstructions`). For multi-speaker calls we **must merge** those (plus any scene-level vibe) into **one** `style_instructions` string, keyed by `speaker_id` so the model can attribute delivery. Timbre still differs via each speaker’s `voice` preset; accent/tone/pace must ride in the combined style text (and/or inline tags in `prompt`).
 
 #### How it works
 
@@ -198,7 +198,7 @@ Rules from fal:
 
 ```json
 {
-  "prompt": "Host: Welcome to MatchDate night.\nDrChen: Thanks for having me. [laughing] Shall we order?\nHost: Absolutely — tell me about your week.",
+  "prompt": "Host: Welcome to MasterDater night.\nDrChen: Thanks for having me. [laughing] Shall we order?\nHost: Absolutely — tell me about your week.",
   "style_instructions": "Natural dinner-date conversation, warm and lightly playful",
   "speakers": [
     { "speaker_id": "Host", "voice": "Charon" },
@@ -247,7 +247,7 @@ Keep a map `{ speaker_id → characterId / voiceAssetId }` so UI labels stay hum
 | Google Cloud Gemini-TTS “multi-speaker” elsewhere often = **two** voices | Cloud TTS / Interactions API docs (different surface than fal) | **Medium** — treat as a likely product limit until fal spike             |
 
 
-**Spike checklist before wiring MatchDate:**
+**Spike checklist before wiring MasterDater:**
 
 1. Call fal with **2** speakers (happy path above).
 2. Try **1** speaker in `speakers[]` (vs omitting the field).
@@ -255,7 +255,7 @@ Keep a map `{ speaker_id → characterId / voiceAssetId }` so UI labels stay hum
 4. Confirm char billing includes only `prompt` vs `prompt` + `style_instructions`.
 5. Confirm unlabeled narration lines (stage directions) are skipped or spoken — decide whether our script formatter strips them.
 
-#### MatchDate mapping (proposed, not implemented)
+#### MasterDater mapping (proposed, not implemented)
 
 
 | Product idea | API shape |
@@ -333,7 +333,7 @@ Same **$0.05/1K**. Knobs: `stability`, `similarity_boost`, `style` (0–1 exagge
 
 ### 3.3 Optional zero-shot path (spec note, not v1 required)
 
-If MiniMax’s 7-day idle expiry is too risky for MatchDate’s “save once, speak anytime” model:
+If MiniMax’s 7-day idle expiry is too risky for MasterDater’s “save once, speak anytime” model:
 
 
 | Model          | Endpoint                           | Idea                                                                                |
@@ -360,9 +360,9 @@ export type OpfsAssetSubtype = 'image' | 'video' | 'frame' | 'text' | 'voice';
 **On-disk:**
 
 ```
-/matchdate/assets/
-  voice/       matchDate-voice-{id}.mp3   (or .wav — sniff mime)
-  metadata/    matchDate-asset-{id}.json  ← AssetDocument subtype: 'voice'
+/masterdater/assets/
+  voice/       masterDater-voice-{id}.mp3   (or .wav — sniff mime)
+  metadata/    masterDater-asset-{id}.json  ← AssetDocument subtype: 'voice'
 library.json   ← catalog row kind: 'asset', subtype: 'voice'
 ```
 
@@ -453,7 +453,7 @@ interface Character {
 Rules for the initial VOICE view:
 
 - On **Say this**: call Gemini → hold `Blob` in component/view state → play via `Audio` / object URL.
-- Do **not** write the utterance into `/matchdate/assets/` or `library.json`.
+- Do **not** write the utterance into `/masterdater/assets/` or `library.json`.
 - Leaving the view / synthesizing again may drop the previous blob (revoke object URLs to avoid leaks).
 - **Save** persists the **voice design** (`voice` asset metadata), not the last spoken line.
 
@@ -525,7 +525,7 @@ src/services/fal/ttsService.ts
 
 ### 5.3 Call transport
 
-MatchDate does **not** use `@fal-ai/client` today. Spec options (pick one in Phase B):
+MasterDater does **not** use `@fal-ai/client` today. Spec options (pick one in Phase B):
 
 1. Add `@fal-ai/client` `fal.subscribe(endpoint, { input, … })` for queue models only.
 2. Implement fal queue REST (submit → poll → result) on top of `falFetch`.
@@ -558,7 +558,7 @@ Layout can mirror Prompts/Config: main panel = designer; library sidebar still l
 - Assets tab subtype filter: add **VOICE** (with IMAGE / VIDEO / TEXT).
 - Row shows `voiceName` (mirrored catalog `name`); track by GUID.
 - Create/rename/delete voice designs; favorites work like other assets.
-- Drag payload: `kind: 'asset'`, `subtype: 'voice'`, `id` = GUID (same MatchDate library drag pattern).
+- Drag payload: `kind: 'asset'`, `subtype: 'voice'`, `id` = GUID (same MasterDater library drag pattern).
 
 ### 6.2 Character sheet (Phase C — after B sign-off)
 
@@ -594,7 +594,7 @@ assets         + Gemini
 
 No fal TTS required yet.
 
-- Extend `OpfsAssetSubtype` with `'voice'`; paths (`/matchdate/assets/voice/` if sample later; metadata always).
+- Extend `OpfsAssetSubtype` with `'voice'`; paths (`/masterdater/assets/voice/` if sample later; metadata always).
 - `VoiceAssetMetadata` (`voiceName` required; `preset?`; GUID = `AssetDocument.id`).
 - `assetDocument` helpers, save/load/delete/list, library reconcile + catalog `name` ↔ `voiceName`.
 - Assets tab **VOICE** subtype filter; list row; rename/delete/favorite.
@@ -618,7 +618,7 @@ No fal TTS required yet.
 - `Character.voiceAssetId` + persistence + normalize.
 - Sheet UI: attach / clear; show `voiceName` for bound GUID.
 - Chat attach `write` includes `voiceAssetId` (+ optional `voiceName` for LLM).
-- Brief `prompt-matchDate.md` note.
+- Brief `prompt-masterDater.md` note.
 
 **Exit:** character keeps a voice across reload; attach exposes the link.
 
@@ -667,7 +667,7 @@ No fal TTS required yet.
 
 ## 9. Deferred research (from LuxNova LN-audio)
 
-Not implementing now; keep for later MatchDate media work:
+Not implementing now; keep for later MasterDater media work:
 
 
 | Area                                 | Prior shortlist                                                                                 |
@@ -701,5 +701,5 @@ Full candidate tables, prices, and case studies lived in the prior LuxNova-orien
 
 - fal explore: [Text-to-Speech APIs](https://fal.ai/explore/text-to-speech-apis)
 - TTS: [gemini-3.1-flash-tts](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/llms.txt) · [gemini-3.1-flash-tts API / SpeakerConfig](https://fal.ai/models/fal-ai/gemini-3.1-flash-tts/api) · [elevenlabs/tts/turbo-v2.5](https://fal.ai/models/fal-ai/elevenlabs/tts/turbo-v2.5/llms.txt) · [minimax/speech-2.8-hd](https://fal.ai/models/fal-ai/minimax/speech-2.8-hd/llms.txt) · [minimax/voice-clone](https://fal.ai/models/fal-ai/minimax/voice-clone/llms.txt) · [kokoro/american-english](https://fal.ai/models/fal-ai/kokoro/american-english/llms.txt) · [seed-audio-1.0](https://fal.ai/models/bytedance/seed-audio-1.0/llms.txt) · [chatterbox](https://fal.ai/models/fal-ai/chatterbox/text-to-speech/llms.txt)
-- MatchDate: `src/services/fal/falClient.ts`, `src/services/fal/models/chat/`, `src/types/opfsDoc.ts`, `src/types/character.ts`, `src/features/chat/attach/jsonAttach.ts`, `docs/MD-AssetLibrary.md`, `docs/MD-Chat-Feature.md`
+- MasterDater: `src/services/fal/falClient.ts`, `src/services/fal/models/chat/`, `src/types/opfsDoc.ts`, `src/types/character.ts`, `src/features/chat/attach/jsonAttach.ts`, `docs/MD-AssetLibrary.md`, `docs/MD-Chat-Feature.md`
 

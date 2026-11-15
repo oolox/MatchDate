@@ -3,10 +3,10 @@ import { useCallback, useState } from 'react';
 import { IconButton } from '../../ui/IconButton/IconButton';
 import type { IconName } from '../../ui/Icon/icons';
 import {
-  dataTransferHasMatchDateLibrary,
-  readMatchDateLibraryDragPayload,
-  type MatchDateLibraryDragPayload,
-} from '../../../utils/matchdateLibraryDrag';
+  dataTransferHasMasterDaterLibrary,
+  readMasterDaterLibraryDragPayload,
+  type MasterDaterLibraryDragPayload,
+} from '../../../utils/masterdaterLibraryDrag';
 import {
   MentionComposerInput,
   type MentionComposerInputHandle,
@@ -35,7 +35,7 @@ export interface MessageComposerProps {
   onSend: () => void;
   onAbort?: () => void;
   onFilesDrop?: (files: File[]) => void;
-  onLibraryDrop?: (items: MatchDateLibraryDragPayload[]) => void;
+  onLibraryDrop?: (items: MasterDaterLibraryDragPayload[]) => void;
   onComposerKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => boolean;
   onCaretChange?: (value: string, caret: number) => void;
 }
@@ -45,7 +45,7 @@ function isAcceptedDrop(dataTransfer: DataTransfer | null | undefined): boolean 
     return false;
   }
   return (
-    dataTransferHasMatchDateLibrary(dataTransfer) ||
+    dataTransferHasMasterDaterLibrary(dataTransfer) ||
     Array.from(dataTransfer.types).includes('Files')
   );
 }
@@ -135,7 +135,7 @@ export function MessageComposer({
       event.preventDefault();
       setDragActive(false);
 
-      const libraryItem = readMatchDateLibraryDragPayload(event.dataTransfer);
+      const libraryItem = readMasterDaterLibraryDragPayload(event.dataTransfer);
       if (libraryItem) {
         onLibraryDrop?.([libraryItem]);
         return;

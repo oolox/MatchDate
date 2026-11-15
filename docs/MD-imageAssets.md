@@ -1,6 +1,6 @@
-# MatchDate — Image Assets Plan
+# MasterDater — Image Assets Plan
 
-> **Purpose:** Plan for bringing LuxNova-parity image assets into MatchDate — types, storage API, library browser thumbs, then (later) character-sheet attach via drag-and-drop.
+> **Purpose:** Plan for bringing LuxNova-parity image assets into MasterDater — types, storage API, library browser thumbs, then (later) character-sheet attach via drag-and-drop.
 
 **Last updated:** 2026-10-04  
 **Reference repo:** `C:\Code\LuxNova`  
@@ -10,14 +10,14 @@
 
 ## 1. Overview
 
-MatchDate already has a thin image stack (`savedImage.ts`, `imageStorage.ts`, Assets tab IMAGE subtype, placeholder `LibraryAssetThumb`). The goal is to **duplicate LuxNova’s image asset types, API, and patterns** so images are first-class library assets (save / load / delete / catalog / real thumbs), without porting LuxNova’s full generator/gallery stack.
+MasterDater already has a thin image stack (`savedImage.ts`, `imageStorage.ts`, Assets tab IMAGE subtype, placeholder `LibraryAssetThumb`). The goal is to **duplicate LuxNova’s image asset types, API, and patterns** so images are first-class library assets (save / load / delete / catalog / real thumbs), without porting LuxNova’s full generator/gallery stack.
 
 | Phase | Scope |
 |-------|--------|
 | **Phase 1** | API, storage, and asset browser changes to support image assets end-to-end |
 | **Phase 2** | Image drag-and-drop from the asset library onto a character sheet (**high-level only for now**) |
 
-**Out of scope for this plan:** image generation UI, fal image models, video/frame pipelines, LuxNova workflows/galleries, NEG/refiner image metadata richness beyond what MatchDate needs.
+**Out of scope for this plan:** image generation UI, fal image models, video/frame pipelines, LuxNova workflows/galleries, NEG/refiner image metadata richness beyond what MasterDater needs.
 
 ---
 
@@ -35,11 +35,11 @@ Review and port patterns from LuxNova (not copy generator UX):
 | Thumbs | `LibraryAssetThumb.tsx` + `ImgContainer` | Real bitmap thumbs in library rows |
 | List routing | `LibraryListItem.tsx` | `subtype === 'image'` → image thumb |
 
-MatchDate filesystem already mirrors LuxNova layout for images:
+MasterDater filesystem already mirrors LuxNova layout for images:
 
 ```
-/matchdate/assets/img/matchDate-img-{id}.png
-/matchdate/assets/metadata/matchDate-asset-{id}.json
+/masterdater/assets/img/masterDater-img-{id}.png
+/masterdater/assets/metadata/masterDater-asset-{id}.json
 library.json → { kind: 'asset', subtype: 'image', … }
 ```
 
@@ -47,7 +47,7 @@ See `docs/MD-Filesystem.md` and `docs/MD-AssetLibrary.md` Phase D.
 
 ---
 
-## 3. Current MatchDate state
+## 3. Current MasterDater state
 
 | Piece | Status |
 |-------|--------|
@@ -63,7 +63,7 @@ See `docs/MD-Filesystem.md` and `docs/MD-AssetLibrary.md` Phase D.
 
 ## 4. Phase 1 — API, storage, asset browser
 
-**Goal:** Images can be saved, listed, previewed, and deleted like LuxNova IMAGE rows, with MatchDate naming and catalog rules.
+**Goal:** Images can be saved, listed, previewed, and deleted like LuxNova IMAGE rows, with MasterDater naming and catalog rules.
 
 ### 4.1 Types & API
 
@@ -77,7 +77,7 @@ See `docs/MD-Filesystem.md` and `docs/MD-AssetLibrary.md` Phase D.
 
 ### 4.2 Storage
 
-- Confirm paths: `imagePath` / `imageFileName` under `/matchdate/assets/img/`.
+- Confirm paths: `imagePath` / `imageFileName` under `/masterdater/assets/img/`.
 - Metadata JSON via existing `assetDocumentFromImageRef` + `ensureImageAsset`.
 - Catalog: `subtype: 'image'`, searchable/sortable under Assets → IMAGE.
 - Tests: extend `assetCatalog` / image storage tests (save → list → load → delete).
@@ -124,7 +124,7 @@ See `docs/MD-Filesystem.md` and `docs/MD-AssetLibrary.md` Phase D.
 | Storage | `imageStorage.ts`, `assetDocument.ts`, `assetPersistence.ts`, `persistenceService.ts`, tests |
 | Hooks | Port/adapt `useObjectUrl` |
 | UI | `LibraryAssetThumb.tsx`, optional `ImgContainer`, Assets upload control |
-| Drag (Phase 2 only) | `matchdateLibraryDrag.ts`, character editor drop zone |
+| Drag (Phase 2 only) | `masterdaterLibraryDrag.ts`, character editor drop zone |
 
 ---
 
@@ -133,7 +133,7 @@ See `docs/MD-Filesystem.md` and `docs/MD-AssetLibrary.md` Phase D.
 - Porting LuxNova image **generation** prompts, samplers, or fal image endpoints
 - Full Saved Images gallery / BottomDrawer chrome
 - Video posters / FRAME subtypes
-- Automatic migration from LuxNova OPFS into MatchDate
+- Automatic migration from LuxNova OPFS into MasterDater
 
 ---
 

@@ -11,9 +11,9 @@ import type { CharacterIdentity } from '../../types/character';
 import type { DateSummaryData } from '../../types/dateSummary';
 import { nowIso } from '../../utils/id';
 import {
-  dataTransferHasMatchDateLibrary,
-  readMatchDateLibraryDragPayload,
-} from '../../utils/matchdateLibraryDrag';
+  dataTransferHasMasterDaterLibrary,
+  readMasterDaterLibraryDragPayload,
+} from '../../utils/masterdaterLibraryDrag';
 import { VoiceDesignerPanel } from '../voice/VoiceDesignerPanel';
 import type { VoiceEditor } from '../voice/useVoiceEditor';
 import type { CharacterEditorApi } from './CharacterEditorContext';
@@ -143,7 +143,7 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
 
   const handleVoiceDragOver = useCallback(
     (event: DragEvent) => {
-      if (sheetBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
+      if (sheetBusy || !dataTransferHasMasterDaterLibrary(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
@@ -163,11 +163,11 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const handleVoiceDrop = useCallback(
     (event: DragEvent) => {
       setVoiceDragActive(false);
-      if (sheetBusy || !dataTransferHasMatchDateLibrary(event.dataTransfer)) {
+      if (sheetBusy || !dataTransferHasMasterDaterLibrary(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
-      const payload = readMatchDateLibraryDragPayload(event.dataTransfer);
+      const payload = readMasterDaterLibraryDragPayload(event.dataTransfer);
       if (payload?.kind === 'asset' && payload.subtype === 'voice') {
         void attachVoiceFromLibrary(payload);
         setVoiceExpanded(true);

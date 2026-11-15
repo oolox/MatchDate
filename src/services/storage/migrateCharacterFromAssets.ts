@@ -5,10 +5,9 @@ import {
   parseCharacterPayload,
   saveCharacterDocument,
 } from './characterPersistence';
-import { ASSETS_METADATA_DIR, assetPath } from './paths';
+import { ASSETS_METADATA_DIR, assetPath, parseAssetIdFromFileName } from './paths';
 
 const LEGACY_CHARACTER_METADATA_KEY = 'character';
-const ASSET_FILE_PREFIX = 'matchDate-asset-';
 
 /** One-time migration: asset subtype `character` → top-level character documents. */
 export async function migrateCharacterFromAssets(): Promise<void> {
@@ -26,10 +25,7 @@ export async function migrateCharacterFromAssets(): Promise<void> {
     }
 
     const fileName = entry.path.split('/').pop() ?? '';
-    if (!fileName.startsWith(ASSET_FILE_PREFIX)) {
-      continue;
-    }
-    const id = fileName.slice(ASSET_FILE_PREFIX.length, -'.json'.length);
+    const id = parseAssetIdFromFileName(fileName);
     if (!id) {
       continue;
     }

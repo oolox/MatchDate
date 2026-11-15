@@ -1,9 +1,9 @@
-# MatchDate — Build Guide (Start Here)
+# MasterDater — Build Guide (Start Here)
 
-> **Read this document first.** It describes how to build MatchDate — a browser-only chat app with **streaming chat (FAL.ai)** and **browser persistence (OPFS)**. Deep dives live in the companion docs; use this as the map and build order.
+> **Read this document first.** It describes how to build MasterDater — a browser-only chat app with **streaming chat (FAL.ai)** and **browser persistence (OPFS)**. Deep dives live in the companion docs; use this as the map and build order.
 
 **Last updated:** 2026-09-01  
-**Repo:** MatchDate (`c:\Code\MatchDate`)  
+**Repo:** MasterDater (`c:\Code\MasterDater`)  
 **Stack:** Vite + React SPA with chat, system prompts, and a library sidebar.
 
 ---
@@ -12,12 +12,12 @@
 
 A **browser-only** chat app with:
 
-| Capability | MatchDate pattern |
+| Capability | MasterDater pattern |
 |------------|-------------------|
 | Stream LLM replies | FAL OpenRouter SSE via `fetch` (no chat backend) |
 | Chat UI | Message list + composer + streaming placeholders |
 | System prompts | OPFS presets + global active + per-session override |
-| Save/load chats | `SessionDocument` under `/matchdate/prompts/sessions/` |
+| Save/load chats | `SessionDocument` under `/masterdater/prompts/sessions/` |
 | Library sidebar | `LibraryBrowser` listing sessions and prompts |
 | `@` text attach (optional) | Client-side file read → XML in `apiContent` |
 
@@ -43,7 +43,7 @@ All three docs live in this repo's `docs/` folder.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  MatchDate (Vite SPA)                                                     │
+│  MasterDater (Vite SPA)                                                     │
 ├──────────────────────────────────────────────────────────────────────────┤
 │  Routes: /  /session/:id  /prompts                                       │
 │                                                                          │
@@ -62,7 +62,7 @@ All three docs live in this repo's `docs/` folder.
 │  loadPromptsState / savePreset / setActivePrompt                        │
 │             │                            │                              │
 │             ▼                            ▼                              │
-│  FileStorageService (OPFS)  /matchdate/...                                │
+│  FileStorageService (OPFS)  /masterdater/...                                │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -80,8 +80,8 @@ All three docs live in this repo's `docs/` folder.
 ### 4.1 Create project
 
 ```bash
-npm create vite@latest matchdate -- --template react-ts
-cd matchdate
+npm create vite@latest masterdater -- --template react-ts
+cd masterdater
 ```
 
 ### 4.2 Install dependencies
@@ -166,7 +166,7 @@ src/
       types.ts                  # FileStorageService
       localOpfsStorage.ts
       inMemoryFileStorage.ts    # tests
-      paths.ts                  # OPFS_ROOT = '/matchdate'
+      paths.ts                  # OPFS_ROOT = '/masterdater'
       persistenceService.ts     # facade
       hydrateDocs.ts            # asset register/hydrate (text only for v1)
       libraryIndex.ts
@@ -218,9 +218,9 @@ src/
 **OPFS branding constants** (`paths.ts`):
 
 ```ts
-export const OPFS_ROOT = '/matchdate';
-// sessionDocumentPath(id) → /matchdate/prompts/sessions/matchDate-{id}.json
-// presetPath(slug)      → /matchdate/prompts/session/{slug}.json
+export const OPFS_ROOT = '/masterdater';
+// sessionDocumentPath(id) → /masterdater/prompts/sessions/masterDater-{id}.json
+// presetPath(slug)      → /masterdater/prompts/session/{slug}.json
 ```
 
 ### 4.6 App shell
@@ -343,9 +343,9 @@ Work in order. Each phase should run in the browser before moving on.
 **OPFS paths (minimum):**
 
 ```
-/matchdate/config.json
-/matchdate/library.json
-/matchdate/prompts/sessions/matchDate-{id}.json    ← chat sessions (plural)
+/masterdater/config.json
+/masterdater/library.json
+/masterdater/prompts/sessions/masterDater-{id}.json    ← chat sessions (plural)
 ```
 
 **Save trigger:** After assistant turn completes, or explicit Save — merge Redux thread → `applyThreadToSession` → `saveSessionDocument`.
@@ -369,7 +369,7 @@ Work in order. Each phase should run in the browser before moving on.
 | UI | `PromptsView` + `PromptsContainer` + `usePromptsEditor` |
 | Wire send | `MessageComposerContainer` uses `selectActiveSystemPrompt` |
 
-**OPFS path:** `/matchdate/prompts/session/{slug}.json` ← prompt presets (singular)
+**OPFS path:** `/masterdater/prompts/session/{slug}.json` ← prompt presets (singular)
 
 **Seed on first boot:** slug `default`, body `You are a helpful assistant.`
 
@@ -418,7 +418,7 @@ Work in order. Each phase should run in the browser before moving on.
 
 - `useTxtChatAttachments.ts`
 - `attach/atQuery.ts`, `xmlAttach.ts`, `validateTextAttachment.ts`
-- `textStorage.ts` + `/matchdate/assets/text/`
+- `textStorage.ts` + `/masterdater/assets/text/`
 - `MentionMenu`, `AttachmentChips`
 
 **Done when:** `@` opens menu, file attaches as chip, model receives XML blocks in `apiContent`.
@@ -542,7 +542,7 @@ Files to create under `src/`:
 - [ ] `services/localStorage.ts`
 - [ ] `types/opfsDoc.ts`, `types/session.ts`, `types/chat.ts`
 - [ ] `AppBootstrap.tsx`
-- [ ] `paths.ts` — `OPFS_ROOT = '/matchdate'`, `matchDate-` file prefix
+- [ ] `paths.ts` — `OPFS_ROOT = '/masterdater'`, `masterDater-` file prefix
 
 ### Library UI
 
@@ -585,7 +585,7 @@ Run after each phase:
 | 9 | `@` attach → model references file content | 5 |
 | 10 | `npm test` — core service tests pass | any |
 
-**Manual OPFS inspect:** DevTools → Application → Storage → Origin Private File System → `matchdate/`.
+**Manual OPFS inspect:** DevTools → Application → Storage → Origin Private File System → `masterdater/`.
 
 ---
 
@@ -594,7 +594,7 @@ Run after each phase:
 Paste this into a **new Cursor chat** (attach the three docs):
 
 ```
-I am building MatchDate — a Vite React chat app.
+I am building MasterDater — a Vite React chat app.
 
 Read these docs in order:
 1. docs/MD-portingGuide.md  (build phases)
@@ -602,12 +602,12 @@ Read these docs in order:
 3. docs/MD-Filesystem.md    (OPFS + library)
 
 I am on Phase [N]. Implement Phase [N] per the build guide.
-Repo: c:\Code\MatchDate
+Repo: c:\Code\MasterDater
 
 Constraints:
 - Browser-only: FAL key in VITE_FAL_KEY, no chat backend
-- OPFS under /matchdate (sessions/ = chats, session/ = prompt presets)
-- Session file prefix: matchDate-{id}
+- OPFS under /masterdater (sessions/ = chats, session/ = prompt presets)
+- Session file prefix: masterDater-{id}
 - Container/presentational split, Redux Toolkit, CSS Modules
 - Skip image/video/game/characters unless I ask
 ```
@@ -672,7 +672,7 @@ const saved = await saveSessionDocument(applyThreadToSession(doc, thread))
 
 ---
 
-## 12. What MatchDate Does NOT Need (v1)
+## 12. What MasterDater Does NOT Need (v1)
 
 - Backend server or database
 - `@fal-ai/client` for chat (raw `fetch` only)

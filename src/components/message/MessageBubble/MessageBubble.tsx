@@ -17,7 +17,7 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
   const isWaitingForResponse =
     !isUser && message.status === 'streaming' && message.content.trim().length === 0;
 
-  const roleLabel = isUser ? 'You' : 'MatchDate';
+  const roleLabel = isUser ? 'You' : 'MasterDater';
   const displayContent = message.content;
   const messageClass = [
     styles.message,
@@ -30,10 +30,10 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
 
   if (isWaitingForResponse) {
     return (
-      <article className={messageClass} aria-label="MatchDate is generating">
+      <article className={messageClass} aria-label="MasterDater is generating">
         <Spinner
           size={CHAT_WAITING_SPINNER_SIZE}
-          label="MatchDate is generating"
+          label="MasterDater is generating"
           className={styles.waitingSpinner}
         />
       </article>

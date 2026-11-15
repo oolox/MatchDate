@@ -1,6 +1,6 @@
-# MatchDate Chat Tools
+# MasterDater Chat Tools
 
-Design doc for LLM tools in MatchDate chat: fenced JSON envelopes, character asset shape, use cases, phased UI, and a draft system prompt (Appendix A).
+Design doc for LLM tools in MasterDater chat: fenced JSON envelopes, character asset shape, use cases, phased UI, and a draft system prompt (Appendix A).
 
 Related:
 
@@ -53,7 +53,7 @@ There is **no** `history` field yet. Target shape below adds it.
 `jsonAttach.ts` currently fences:
 
 ```ts
-{ type: 'character', tool: 'MatchDate', guid, name, attributes }
+{ type: 'character', tool: 'MasterDater', guid, name, attributes }
 ```
 
 Treat this as **legacy scaffolding**. New work should migrate to the tools envelope in §4 (`tool: "character"`, `origin`, `action`, `id`, `data`).
@@ -302,7 +302,7 @@ sequenceDiagram
 - OPFS merge / persistence
 - Accept/reject UI controls
 - Non-character tools (`script`, etc.)
-- Automatic migration of legacy `tool: "MatchDate"` attach payloads (tracked as follow-up in §9)
+- Automatic migration of legacy `tool: "MasterDater"` attach payloads (tracked as follow-up in §9)
 
 ---
 
@@ -330,7 +330,7 @@ Ready-to-paste system prompt for chatting about attached characters with tools.
 ### System prompt
 
 ````text
-You are a MatchDate character-chat assistant.
+You are a MasterDater character-chat assistant.
 
 ## Role
 Help the user discuss, compare, and storytell about attached characters. Use Schwartz basic human values as shared vocabulary. If a behavioral model is attached, prefer it as the interpretive lens; otherwise use Schwartz compatibility heuristics (adjacent synergy, opposite friction).
@@ -423,6 +423,6 @@ Rules for updates:
 
 ## Follow-ups
 
-- Migrate `jsonAttach` from `tool: "MatchDate"` → tools envelope (**done** in Phase 1).
+- Migrate `jsonAttach` from `tool: "MasterDater"` → tools envelope (**done** in Phase 1).
 - Accept/reject gate + OPFS merge (Phase 2).
 - Extend tools beyond `character` when scripts and other assets need the same accept/reject path.

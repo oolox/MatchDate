@@ -1,7 +1,13 @@
 import type { SavedTextKind, SavedTextRef } from '../../types/savedText';
 import { getFileStorageService } from './index';
 import { ensureTextAsset } from './assetPersistence';
-import { parseTextIdFromFileName, textMetaPath, textPath, TEXT_ASSETS_DIR } from './paths';
+import {
+  parseTextIdFromFileName,
+  textFileName,
+  textMetaPath,
+  textPath,
+  TEXT_ASSETS_DIR,
+} from './paths';
 
 /** One-time migration: sidecar JSON in /assets/text/ → metadata JSON + catalog row. */
 export async function migrateTextAssetMetadata(): Promise<void> {
@@ -34,7 +40,7 @@ export async function migrateTextAssetMetadata(): Promise<void> {
       const originalName = parsed.originalName ?? parsed.metadata?.originalName ?? id;
       const ref: SavedTextRef = {
         id,
-        fileName: `matchDate-text-${id}.txt`,
+        fileName: textFileName(id),
         path: textPath(id),
         createdAt: parsed.createdAt ?? new Date(0).toISOString(),
         mimeType: parsed.mimeType ?? 'text/plain',

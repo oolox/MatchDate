@@ -1,8 +1,14 @@
 # MasterDater rename plan (MatchDate → MasterDater)
 
-> **Purpose:** Plan a full product rename from **MatchDate** to **MasterDater** — UI copy, identifiers, filenames, comments, docs, and persistence keys — without losing existing OPFS / localStorage data unless we explicitly choose a wipe.  
-> **Status:** plan only (do not execute until approved).  
-> **Last updated:** 2026-11-15
+> **Purpose:** Plan a full product rename from **MatchDate** to **MasterDater** — UI copy, identifiers, filenames, comments, docs, and persistence keys — **without losing existing OPFS / localStorage data**.  
+> **Status:** Phases A–D **done** (2026-11-15). Phase E (GitHub / local folder) deferred.  
+> **Last updated:** 2026-11-15  
+> **Hard constraints:**  
+> - **D1:** Preserve all data as it exists today. Must load legacy characters, chats, and prompts. **Do not wipe.**  
+> - **D2:** One-time OPFS basename rename `matchDate-*` → `masterDater-*` (with legacy read fallback during/after migrate).  
+> - **D3:** Keep `MD-*` doc filenames (`MD` = MasterDater / MatchDate series); **update doc contents** to MasterDater.  
+> - **D4:** GitHub / local folder rename is **Phase E (later)**.  
+> - **D5:** Change **all** user-facing labels to MasterDater (including assistant chat bubble).
 
 ---
 
@@ -15,12 +21,16 @@
 | Path / URL slug | `masterdater` (lowercase) |
 | Camel identifiers | `MasterDater…` / `masterDater…` |
 | Constants / MIME | `MASTERDATER_…` / `application/x-masterdater-…` |
-| OPFS root | `/masterdater` (with **migration** from `/matchdate`) |
-| localStorage prefix | `masterdater.` (with **read-fallback** from `matchdate.`) |
-| Doc filename prefix `MD-*` | Keep **`MD-`** as the doc series prefix for now (= MasterDater docs); update **content** to say MasterDater. Optionally rename files later. |
+| OPFS root | `/masterdater` (**required migration** from `/matchdate`; never wipe) |
+| localStorage prefix | `masterdater.` (**copy** from `matchdate.*`; never wipe) |
+| D1 data policy | **LOCKED — soft migrate only; load all legacy data** |
+| D2 file prefixes | **LOCKED — migrate once** `matchDate-*` → `masterDater-*` |
+| D3 doc filenames | **LOCKED — keep `MD-*`**; update contents (`MD` = MasterDater / MatchDate) |
+| D4 repo/folder | **LOCKED — Phase E later** |
+| D5 UI labels | **LOCKED — all labels → MasterDater** |
 | This plan file | `docs/MD-rename.md` (stays) |
 
-**Do not** rename the git remotes / GitHub repo / local folder in the same PR unless separately requested — track as Phase E.
+**Do not** rename git remotes / GitHub / local folder until Phase E.
 
 ---
 
@@ -31,10 +41,11 @@
 1. Every **user-visible** string says MasterDater (header, empty state, spinner, `<title>`, assistant role label, prompts).
 2. Every **code identifier** that embeds the old brand is renamed (types, functions, MIME, constants, file basenames under `src/`).
 3. Every **comment / doc / prompt** that names the product is updated.
-4. Existing browser data keeps working via a **one-time migration** (OPFS tree + localStorage keys), or we document a deliberate wipe for alpha.
+4. Existing browser data **must** keep working via migration (OPFS tree + localStorage keys + legacy path/prefix reads). Characters, chats, prompts, assets, voices — all load after rename.
 
 ### Non-goals (unless added later)
 
+- **Wiping or requiring “clear site data”** — forbidden under D1.
 - Rewriting unrelated history in git commits.
 - Renaming GitHub `oolox/MatchDate` or the local `C:\Code\MatchDate` directory in Phase A–D.
 - Changing the `MD-*.md` doc **filename** convention in the first pass (content yes; mass file rename optional Phase D).
@@ -136,21 +147,16 @@ On `AppBootstrap` / storage init (before library load):
    - Else if `/matchdate` exists → **rename/move** root directory to `/masterdater` (or copy-then-delete if rename unsupported).
    - Else → create `/masterdater`.
 2. **Basenames**
-   - Option A (simpler): keep reading **both** `matchDate-*` and `masterDater-*` prefixes forever (or until a later cleanup).
-   - Option B: walk OPFS once and rename files `matchDate-` → `masterDater-`, then update `library.json` paths.
-   - **Recommend Option B** in the same bootstrap migration if path rewrite is already needed for the root move; otherwise Option A for v1.
+   - **D2 locked:** walk OPFS once and rename files `matchDate-` → `masterDater-`, then update `library.json` paths.
+   - Keep a short **legacy read fallback** for any leftover `matchDate-*` paths so nothing is orphaned if migrate is interrupted.
 3. **localStorage**
    - For each new key: if missing, copy value from old `matchdate.*` key; optionally remove old key after success.
 
-### 4.2 Alpha alternative: wipe
+### 4.2 Wipe — **rejected (D1)**
 
-If product is still private alpha and data loss is OK:
+Do **not** ship a path/key rename without a migrator. Do **not** ask users to clear site data as the upgrade path.
 
-- Change paths/keys with **no** migrator.
-- Document “clear site data” for testers.
-- Faster, riskier — call out in release notes.
-
-**Default for this plan: soft migration (4.1).**
+**Locked: soft migration only (§4.1).** Phase C is blocked on migrator + legacy-load tests.
 
 ### 4.3 Drag MIME compatibility
 
@@ -197,7 +203,7 @@ Writers use the new MIME only.
 1. Bulk replace product name in `docs/**` (including `MCP.md`, `MD-audio.md`, etc.).
 2. Fix links to `prompt-masterDater.md`.
 3. `package.json` / lockfile `name`.
-4. Decide whether to rename `MD-*.md` files themselves (optional; large diff). If yes, use a script and fix cross-links in one commit.
+4. Keep `MD-*.md` filenames (D3); update all doc **content** to MasterDater.
 5. Update `MD-rename.md` status → **done** when complete.
 
 ### Phase E — Repo / folder / remotes (optional, separate)
@@ -225,14 +231,14 @@ Keep PRs/commits reviewable:
 
 ## 7. Verification checklist
 
-- [ ] Grep clean for user-facing `MatchDate` (allowlist: this plan’s “old” column, migration comments, changelog).
-- [ ] Grep `matchdate` / `matchDate` / `MATCHDATE` only in migrator + legacy fallbacks.
-- [ ] `npm test` green.
-- [ ] Fresh profile: app boots; creates `/masterdater`.
-- [ ] Legacy profile: `/matchdate` data visible after upgrade.
-- [ ] Drag character/image/text/voice from library → composer / sheet still works.
-- [ ] Header, welcome, spinner, document title, assistant bubble label = MasterDater.
-- [ ] Prompt file path and `characterSystemPrompt` agree.
+- [x] Grep clean for user-facing `MatchDate` (allowlist: this plan’s “old” column, migration comments, changelog).
+- [x] Grep `matchdate` / `matchDate` / `MATCHDATE` only in migrator + legacy fallbacks.
+- [x] `npm test` green (storage / drag / migrate suites).
+- [ ] Fresh profile: app boots; creates `/masterdater` (manual).
+- [ ] Legacy profile: `/matchdate` data visible after upgrade (manual).
+- [ ] Drag character/image/text/voice from library → composer / sheet still works (manual).
+- [x] Header, welcome, spinner, document title, assistant bubble label = MasterDater.
+- [x] Prompt file path and `characterSystemPrompt` agree.
 
 ---
 
@@ -248,23 +254,23 @@ Keep PRs/commits reviewable:
 
 ---
 
-## 9. Decision log (to confirm before coding)
+## 9. Decision log
 
-| # | Question | Proposed default |
-|---|----------|------------------|
-| D1 | Soft migration vs wipe? | **Soft migration** |
-| D2 | Rename OPFS file prefixes now or dual-read forever? | **Migrate once** to `masterDater-` |
-| D3 | Rename all `docs/MD-*.md` filenames? | **Not in first pass** (content only) |
-| D4 | Rename GitHub repo in same effort? | **Separate Phase E** |
-| D5 | Assistant chat label “MasterDater” vs character name? | Keep product name as today (`MatchDate` → `MasterDater`) |
+| # | Question | Decision |
+|---|----------|----------|
+| D1 | Soft migration vs wipe? | **DECIDED — soft migrate only.** Preserve today’s data; must load legacy characters, chats, prompts. No wipe. |
+| D2 | Rename OPFS file prefixes now or dual-read forever? | **DECIDED — migrate once** to `masterDater-*`, with legacy read fallback. |
+| D3 | Rename all `docs/MD-*.md` filenames? | **DECIDED — keep `MD-*` filenames** (`MD` = MasterDater / MatchDate). Update **contents** to MasterDater. |
+| D4 | Rename GitHub repo in same effort? | **DECIDED — Phase E later** (not in code rename). |
+| D5 | Assistant / product labels? | **DECIDED — change ALL user-facing labels to MasterDater.** |
 
 ---
 
 ## 10. Implementation order (when executing)
 
-1. Confirm D1–D5 with stakeholders.
-2. Land this plan (already present).
-3. Phase A → B → C → D; stop for QA after C.
-4. Phase E only after prod/alpha users are notified.
+1. D1–D5 are locked.
+2. Land this plan update (already present).
+3. Phase A → B → C → D; **Phase C must prove legacy load** before merge.
+4. Phase E (GitHub / folder) later, when requested.
 
-**Do not start Phases A–E until this plan is approved.**
+**Phases A–D executed.** Phase E awaits an explicit request.

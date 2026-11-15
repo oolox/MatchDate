@@ -2,7 +2,7 @@ import type { SavedTextKind, SavedTextMetadata, SavedTextRef } from '../../types
 import { createId, nowIso } from '../../utils/id';
 import { ensureTextAsset, tryLoadAssetDocument } from './assetPersistence';
 import { getFileStorageService } from './index';
-import { textMetaPath, textPath } from './paths';
+import { textFileName, textMetaPath, textPath } from './paths';
 
 const EXCERPT_LENGTH = 200;
 
@@ -32,7 +32,7 @@ export async function saveText(
 ): Promise<SavedTextRef> {
   const storage = getFileStorageService();
   const id = createId();
-  const fileName = `matchDate-text-${id}.txt`;
+  const fileName = textFileName(id);
   const path = textPath(id);
   const mimeType = mimeTypeForFileName(originalName);
 

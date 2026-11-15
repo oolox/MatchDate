@@ -285,7 +285,7 @@ describe('characterSlice', () => {
     const img = (id: string): SavedImageRef => ({
       id,
       fileName: `${id}.png`,
-      path: `/matchdate/assets/img/${id}.png`,
+      path: `/masterdater/assets/img/${id}.png`,
       createdAt: '2026-09-13T17:00:00.000Z',
     });
     const character = createDefaultCharacter('Alex');

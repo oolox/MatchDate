@@ -1,5 +1,8 @@
 /** Custom MIME for reordering images already on the character sheet. */
-export const CHARACTER_IMAGE_REORDER_MIME = 'application/x-matchdate-character-image-reorder';
+export const CHARACTER_IMAGE_REORDER_MIME =
+  'application/x-masterdater-character-image-reorder';
+const CHARACTER_IMAGE_REORDER_MIME_LEGACY =
+  'application/x-matchdate-character-image-reorder';
 
 export function dataTransferHasCharacterImageReorder(
   dataTransfer: DataTransfer | null | undefined,
@@ -7,7 +10,11 @@ export function dataTransferHasCharacterImageReorder(
   if (!dataTransfer) {
     return false;
   }
-  return Array.from(dataTransfer.types).includes(CHARACTER_IMAGE_REORDER_MIME);
+  const types = Array.from(dataTransfer.types);
+  return (
+    types.includes(CHARACTER_IMAGE_REORDER_MIME) ||
+    types.includes(CHARACTER_IMAGE_REORDER_MIME_LEGACY)
+  );
 }
 
 export function setCharacterImageReorderDragData(
@@ -29,7 +36,9 @@ export function readCharacterImageReorderDragId(
   if (!dataTransfer) {
     return null;
   }
-  const id = dataTransfer.getData(CHARACTER_IMAGE_REORDER_MIME)?.trim();
+  const id =
+    dataTransfer.getData(CHARACTER_IMAGE_REORDER_MIME)?.trim() ||
+    dataTransfer.getData(CHARACTER_IMAGE_REORDER_MIME_LEGACY)?.trim();
   return id || null;
 }
 

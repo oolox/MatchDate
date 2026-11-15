@@ -1,4 +1,4 @@
-# MatchDate — Asset Library Plan
+# MasterDater — Asset Library Plan
 
 > **Purpose:** Document the library sort/search UX and asset catalog architecture, ported from LuxNova's `assetLibrary` patterns.
 
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-MatchDate's library sidebar lists chat sessions, system prompts, and (target) text/image/video assets from `library.json`. This guide covers:
+MasterDater's library sidebar lists chat sessions, system prompts, and (target) text/image/video assets from `library.json`. This guide covers:
 
 1. **Sort + search** — LuxNova-style collapsible search, persisted sort controls
 2. **Asset types** — `kind: 'asset'` with `subtype: image | video | text`
@@ -43,11 +43,11 @@ subtype?: 'image' | 'video' | 'text' | 'frame'  // frame deferred
 ### On-disk layout
 
 ```
-/matchdate/assets/
-  img/         matchDate-img-{id}.png
-  vid/         matchDate-vid-{id}.mp4 (+ poster JPEGs)
-  text/        matchDate-text-{id}.txt
-  metadata/    matchDate-asset-{id}.json   ← AssetDocument
+/masterdater/assets/
+  img/         masterDater-img-{id}.png
+  vid/         masterDater-vid-{id}.mp4 (+ poster JPEGs)
+  text/        masterDater-text-{id}.txt
+  metadata/    masterDater-asset-{id}.json   ← AssetDocument
 library.json   ← catalog index row per asset
 ```
 
@@ -77,7 +77,7 @@ LibrarySidebar
   └── LibraryList → LibraryListItem → thumbs
 ```
 
-### Tab mapping (MatchDate simplified)
+### Tab mapping (MasterDater simplified)
 
 | Tab | `kinds` | `listKind` (sort pref key) | Subtypes |
 |-----|---------|---------------------------|----------|
@@ -176,10 +176,10 @@ LibrarySidebar
 
 | Key | Default |
 |-----|---------|
-| `matchdate.librarySort.session` | `{ field: 'updatedAt', direction: 'desc' }` |
-| `matchdate.librarySort.prompt` | `{ field: 'name', direction: 'asc' }` |
-| `matchdate.librarySort.character` | `{ field: 'name', direction: 'asc' }` |
-| `matchdate.librarySort.asset` | `{ field: 'updatedAt', direction: 'desc' }` |
+| `masterdater.librarySort.session` | `{ field: 'updatedAt', direction: 'desc' }` |
+| `masterdater.librarySort.prompt` | `{ field: 'name', direction: 'asc' }` |
+| `masterdater.librarySort.character` | `{ field: 'name', direction: 'asc' }` |
+| `masterdater.librarySort.asset` | `{ field: 'updatedAt', direction: 'desc' }` |
 
 ---
 
@@ -188,15 +188,15 @@ LibrarySidebar
 **Before:**
 
 ```
-/assets/text/matchDate-text-{id}.txt
-/assets/text/matchDate-text-{id}.json   ← not in library.json
+/assets/text/masterDater-text-{id}.txt
+/assets/text/masterDater-text-{id}.json   ← not in library.json
 ```
 
 **After:**
 
 ```
-/assets/text/matchDate-text-{id}.txt
-/assets/metadata/matchDate-asset-{id}.json
+/assets/text/masterDater-text-{id}.txt
+/assets/metadata/masterDater-asset-{id}.json
 library.json → { kind: 'asset', subtype: 'text', … }
 ```
 
@@ -204,7 +204,7 @@ Run `migrateTextAssetMetadata()` once on boot (idempotent). Keep dual-read until
 
 ---
 
-## 9. Scope (MatchDate v1)
+## 9. Scope (MasterDater v1)
 
 | Feature | Include |
 |---------|---------|
@@ -223,11 +223,11 @@ Run `migrateTextAssetMetadata()` once on boot (idempotent). Keep dual-read until
 
 When porting, replace prefixes:
 
-| LuxNova | MatchDate |
+| LuxNova | MasterDater |
 |---------|-----------|
-| `/luxnova/` | `/matchdate/` |
-| `luxNova-asset-` | `matchDate-asset-` |
-| `luxnova.librarySort.*` | `matchdate.librarySort.*` |
+| `/luxnova/` | `/masterdater/` |
+| `luxNova-asset-` | `masterDater-asset-` |
+| `luxnova.librarySort.*` | `masterdater.librarySort.*` (via legacy `matchdate.*`) |
 
 **LuxNova source files:**
 

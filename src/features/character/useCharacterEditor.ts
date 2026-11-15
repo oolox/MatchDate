@@ -17,7 +17,7 @@ import type {
 import { normalizeCharacterIdentity } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { formatFailure } from '../../utils/formatFailure';
-import type { MatchDateLibraryDragPayload } from '../../utils/matchdateLibraryDrag';
+import type { MasterDaterLibraryDragPayload } from '../../utils/masterdaterLibraryDrag';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { bumpLibraryEpoch, selectLibraryEpoch } from '../../store/slices/appShellSlice';
 import {
@@ -311,7 +311,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   );
 
   const attachVoiceFromLibrary = useCallback(
-    async (item: MatchDateLibraryDragPayload) => {
+    async (item: MasterDaterLibraryDragPayload) => {
       if (item.kind !== 'asset' || item.subtype !== 'voice') {
         return;
       }
@@ -377,7 +377,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   );
 
   const addImagesFromLibrary = useCallback(
-    async (items: MatchDateLibraryDragPayload[]) => {
+    async (items: MasterDaterLibraryDragPayload[]) => {
       const imageItems = items.filter(
         (item) => item.kind === 'asset' && (item.subtype === 'image' || item.subtype === undefined),
       );

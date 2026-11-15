@@ -55,8 +55,8 @@ describe('characterPersistence', () => {
     character.images = [
       {
         id: 'img-1',
-        fileName: 'matchDate-img-img-1.png',
-        path: '/matchdate/assets/img/matchDate-img-img-1.png',
+        fileName: 'masterDater-img-img-1.png',
+        path: '/masterdater/assets/img/masterDater-img-img-1.png',
         createdAt: '2026-09-13T17:00:00.000Z',
         metadata: { originalName: 'portrait.png' },
       },

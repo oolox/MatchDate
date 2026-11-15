@@ -1,6 +1,6 @@
-# MatchDate — fal MCP research
+# MasterDater — fal MCP research
 
-> **Purpose:** Capture what fal’s **Model Generation MCP** (`https://mcp.fal.ai/mcp-relay`) is, whether it can replace MatchDate’s fal API layer, and how we should (and should not) integrate it as we add **video** and **audio** generation.
+> **Purpose:** Capture what fal’s **Model Generation MCP** (`https://mcp.fal.ai/mcp-relay`) is, whether it can replace MasterDater’s fal API layer, and how we should (and should not) integrate it as we add **video** and **audio** generation.
 
 **Last updated:** 2026-11-13  
 **Status:** research / scoping (no code change).  
@@ -20,12 +20,12 @@
 | Question | Answer |
 |----------|--------|
 | What is `mcp.fal.ai/mcp-relay`? | Hosted **MCP** endpoint so **AI assistants** (Cursor, Claude, ChatGPT, …) can search/run fal models via tools |
-| Can we **replace** `falClient` / `fal.run` in the MatchDate SPA? | **No** — wrong client, wrong auth, wrong control plane for a product UI |
-| Useful for MatchDate? | **Yes, as a research & agent-dev surface** (discover models, schemas, pricing, spike video/audio) |
+| Can we **replace** `falClient` / `fal.run` in the MasterDater SPA? | **No** — wrong client, wrong auth, wrong control plane for a product UI |
+| Useful for MasterDater? | **Yes, as a research & agent-dev surface** (discover models, schemas, pricing, spike video/audio) |
 | Right runtime for in-app generation? | Keep **`fal.run` + `VITE_FAL_KEY`** (or `@fal-ai/client` queue); mirror MCP’s **submit → poll → result** semantics for long jobs |
 | Video / long audio later? | Use fal **Queue** (`submit` / `status` / `result`) — same pattern MCP wraps as `submit_job` / `check_job` / `get_job_result` |
 
-**Recommendation:** Do **not** route chat TTS, vision, or future user-facing image/video/audio through MCP. Use MCP in Cursor to pick models and learn schemas; implement MatchDate media jobs on the existing fal HTTP layer (extend with queue helpers).
+**Recommendation:** Do **not** route chat TTS, vision, or future user-facing image/video/audio through MCP. Use MCP in Cursor to pick models and learn schemas; implement MasterDater media jobs on the existing fal HTTP layer (extend with queue helpers).
 
 ---
 
@@ -47,7 +47,7 @@ Transport for the relay: **Streamable HTTP**. Auth for plugin / assistant client
 
 ### 1.2 Who the client is
 
-MCP tools are invoked by an **assistant runtime** (Cursor Agent, Claude, ChatGPT plugin, …), not by a React `onClick` in MatchDate.
+MCP tools are invoked by an **assistant runtime** (Cursor Agent, Claude, ChatGPT plugin, …), not by a React `onClick` in MasterDater.
 
 Flow:
 
@@ -55,10 +55,10 @@ Flow:
 User ↔ AI assistant ↔ MCP tools ↔ fal Platform API ↔ model queue / CDN
 ```
 
-MatchDate today:
+MasterDater today:
 
 ```text
-User ↔ MatchDate UI ↔ falFetch (VITE_FAL_KEY) ↔ fal.run / OpenRouter
+User ↔ MasterDater UI ↔ falFetch (VITE_FAL_KEY) ↔ fal.run / OpenRouter
 ```
 
 Those are different products. MCP does not give the browser app a drop-in SDK.
@@ -95,7 +95,7 @@ Product page / marketplace listings may also mention extras (`estimate_cost`, `s
 
 ---
 
-## 2. MatchDate fal layer today
+## 2. MasterDater fal layer today
 
 | Path | Mechanism | Notes |
 |------|-----------|--------|
@@ -119,7 +119,7 @@ Product requirements the SPA must keep:
 
 ### 3.1 Verdict: **No as the app transport**
 
-| Concern | MCP relay | MatchDate needs |
+| Concern | MCP relay | MasterDater needs |
 |---------|-----------|-----------------|
 | Client | Assistant MCP host | Browser SPA |
 | Auth | OAuth (or key in **IDE** MCP config) | App-held `VITE_FAL_KEY` (or future user-scoped proxy) |
@@ -127,7 +127,7 @@ Product requirements the SPA must keep:
 | Latency / UX | Tool turns + 45s bounded wait | Immediate button → progress → blob/OPFS |
 | Abort | Job cancel tools; assistant-mediated | Sync stop on play button / abort controllers |
 | Discovery | Soft `recommend_model` | Hard registries + prompts |
-| Media home | fal CDN / assistant download links | MatchDate library + character binding |
+| Media home | fal CDN / assistant download links | MasterDater library + character binding |
 
 Replacing `falFetch` with “call MCP tools from the browser” would mean embedding an MCP client + OAuth in the web app for every user — far heavier than fal.run, and still a poor fit for SSE chat.
 
@@ -143,11 +143,11 @@ Replacing `falFetch` with “call MCP tools from the browser” would mean embed
 
 ### 3.3 Relationship to fal Platform API
 
-MCP is a **tool facade** over fal’s platform (catalog + queue + CDN upload). MatchDate already talks to the same underlying platform via **`fal.run`**. Replacing MCP with nothing; replacing `fal.run` with MCP would only add an assistant-shaped hop.
+MCP is a **tool facade** over fal’s platform (catalog + queue + CDN upload). MasterDater already talks to the same underlying platform via **`fal.run`**. Replacing MCP with nothing; replacing `fal.run` with MCP would only add an assistant-shaped hop.
 
 Conceptual mapping:
 
-| MCP tool | Closest MatchDate / fal API idea |
+| MCP tool | Closest MasterDater / fal API idea |
 |----------|-----------------------------------|
 | `run_model` | `fal.run/<endpoint>` or short `subscribe` |
 | `submit_job` / `check_job` / `get_job_result` | fal **Queue** submit / status / result |
@@ -173,7 +173,7 @@ Likely next (from `MD-audio`): MiniMax clone, longer utterances, optional persis
 
 ### 4.2 Video (new)
 
-Video is almost always **long-running** → MCP docs say use queue tools from the start. MatchDate should do the same on the API:
+Video is almost always **long-running** → MCP docs say use queue tools from the start. MasterDater should do the same on the API:
 
 ```text
 submit (endpoint_id, input)
@@ -200,7 +200,7 @@ Same story as video but often short enough for `run_model`-style wait; still pre
 
 **A. Dev / agent workflow (now)**
 
-1. Optionally connect Cursor to `https://mcp.fal.ai/mcp-relay` (OAuth) for MatchDate contributors.
+1. Optionally connect Cursor to `https://mcp.fal.ai/mcp-relay` (OAuth) for MasterDater contributors.
 2. Use tools to research candidates for:
    - image-to-video / text-to-video
    - TTS / voice clone
@@ -210,7 +210,7 @@ Same story as video but often short enough for `run_model`-style wait; still pre
 
 **B. Runtime media job layer (when building video / long audio)**
 
-Add a small MatchDate service (names illustrative):
+Add a small MasterDater service (names illustrative):
 
 | Module | Responsibility |
 |--------|----------------|
@@ -228,7 +228,7 @@ Design the queue API to **mirror MCP job semantics** so mental model and docs st
 
 ### 5.2 Out of scope / non-goals
 
-- Calling `mcp.fal.ai` from the MatchDate browser bundle.
+- Calling `mcp.fal.ai` from the MasterDater browser bundle.
 - Replacing OpenRouter SSE chat with MCP `run_model`.
 - End-user OAuth to fal MCP as the only way to generate.
 - Dynamically picking models every turn via `recommend_model` in production (unstable UX + cost surprises).
@@ -236,9 +236,9 @@ Design the queue API to **mirror MCP job semantics** so mental model and docs st
 
 ### 5.3 Optional later (only if product becomes agent-shaped)
 
-If MatchDate ships an **in-app agent** that should “use tools” to generate media:
+If MasterDater ships an **in-app agent** that should “use tools” to generate media:
 
-1. Prefer a **MatchDate-owned tool layer** that wraps `falQueue` / `ttsService` (deterministic, audited).
+1. Prefer a **MasterDater-owned tool layer** that wraps `falQueue` / `ttsService` (deterministic, audited).
 2. Or host a **backend MCP bridge** with server-side fal key — still not the public `mcp-relay` OAuth path for random users.
 3. Do not point end users at Cursor’s fal plugin.
 
@@ -276,7 +276,7 @@ Safe first prompt (docs):
 Use fal to search for image generation models. Do not run a model.
 ```
 
-For MatchDate spikes, prefer prompts that **stop before spend**:
+For MasterDater spikes, prefer prompts that **stop before spend**:
 
 ```text
 Use fal to recommend text-to-video models and show get_pricing for the top 3.
@@ -289,7 +289,7 @@ Do not run or submit a job.
 
 1. **Prod key architecture:** Keep shared `VITE_FAL_KEY` vs per-user / server proxy before expensive video is enabled.
 2. **`@fal-ai/client` vs raw queue REST:** `MD-audio` left this open; pick when implementing `falQueue` (MCP won’t decide).
-3. **CDN TTL:** MCP `expiration_seconds` vs MatchDate always copying media into OPFS immediately.
+3. **CDN TTL:** MCP `expiration_seconds` vs MasterDater always copying media into OPFS immediately.
 4. **Whether Platform MCP** is useful for serverless experiments — only if we deploy custom fal apps (not planned).
 
 ---
@@ -311,7 +311,7 @@ Do not run or submit a job.
 - fal MCP overview: https://fal.ai/mcp  
 - Cursor: https://fal.ai/docs/documentation/setting-up/mcp/cursor  
 - Docs-only MCP: https://fal.ai/docs/mcp  
-- MatchDate fal auth: `src/services/fal/falClient.ts`  
-- MatchDate TTS: `src/services/fal/ttsService.ts`  
-- MatchDate chat: `src/services/fal/chatService.ts`  
+- MasterDater fal auth: `src/services/fal/falClient.ts`  
+- MasterDater TTS: `src/services/fal/ttsService.ts`  
+- MasterDater chat: `src/services/fal/chatService.ts`  
 - Audio roadmap: `docs/MD-audio.md`  

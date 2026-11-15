@@ -1,10 +1,10 @@
-# MatchDate — Quote tool (spoken dialogue in chat)
+# MasterDater — Quote tool (spoken dialogue in chat)
 
 > **Purpose:** Spec for a display-only `quote` tool so character speech appears as structured chat chrome (thumbnail + name + line), not only as prose. Adapted from the existing fenced-tool pipeline in `MD-tools.md`.
 
 **Last updated:** 2026-11-01  
 **Status:** Phase A shipped — types/parse/split + QuoteBubble + prompt; Phase B (click-through / TTS) not started.  
-**Related:** [`MD-tools.md`](./MD-tools.md), [`MD-Chat-Feature.md`](./MD-Chat-Feature.md), [`MD-audio.md`](./MD-audio.md), [`prompts/prompt-matchDate.md`](../prompts/prompt-matchDate.md), [`src/components/library/LibraryList/LibraryCharacterThumb.tsx`](../src/components/library/LibraryList/LibraryCharacterThumb.tsx)
+**Related:** [`MD-tools.md`](./MD-tools.md), [`MD-Chat-Feature.md`](./MD-Chat-Feature.md), [`MD-audio.md`](./MD-audio.md), [`prompts/prompt-masterDater.md`](../prompts/prompt-masterDater.md), [`src/components/library/LibraryList/LibraryCharacterThumb.tsx`](../src/components/library/LibraryList/LibraryCharacterThumb.tsx)
 
 ---
 
@@ -34,7 +34,7 @@ They order coffee.
 
 ## 1. Purpose
 
-MatchDate chat already uses fenced JSON tools for **character** attach / update / create. Spoken dialogue today is plain markdown (`John: Hello`), which:
+MasterDater chat already uses fenced JSON tools for **character** attach / update / create. Spoken dialogue today is plain markdown (`John: Hello`), which:
 
 - Cannot show a stable character thumbnail next to the line
 - Is awkward for future per-line TTS / multi-speaker audio ([`MD-audio.md`](./MD-audio.md) §3.1a)
@@ -68,7 +68,7 @@ flowchart LR
 | Split / UI | [`splitAssistantContent.ts`](../src/utils/splitAssistantContent.ts) only lifts **character** fences; other ` ```json ` blocks stay in markdown | Treat `quote` fences as tool (or `quote`) blocks |
 | Render | [`AssistantMessageContent.tsx`](../src/components/message/AssistantMessageContent/AssistantMessageContent.tsx) → [`ToolResponse.tsx`](../src/components/chat/ToolResponse/ToolResponse.tsx) | New **QuoteBubble** (not the collapsible character ToolResponse chrome) |
 | Apply | [`MessageComposerContainer`](../src/features/chat/containers/MessageComposerContainer.tsx) `onDone` → `processTools` for agent `update` / `create` | Quotes **ignored** by processors (render-only) |
-| Prompt | [`prompts/prompt-matchDate.md`](../prompts/prompt-matchDate.md) | New section: when / how to emit quotes |
+| Prompt | [`prompts/prompt-masterDater.md`](../prompts/prompt-masterDater.md) | New section: when / how to emit quotes |
 
 ### 2.2 Contrast with character tools
 
@@ -182,7 +182,7 @@ Invalid or incomplete fences while streaming: show a streaming QuoteBubble skele
 
 ---
 
-## 4. Prompt rules (for `prompt-matchDate.md`)
+## 4. Prompt rules (for `prompt-masterDater.md`)
 
 Add a dedicated section (implement in Phase A). Intent:
 
@@ -279,7 +279,7 @@ spec                   ship quotes     polish / TTS hook
 - [x] Split: `splitAssistantContent` lifts quote fences (complete + streaming)
 - [x] UI: `QuoteBubble` + wired in `AssistantMessageContent`
 - [x] Apply path: `parseCharacterToolMessages` only; `processTools` ignores non-character
-- [x] Prompt: quote section in `prompts/prompt-matchDate.md`
+- [x] Prompt: quote section in `prompts/prompt-masterDater.md`
 - [x] Tests: parse + split fixtures
 
 **Exit:** Assistant replies can interleave narration + QuoteBubbles; character update/create still work.
@@ -323,7 +323,7 @@ spec                   ship quotes     polish / TTS hook
 | UI | `src/components/chat/QuoteBubble/*` (new); `AssistantMessageContent.tsx` |
 | Thumb reuse | `src/components/library/LibraryList/LibraryCharacterThumb.tsx` |
 | Apply | `src/services/tools/processTools.ts` / composer `onDone` — ensure quotes skipped |
-| Prompt | `prompts/prompt-matchDate.md` |
+| Prompt | `prompts/prompt-masterDater.md` |
 | Docs | This file; brief cross-link from `MD-tools.md` § tool extensibility |
 
 ---
@@ -332,6 +332,6 @@ spec                   ship quotes     polish / TTS hook
 
 - Tool envelope protocol: [`MD-tools.md`](./MD-tools.md)
 - Chat streaming / messages: [`MD-Chat-Feature.md`](./MD-Chat-Feature.md)
-- Live system prompt: [`prompts/prompt-matchDate.md`](../prompts/prompt-matchDate.md)
+- Live system prompt: [`prompts/prompt-masterDater.md`](../prompts/prompt-masterDater.md)
 - Future speech: [`MD-audio.md`](./MD-audio.md) §3.1a multi-speaker research
 - Character thumb: [`LibraryCharacterThumb.tsx`](../src/components/library/LibraryList/LibraryCharacterThumb.tsx)

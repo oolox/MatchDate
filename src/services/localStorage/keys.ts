@@ -1,11 +1,11 @@
 export const LOCAL_STORAGE_KEYS = {
-  txtModel: 'matchdate.txtModel',
-  prepromptAssetId: 'matchdate.prepromptAssetId',
-  librarySidebarWidthPx: 'matchdate.librarySidebarWidthPx',
-  librarySortSession: 'matchdate.librarySort.session',
-  librarySortPrompt: 'matchdate.librarySort.prompt',
-  librarySortCharacter: 'matchdate.librarySort.character',
-  librarySortAsset: 'matchdate.librarySort.asset',
+  txtModel: 'masterdater.txtModel',
+  prepromptAssetId: 'masterdater.prepromptAssetId',
+  librarySidebarWidthPx: 'masterdater.librarySidebarWidthPx',
+  librarySortSession: 'masterdater.librarySort.session',
+  librarySortPrompt: 'masterdater.librarySort.prompt',
+  librarySortCharacter: 'masterdater.librarySort.character',
+  librarySortAsset: 'masterdater.librarySort.asset',
 } as const;
 
 export type LocalStorageKey = (typeof LOCAL_STORAGE_KEYS)[keyof typeof LOCAL_STORAGE_KEYS];

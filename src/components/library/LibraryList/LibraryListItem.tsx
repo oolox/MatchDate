@@ -5,8 +5,8 @@ import type { LibraryItemMeta } from '../../../services/storage/types';
 import { normalizeCharacterIdentity } from '../../../types/character';
 import {
   canDragLibraryItem,
-  setMatchDateLibraryDragData,
-} from '../../../utils/matchdateLibraryDrag';
+  setMasterDaterLibraryDragData,
+} from '../../../utils/masterdaterLibraryDrag';
 import { formatLibraryListDateTime } from './libraryListDateTime';
 import { LibraryAssetThumb } from './LibraryAssetThumb';
 import { LibraryCharacterThumb } from './LibraryCharacterThumb';
@@ -66,7 +66,7 @@ export function LibraryListItem({
     if (!canDrag) {
       return;
     }
-    setMatchDateLibraryDragData(event.dataTransfer, {
+    setMasterDaterLibraryDragData(event.dataTransfer, {
       kind: item.kind,
       id: item.id,
       subtype: item.subtype,

@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Spinner } from './components/ui/Spinner/Spinner';
+import { getFileStorageService } from './services/storage';
+import { migrateBrandStorage } from './services/storage/migrateBrandStorage';
 import {
   loadPromptsState,
   loadSessionsState,
@@ -25,6 +27,7 @@ export function AppBootstrap({ children }: AppBootstrapProps) {
 
     void (async () => {
       try {
+        await migrateBrandStorage(getFileStorageService());
         await reconcileLibrary();
         const [sessions, prompts] = await Promise.all([
           loadSessionsState(),
@@ -53,7 +56,7 @@ export function AppBootstrap({ children }: AppBootstrapProps) {
   if (!ready) {
     return (
       <div className={styles.loading} role="status" aria-live="polite">
-        <Spinner label="Loading MatchDate" />
+        <Spinner label="Loading MasterDater" />
       </div>
     );
   }

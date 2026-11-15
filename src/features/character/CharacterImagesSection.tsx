@@ -11,10 +11,10 @@ import type { CharacterTraitTag } from '../../types/character';
 import type { SavedImageRef } from '../../types/savedImage';
 import { formatFailure } from '../../utils/formatFailure';
 import {
-  dataTransferHasMatchDateLibrary,
-  readMatchDateLibraryDragPayload,
-  type MatchDateLibraryDragPayload,
-} from '../../utils/matchdateLibraryDrag';
+  dataTransferHasMasterDaterLibrary,
+  readMasterDaterLibraryDragPayload,
+  type MasterDaterLibraryDragPayload,
+} from '../../utils/masterdaterLibraryDrag';
 import {
   dataTransferHasCharacterImageReorder,
   readCharacterImageReorderDragId,
@@ -35,7 +35,7 @@ export interface CharacterImagesSectionProps {
   images: SavedImageRef[];
   disabled?: boolean;
   onFilesDrop: (files: File[]) => void;
-  onLibraryDrop: (items: MatchDateLibraryDragPayload[]) => void;
+  onLibraryDrop: (items: MasterDaterLibraryDragPayload[]) => void;
   onRemove: (imageId: string) => void;
   onReorder: (images: SavedImageRef[]) => void;
   onApplyTraits: (
@@ -48,7 +48,7 @@ function isExternalAcceptedDrop(dataTransfer: DataTransfer | null | undefined): 
     return false;
   }
   return (
-    dataTransferHasMatchDateLibrary(dataTransfer) ||
+    dataTransferHasMasterDaterLibrary(dataTransfer) ||
     Array.from(dataTransfer.types).includes('Files')
   );
 }
@@ -124,7 +124,7 @@ export function CharacterImagesSection({
       event.preventDefault();
       setDragActive(false);
 
-      const libraryItem = readMatchDateLibraryDragPayload(event.dataTransfer);
+      const libraryItem = readMasterDaterLibraryDragPayload(event.dataTransfer);
       if (libraryItem) {
         onLibraryDrop([libraryItem]);
         return;

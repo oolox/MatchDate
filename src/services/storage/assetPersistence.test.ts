@@ -41,7 +41,7 @@ describe('assetPersistence', () => {
   it('deletes asset metadata and catalog row', async () => {
     const ref = {
       id: 'text-1',
-      fileName: 'matchDate-text-text-1.txt',
+      fileName: 'masterDater-text-text-1.txt',
       path: textPath('text-1'),
       createdAt: '2026-01-01T00:00:00.000Z',
       mimeType: 'text/plain' as const,
@@ -60,7 +60,7 @@ describe('assetPersistence', () => {
   it('ensureTextAsset is idempotent', async () => {
     const ref = {
       id: 'text-2',
-      fileName: 'matchDate-text-text-2.txt',
+      fileName: 'masterDater-text-text-2.txt',
       path: textPath('text-2'),
       createdAt: '2026-01-01T00:00:00.000Z',
       mimeType: 'text/plain' as const,

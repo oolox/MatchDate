@@ -1,6 +1,15 @@
 import type { StoragePath } from './types';
 
-export const OPFS_ROOT = '/matchdate';
+/** Canonical OPFS root (MasterDater). */
+export const OPFS_ROOT = '/masterdater';
+/** Legacy MatchDate root — read/migrate only. */
+export const OPFS_ROOT_LEGACY = '/matchdate';
+
+/** Canonical file basename brand prefix. */
+export const FILE_BRAND_PREFIX = 'masterDater-';
+/** Legacy MatchDate file basename prefix. */
+export const FILE_BRAND_PREFIX_LEGACY = 'matchDate-';
+
 export const PROMPTS_DIR = `${OPFS_ROOT}/prompts`;
 export const PROMPTS_SESSIONS_DIR = `${PROMPTS_DIR}/sessions`;
 /** System prompt presets (singular — not chat sessions). */
@@ -15,20 +24,44 @@ export const VOICE_ASSETS_DIR = `${ASSETS_DIR}/voice`;
 export const ASSETS_METADATA_DIR = `${ASSETS_DIR}/metadata`;
 export const CHARACTERS_DIR = `${OPFS_ROOT}/characters`;
 
+/** Rewrite legacy root + file brand prefixes in a storage path. */
+export function toCanonicalStoragePath(path: StoragePath): StoragePath {
+  let next = path.replace(/\\/g, '/');
+  if (next === OPFS_ROOT_LEGACY || next.startsWith(`${OPFS_ROOT_LEGACY}/`)) {
+    next = `${OPFS_ROOT}${next.slice(OPFS_ROOT_LEGACY.length)}`;
+  }
+  return next.split('/').map((segment) => {
+    if (!segment) {
+      return segment;
+    }
+    if (segment.startsWith(FILE_BRAND_PREFIX_LEGACY)) {
+      return `${FILE_BRAND_PREFIX}${segment.slice(FILE_BRAND_PREFIX_LEGACY.length)}`;
+    }
+    return segment;
+  }).join('/');
+}
+
+/** Rewrite legacy brand strings inside JSON/text payloads. */
+export function rewriteBrandText(content: string): string {
+  return content
+    .split(OPFS_ROOT_LEGACY).join(OPFS_ROOT)
+    .split(FILE_BRAND_PREFIX_LEGACY).join(FILE_BRAND_PREFIX);
+}
+
 export function characterDocumentFileName(id: string): string {
-  return `matchDate-char-${id}.json`;
+  return `${FILE_BRAND_PREFIX}char-${id}.json`;
 }
 
 export function imageFileName(id: string): string {
-  return `matchDate-img-${id}.png`;
+  return `${FILE_BRAND_PREFIX}img-${id}.png`;
 }
 
 export function videoFileName(id: string): string {
-  return `matchDate-vid-${id}.mp4`;
+  return `${FILE_BRAND_PREFIX}vid-${id}.mp4`;
 }
 
 export function assetFileName(id: string): string {
-  return `matchDate-asset-${id}.json`;
+  return `${FILE_BRAND_PREFIX}asset-${id}.json`;
 }
 
 export function imagePath(id: string): StoragePath {
@@ -48,11 +81,11 @@ export function characterDocumentPath(id: string): StoragePath {
 }
 
 export function textFileName(id: string): string {
-  return `matchDate-text-${id}.txt`;
+  return `${FILE_BRAND_PREFIX}text-${id}.txt`;
 }
 
 export function textMetaFileName(id: string): string {
-  return `matchDate-text-${id}.json`;
+  return `${FILE_BRAND_PREFIX}text-${id}.json`;
 }
 
 export function textPath(id: string): StoragePath {
@@ -64,25 +97,54 @@ export function textMetaPath(id: string): StoragePath {
 }
 
 export function voiceFileName(id: string): string {
-  return `matchDate-voice-${id}.bin`;
+  return `${FILE_BRAND_PREFIX}voice-${id}.bin`;
 }
 
 export function voicePath(id: string): StoragePath {
   return `${VOICE_ASSETS_DIR}/${voiceFileName(id)}`;
 }
 
-export function parseTextIdFromFileName(fileName: string): string | null {
-  const prefix = 'matchDate-text-';
-  if (!fileName.startsWith(prefix)) {
-    return null;
-  }
-  if (fileName.endsWith('.txt')) {
-    return fileName.slice(prefix.length, -'.txt'.length) || null;
-  }
-  if (fileName.endsWith('.json')) {
-    return fileName.slice(prefix.length, -'.json'.length) || null;
+function idFromPrefixedFileName(
+  fileName: string,
+  kind: 'text' | 'char' | 'asset' | 'img' | 'vid' | 'voice' | 'session',
+  extensions: string[],
+): string | null {
+  const prefixes = [
+    `${FILE_BRAND_PREFIX}${kind === 'session' ? '' : `${kind}-`}`,
+    `${FILE_BRAND_PREFIX_LEGACY}${kind === 'session' ? '' : `${kind}-`}`,
+  ];
+  // session files are masterDater-{id}.json / matchDate-{id}.json (no extra kind segment)
+  const sessionPrefixes = [FILE_BRAND_PREFIX, FILE_BRAND_PREFIX_LEGACY];
+  const usePrefixes = kind === 'session' ? sessionPrefixes : prefixes;
+
+  for (const prefix of usePrefixes) {
+    if (!fileName.startsWith(prefix)) {
+      continue;
+    }
+    for (const ext of extensions) {
+      if (fileName.endsWith(ext)) {
+        const id = fileName.slice(prefix.length, -ext.length);
+        return id || null;
+      }
+    }
   }
   return null;
+}
+
+export function parseTextIdFromFileName(fileName: string): string | null {
+  return idFromPrefixedFileName(fileName, 'text', ['.txt', '.json']);
+}
+
+export function parseCharacterIdFromFileName(fileName: string): string | null {
+  return idFromPrefixedFileName(fileName, 'char', ['.json']);
+}
+
+export function parseAssetIdFromFileName(fileName: string): string | null {
+  return idFromPrefixedFileName(fileName, 'asset', ['.json']);
+}
+
+export function parseSessionIdFromFileName(fileName: string): string | null {
+  return idFromPrefixedFileName(fileName, 'session', ['.json']);
 }
 
 export function presetFileName(slug: string): string {
@@ -94,7 +156,7 @@ export function presetPath(slug: string): StoragePath {
 }
 
 export function sessionDocumentFileName(id: string): string {
-  return `matchDate-${id}.json`;
+  return `${FILE_BRAND_PREFIX}${id}.json`;
 }
 
 export function sessionDocumentPath(id: string): StoragePath {
