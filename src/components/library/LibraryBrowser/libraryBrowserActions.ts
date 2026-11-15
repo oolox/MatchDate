@@ -1,12 +1,9 @@
-import { deleteAsset, deleteCharacter, deletePreset, deleteSession, toggleFavorite } from '../../../services/storage/persistenceService';
+import { deleteAsset, deleteCharacter, deleteSession, toggleFavorite } from '../../../services/storage/persistenceService';
 import type { LibraryItemMeta } from '../../../services/storage/types';
 import { formatFailure } from '../../../utils/formatFailure';
 
 export async function deleteLibraryItem(item: LibraryItemMeta): Promise<void> {
   switch (item.kind) {
-    case 'prompt':
-      await deletePreset(item.id);
-      return;
     case 'session':
       await deleteSession(item.id);
       return;

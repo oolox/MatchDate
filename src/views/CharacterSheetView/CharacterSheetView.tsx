@@ -4,7 +4,7 @@ import { useCharacterEditor } from '../../features/character/useCharacterEditor'
 import { useVoiceEditor } from '../../features/voice/useVoiceEditor';
 import { SessionWorkspaceLayout } from '../../features/session/SessionWorkspaceLayout';
 import { useAppSelector } from '../../store/hooks';
-import { selectStorageReady } from '../../store/slices/promptsSlice';
+import { selectSessionsStorageReady } from '../../store/slices/sessionsSlice';
 
 export interface CharacterSheetViewProps {
   /** From `/character/:id` when that section is active; null on `/character` or while hidden. */
@@ -12,7 +12,7 @@ export interface CharacterSheetViewProps {
 }
 
 export function CharacterSheetView({ characterId = null }: CharacterSheetViewProps) {
-  const storageReady = useAppSelector(selectStorageReady);
+  const storageReady = useAppSelector(selectSessionsStorageReady);
   const editor = useCharacterEditor(characterId?.trim() || null);
   const voiceEditor = useVoiceEditor();
 

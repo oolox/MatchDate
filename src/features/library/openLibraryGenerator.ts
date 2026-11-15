@@ -27,13 +27,6 @@ export function pathForGeneratorLoad(item: LibraryItemMeta): string | null {
   return sessionPathForId(item.id);
 }
 
-export function pathForPromptLoad(item: LibraryItemMeta): string | null {
-  if (item.kind !== 'prompt') {
-    return null;
-  }
-  return `/prompts?load=${encodeURIComponent(item.id)}`;
-}
-
 export async function loadSessionIntoApp(options: {
   sessionId: string;
   dispatch: AppDispatch;

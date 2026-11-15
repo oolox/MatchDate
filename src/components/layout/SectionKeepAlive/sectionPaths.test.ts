@@ -13,7 +13,7 @@ describe('sectionPaths', () => {
     expect(isKnownAppPath('/session/1')).toBe(true);
     expect(isKnownAppPath('/character')).toBe(true);
     expect(isKnownAppPath('/voice')).toBe(false);
-    expect(isKnownAppPath('/prompts')).toBe(true);
+    expect(isKnownAppPath('/prompts')).toBe(false);
     expect(isKnownAppPath('/config')).toBe(true);
     expect(isKnownAppPath('/nope')).toBe(false);
   });

@@ -20,8 +20,8 @@ describe('libraryListSort', () => {
 
   it('sorts by name', () => {
     const items = [
-      libraryItem('prompt', '2', 'Zed'),
-      libraryItem('prompt', '1', 'Ann'),
+      libraryItem('character', '2', 'Zed'),
+      libraryItem('character', '1', 'Ann'),
     ];
     expect(sortLibraryItems(items, 'name', 'asc').map((item) => item.name)).toEqual(['Ann', 'Zed']);
     expect(sortLibraryItems(items, 'name', 'desc').map((item) => item.name)).toEqual(['Zed', 'Ann']);
@@ -51,12 +51,12 @@ describe('libraryListSort', () => {
 
   it('sorts starred with favorites first for ascending', () => {
     const items = [
-      libraryItem('prompt', 'a', 'Alpha', { isFavorite: false }),
-      libraryItem('prompt', 'b', 'Beta', {
+      libraryItem('character', 'a', 'Alpha', { isFavorite: false }),
+      libraryItem('character', 'b', 'Beta', {
         isFavorite: true,
         favoritedAt: '2026-01-02T00:00:00.000Z',
       }),
-      libraryItem('prompt', 'c', 'Charlie', {
+      libraryItem('character', 'c', 'Charlie', {
         isFavorite: true,
         favoritedAt: '2026-01-03T00:00:00.000Z',
       }),

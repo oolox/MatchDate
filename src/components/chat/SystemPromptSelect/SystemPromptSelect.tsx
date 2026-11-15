@@ -1,15 +1,11 @@
 import { useMemo } from 'react';
 import { DropdownSelect } from '../../ui/DropdownSelect';
+import { DEFAULT_BUNDLED_PROMPT_ID } from '../../../features/chat/bundledPrompts';
 import {
-  LIBRARY_SYSTEM_PROMPT_VALUE,
   systemPromptSelectOptions,
   threadSystemPromptSelectValue,
 } from '../../../features/chat/sessionSystemPrompt';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  selectActiveSystemPresetSlug,
-  selectPresetCatalog,
-} from '../../../store/slices/promptsSlice';
 import { setThreadSystemPromptSlug } from '../../../store/slices/threadSlice';
 import type { ThreadId } from '../../../types/chat';
 import styles from './SystemPromptSelect.module.css';
@@ -26,16 +22,10 @@ export function SystemPromptSelect({
   className,
 }: SystemPromptSelectProps) {
   const dispatch = useAppDispatch();
-  const presetCatalog = useAppSelector(selectPresetCatalog);
-  const activeSystemPresetSlug = useAppSelector(selectActiveSystemPresetSlug);
   const thread = useAppSelector((state) => state.thread.threads[threadId]);
 
-  const options = useMemo(
-    () => systemPromptSelectOptions(presetCatalog, activeSystemPresetSlug),
-    [activeSystemPresetSlug, presetCatalog],
-  );
-
-  const value = threadSystemPromptSelectValue(thread, activeSystemPresetSlug);
+  const options = useMemo(() => systemPromptSelectOptions(), []);
+  const value = threadSystemPromptSelectValue(thread);
 
   return (
     <DropdownSelect
@@ -47,7 +37,7 @@ export function SystemPromptSelect({
       value={value}
       disabled={disabled}
       onChange={(next) => {
-        const slug = next === LIBRARY_SYSTEM_PROMPT_VALUE ? null : next;
+        const slug = next === DEFAULT_BUNDLED_PROMPT_ID ? null : next;
         dispatch(setThreadSystemPromptSlug({ threadId, slug }));
       }}
     />

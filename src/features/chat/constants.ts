@@ -1,6 +1,6 @@
-import { CHARACTER_SYSTEM_PROMPT } from './characterSystemPrompt';
+import { getDefaultBundledPrompt } from './bundledPrompts';
 
 export const DEFAULT_THREAD_ID = 'default-thread';
 
-/** Default chat system prompt — character tools protocol (docs/MD-tools.md). */
-export const DEFAULT_SYSTEM_PROMPT = CHARACTER_SYSTEM_PROMPT;
+/** Default chat system prompt — body of `prompts/prompt-masterDater.md`. */
+export const DEFAULT_SYSTEM_PROMPT = getDefaultBundledPrompt().body;

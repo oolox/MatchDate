@@ -112,7 +112,7 @@ export function ConfigView() {
             </div>
           </div>
           <p className={styles.hint}>
-            Export zips the entire <code>/masterdater</code> OPFS tree (chats, prompts, characters,
+            Export zips the entire <code>/masterdater</code> OPFS tree (chats, characters,
             assets). Import accepts MasterDater or legacy MatchDate zips, writes under{' '}
             <code>/masterdater</code>, and refreshes the library.
           </p>

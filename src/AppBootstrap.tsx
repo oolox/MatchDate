@@ -3,14 +3,12 @@ import { Spinner } from './components/ui/Spinner/Spinner';
 import { getFileStorageService } from './services/storage';
 import { migrateBrandStorage } from './services/storage/migrateBrandStorage';
 import {
-  loadPromptsState,
   loadSessionsState,
   reconcileLibrary,
   requestPersistentStorage,
 } from './services/storage/persistenceService';
 import { useAppDispatch } from './store/hooks';
 import { hydrateLocalStorage, loadLocalStorageSliceState } from './store/slices/localStorageSlice';
-import { hydratePrompts } from './store/slices/promptsSlice';
 import { hydrateSessions } from './store/slices/sessionsSlice';
 import styles from './AppBootstrap.module.css';
 
@@ -29,14 +27,10 @@ export function AppBootstrap({ children }: AppBootstrapProps) {
       try {
         await migrateBrandStorage(getFileStorageService());
         await reconcileLibrary();
-        const [sessions, prompts] = await Promise.all([
-          loadSessionsState(),
-          loadPromptsState(),
-        ]);
+        const sessions = await loadSessionsState();
         if (!cancelled) {
           dispatch(hydrateLocalStorage(loadLocalStorageSliceState()));
           dispatch(hydrateSessions(sessions));
-          dispatch(hydratePrompts(prompts));
           await requestPersistentStorage();
         }
       } catch (error) {

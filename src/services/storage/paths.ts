@@ -12,7 +12,7 @@ export const FILE_BRAND_PREFIX_LEGACY = 'matchDate-';
 
 export const PROMPTS_DIR = `${OPFS_ROOT}/prompts`;
 export const PROMPTS_SESSIONS_DIR = `${PROMPTS_DIR}/sessions`;
-/** System prompt presets (singular — not chat sessions). */
+/** @deprecated Legacy OPFS system-prompt presets; cleaned up by migrateLegacyOpfsPrompts. */
 export const PROMPTS_PRESET_DIR = `${PROMPTS_DIR}/session`;
 export const CONFIG_PATH = `${OPFS_ROOT}/config.json`;
 export const LIBRARY_PATH = `${OPFS_ROOT}/library.json`;

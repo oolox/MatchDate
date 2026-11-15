@@ -42,7 +42,6 @@ import {
   setPinnedToBottom,
 } from '../../../store/slices/chatUiSlice';
 import { selectChatModel, selectPrepromptAssetId } from '../../../store/slices/localStorageSlice';
-import { selectActiveSystemPrompt } from '../../../store/slices/promptsSlice';
 import {
   appendMessage,
   createId,
@@ -81,7 +80,6 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   const draft = useAppSelector(selectComposerDraft);
   const isStreaming = useAppSelector(selectIsStreaming);
   const messages = useAppSelector(selectActiveMessages);
-  const activeSystemPrompt = useAppSelector(selectActiveSystemPrompt);
   const chatModel = useAppSelector(selectChatModel);
   const storedPrepromptId = useAppSelector(selectPrepromptAssetId);
   const thread = useAppSelector(
@@ -237,7 +235,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     dispatch(setPinnedToBottom(true));
 
     const isFirstMessage = messages.length === 0;
-    let systemPrompt = await resolveThreadSystemPrompt(thread, activeSystemPrompt);
+    let systemPrompt = resolveThreadSystemPrompt(thread);
     if (isFirstMessage) {
       try {
         const texts = (await listAssets())
@@ -375,7 +373,6 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     });
   }, [
     abortRef,
-    activeSystemPrompt,
     attach,
     begin,
     chatModel,

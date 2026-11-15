@@ -27,18 +27,11 @@ const SESSIONS_SUBTYPES: readonly LibraryBrowserSubtypeTab[] = [
   { id: 'all', label: 'ALL', kind: null },
 ];
 
-const PROMPTS_SUBTYPES: readonly LibraryBrowserSubtypeTab[] = [
-  { id: 'all', label: 'ALL', kind: null },
-];
-
 export function subtypesForFolder(
   tabId: LibraryBrowserTabId,
 ): readonly LibraryBrowserSubtypeTab[] | null {
   if (tabId === 'sessions') {
     return SESSIONS_SUBTYPES;
-  }
-  if (tabId === 'prompts') {
-    return PROMPTS_SUBTYPES;
   }
   if (tabId === 'characters') {
     return CHARACTERS_SUBTYPES;
@@ -81,9 +74,6 @@ export function subtypeTabsLabel(tabId: LibraryBrowserTabId): string {
   }
   if (tabId === 'sessions') {
     return 'Chat subtypes';
-  }
-  if (tabId === 'prompts') {
-    return 'Prompt subtypes';
   }
   if (tabId === 'characters') {
     return 'Character subtypes';

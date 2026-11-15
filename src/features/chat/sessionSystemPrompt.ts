@@ -1,56 +1,24 @@
-import type { DropdownSelectOption } from '../../components/ui/DropdownSelect';
 import { CHAT_MODELS } from '../../services/fal/models/chat';
-import type { LibraryItemMeta } from '../../services/storage/types';
-import { loadPreset } from '../../services/storage/persistenceService';
 import type { Thread } from '../../types/chat';
+import {
+  bundledPromptSelectOptions,
+  DEFAULT_BUNDLED_PROMPT_ID,
+  getBundledPromptBody,
+  normalizeBundledPromptId,
+} from './bundledPrompts';
 
-/** Select value for “use the library’s enabled SYS prompt”. */
-export const LIBRARY_SYSTEM_PROMPT_VALUE = '';
+export { DEFAULT_BUNDLED_PROMPT_ID };
 
-export function systemPromptSelectOptions(
-  catalog: LibraryItemMeta[],
-  activeSlug: string | null,
-  activeNameFallback = 'System prompt',
-): DropdownSelectOption[] {
-  const systemItems = catalog.filter((item) => item.kind === 'prompt');
-  const activeName =
-    systemItems.find((item) => item.id === activeSlug)?.name ?? activeNameFallback;
-  return [
-    { value: LIBRARY_SYSTEM_PROMPT_VALUE, label: activeName },
-    ...systemItems
-      .filter((item) => item.id !== activeSlug)
-      .map((item) => ({ value: item.id, label: item.name })),
-  ];
+export function systemPromptSelectOptions() {
+  return bundledPromptSelectOptions();
 }
 
-export function threadSystemPromptSelectValue(
-  thread: Thread | undefined,
-  activeSystemPresetSlug: string | null,
-): string {
-  const selectedSlug = thread?.systemPromptSlug?.trim() || '';
-  if (!selectedSlug || selectedSlug === (activeSystemPresetSlug ?? '')) {
-    return LIBRARY_SYSTEM_PROMPT_VALUE;
-  }
-  return selectedSlug;
+export function threadSystemPromptSelectValue(thread: Thread | undefined): string {
+  return normalizeBundledPromptId(thread?.systemPromptSlug);
 }
 
-export async function resolveThreadSystemPrompt(
-  thread: Thread | undefined,
-  libraryPrompt: string,
-): Promise<string> {
-  const slug = thread?.systemPromptSlug?.trim();
-  if (!slug) {
-    return libraryPrompt;
-  }
-  try {
-    const preset = await loadPreset(slug);
-    if (preset.type !== 'system') {
-      return libraryPrompt;
-    }
-    return preset.systemPrompt;
-  } catch {
-    return libraryPrompt;
-  }
+export function resolveThreadSystemPrompt(thread: Thread | undefined): string {
+  return getBundledPromptBody(thread?.systemPromptSlug);
 }
 
 export function resolveThreadChatModel(

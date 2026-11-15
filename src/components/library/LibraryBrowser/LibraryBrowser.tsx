@@ -12,17 +12,12 @@ import {
 import {
   loadSessionIntoApp,
   pathForGeneratorLoad,
-  pathForPromptLoad,
 } from '../../../features/library/openLibraryGenerator';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { selectIsStreaming } from '../../../store/slices/chatUiSlice';
-import { selectActiveSystemPresetSlug, setActiveSystemPreset } from '../../../store/slices/promptsSlice';
 import { selectIsActiveThreadDirty } from '../../../store/slices/sessionsSlice';
-import {
-  duplicateCharacter,
-  setActivePrompt,
-} from '../../../services/storage/persistenceService';
+import { duplicateCharacter } from '../../../services/storage/persistenceService';
 import { formatFailure } from '../../../utils/formatFailure';
 import { LibrarySidebar } from '../LibraryList/LibrarySidebar';
 import {
@@ -61,7 +56,6 @@ export interface LibraryBrowserProps {
   onLoad: (item: LibraryItemMeta) => void;
   onDeleteLoadable?: (item: LibraryItemMeta) => void | Promise<void>;
   onToggleFavoriteLoadable?: (item: LibraryItemMeta) => void | Promise<void>;
-  onActivateType?: (item: LibraryItemMeta) => void | Promise<void>;
   onCatalogMutated?: () => void;
   headerActions?: React.ReactNode;
 }
@@ -91,7 +85,6 @@ export function LibraryBrowser({
   onLoad,
   onDeleteLoadable,
   onToggleFavoriteLoadable,
-  onActivateType,
   onCatalogMutated,
   headerActions,
 }: LibraryBrowserProps) {
@@ -100,7 +93,6 @@ export function LibraryBrowser({
   const { notify } = useNotification();
   const isStreaming = useAppSelector(selectIsStreaming);
   const isDirty = useAppSelector(selectIsActiveThreadDirty);
-  const activePromptId = useAppSelector(selectActiveSystemPresetSlug);
   const { items, storageReady, isRefreshing, setItemFavorite } = useLibraryCatalog(catalogEpoch);
   const [activeTab, setActiveTab] = useState<LibraryBrowserTabId>(() =>
     defaultTabForLoadableKinds(loadableKinds),
@@ -173,11 +165,6 @@ export function LibraryBrowser({
 
   const navigateToItem = useCallback(
     async (item: LibraryItemMeta) => {
-      const promptPath = pathForPromptLoad(item);
-      if (promptPath) {
-        navigate(promptPath);
-        return;
-      }
       const sessionPath = pathForGeneratorLoad(item);
       if (sessionPath) {
         if (item.kind === 'session') {
@@ -206,34 +193,6 @@ export function LibraryBrowser({
       void navigateToItem(item);
     },
     [isBusy, isDirty, isLoadable, navigateToItem, onLoad],
-  );
-
-  const handleActivateType = useCallback(
-    async (item: LibraryItemMeta) => {
-      if (item.kind !== 'prompt' || isBusy) {
-        return;
-      }
-      if (onActivateType) {
-        await onActivateType(item);
-        return;
-      }
-      setActionBusy(true);
-      try {
-        const preset = await setActivePrompt(item.id);
-        dispatch(
-          setActiveSystemPreset({
-            slug: preset.slug,
-            prompt: preset.systemPrompt,
-          }),
-        );
-      } catch (error) {
-        notify(`Could not activate ${item.name}`);
-        console.info('Activate preset failed', error);
-      } finally {
-        setActionBusy(false);
-      }
-    },
-    [dispatch, isBusy, notify, onActivateType],
   );
 
   const handleToggleFavorite = useCallback(
@@ -324,7 +283,6 @@ export function LibraryBrowser({
       items={filteredItems}
       selectedId={selectedId}
       selectedKind={selectedKind}
-      activePromptId={activePromptId}
       storageReady={storageReady}
       isBusy={isBusy}
       chromeKey={chromeKey}
@@ -373,7 +331,6 @@ export function LibraryBrowser({
           : undefined
       }
       onSelect={handleSelect}
-      onActivateType={handleActivateType}
       onToggleFavorite={handleToggleFavorite}
       onCopy={handleCopy}
       onDelete={handleDelete}

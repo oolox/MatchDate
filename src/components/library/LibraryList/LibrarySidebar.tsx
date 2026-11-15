@@ -20,7 +20,6 @@ export interface LibrarySidebarProps {
   items: LibraryItemMeta[];
   selectedId?: string | null;
   selectedKind?: string | null;
-  activePromptId?: string | null;
   storageReady: boolean;
   isBusy: boolean;
   header?: ReactNode;
@@ -30,7 +29,6 @@ export interface LibrarySidebarProps {
   sortSelectClassName?: string;
   searchInputClassName?: string;
   onSelect: (item: LibraryItemMeta) => void;
-  onActivateType?: (item: LibraryItemMeta) => void;
   onToggleFavorite: (item: LibraryItemMeta) => void;
   onCopy?: (item: LibraryItemMeta) => void;
   onDelete: (item: LibraryItemMeta) => void;
@@ -41,7 +39,6 @@ export function LibrarySidebar({
   items,
   selectedId = null,
   selectedKind = null,
-  activePromptId = null,
   storageReady,
   isBusy,
   header,
@@ -51,7 +48,6 @@ export function LibrarySidebar({
   sortSelectClassName,
   searchInputClassName,
   onSelect,
-  onActivateType,
   onToggleFavorite,
   onCopy,
   onDelete,
@@ -111,9 +107,7 @@ export function LibrarySidebar({
           selectedId={selectedId}
           selectedKind={selectedKind}
           isBusy={isBusy}
-          activePromptId={activePromptId}
           onSelect={onSelect}
-          onActivateType={onActivateType}
           onToggleFavorite={onToggleFavorite}
           onCopy={onCopy}
           onDelete={onDelete}

@@ -1,6 +1,6 @@
 import type { LibrarySortListKind } from '../../../services/localStorage/keys';
 
-export type LibraryListKind = LibrarySortListKind;
+export type LibraryListKind = Exclude<LibrarySortListKind, 'prompt'>;
 
 export interface LibraryListLabels {
   title: string;
@@ -15,12 +15,6 @@ const LABELS: Record<LibraryListKind, LibraryListLabels> = {
     loading: 'Loading chats…',
     empty: 'No saved chats yet.',
     ariaLabel: 'Chats',
-  },
-  prompt: {
-    title: 'Prompt',
-    loading: 'Loading presets…',
-    empty: 'No saved presets yet.',
-    ariaLabel: 'Prompt',
   },
   character: {
     title: 'Character',

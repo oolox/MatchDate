@@ -1,5 +1,12 @@
 import type { LibraryItemKind, LibraryItemMeta } from './types';
-import { assetFileName, assetPath, presetFileName, presetPath, sessionDocumentFileName, sessionDocumentPath } from './paths';
+import {
+  assetFileName,
+  assetPath,
+  characterDocumentFileName,
+  characterDocumentPath,
+  sessionDocumentFileName,
+  sessionDocumentPath,
+} from './paths';
 
 export function libraryItem(
   kind: LibraryItemKind,
@@ -9,12 +16,12 @@ export function libraryItem(
 ): LibraryItemMeta {
   let fileName: string;
   let path: string;
-  if (kind === 'prompt') {
-    fileName = presetFileName(id);
-    path = presetPath(id);
-  } else if (kind === 'asset') {
+  if (kind === 'asset') {
     fileName = assetFileName(id);
     path = assetPath(id);
+  } else if (kind === 'character') {
+    fileName = characterDocumentFileName(id);
+    path = characterDocumentPath(id);
   } else {
     fileName = sessionDocumentFileName(id);
     path = sessionDocumentPath(id);

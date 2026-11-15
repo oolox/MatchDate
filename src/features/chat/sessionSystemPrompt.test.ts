@@ -1,33 +1,31 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { libraryItem } from '../../services/storage/libraryItem';
+import { describe, expect, it } from 'vitest';
+import {
+  DEFAULT_BUNDLED_PROMPT_ID,
+  getBundledPromptBody,
+  listBundledPrompts,
+} from './bundledPrompts';
 import { DEFAULT_CHAT_MODEL_ID, DEEPSEEK_V4_PRO_ID } from '../../services/fal/models/chat';
 import {
-  LIBRARY_SYSTEM_PROMPT_VALUE,
   resolveThreadChatModel,
   resolveThreadSystemPrompt,
   systemPromptSelectOptions,
   threadSystemPromptSelectValue,
 } from './sessionSystemPrompt';
 
-const loadPreset = vi.fn();
-
-vi.mock('../../services/storage/persistenceService', () => ({
-  loadPreset: (...args: unknown[]) => loadPreset(...args),
-}));
+describe('bundled prompts', () => {
+  it('lists every prompts/*.md file and defaults to prompt-masterDater', () => {
+    const ids = listBundledPrompts().map((item) => item.id);
+    expect(ids).toContain(DEFAULT_BUNDLED_PROMPT_ID);
+    expect(ids).toContain('personality-test');
+    expect(getBundledPromptBody(null)).toContain('MasterDater');
+  });
+});
 
 describe('systemPromptSelectOptions', () => {
-  it('puts the library-enabled SYS first and lists the rest', () => {
-    const options = systemPromptSelectOptions(
-      [
-        libraryItem('prompt', 'default', 'Default'),
-        libraryItem('prompt', 'writer', 'Writer'),
-        libraryItem('session', 's1', 'Chat'),
-      ],
-      'default',
-    );
-
-    expect(options[0]).toEqual({ value: LIBRARY_SYSTEM_PROMPT_VALUE, label: 'Default' });
-    expect(options.map((item) => item.value)).toEqual(['', 'writer']);
+  it('lists bundled prompt ids', () => {
+    const options = systemPromptSelectOptions();
+    expect(options.some((item) => item.value === DEFAULT_BUNDLED_PROMPT_ID)).toBe(true);
+    expect(options.some((item) => item.value === 'personality-test')).toBe(true);
   });
 });
 
@@ -40,80 +38,60 @@ describe('threadSystemPromptSelectValue', () => {
     updatedAt: '2026-01-01T00:00:00.000Z',
   };
 
-  it('uses the global default when the thread has no slug', () => {
-    expect(threadSystemPromptSelectValue(thread, 'default')).toBe(LIBRARY_SYSTEM_PROMPT_VALUE);
+  it('uses the default bundled id when the thread has no slug', () => {
+    expect(threadSystemPromptSelectValue(thread)).toBe(DEFAULT_BUNDLED_PROMPT_ID);
   });
 
-  it('uses the global default when the thread slug matches the active preset', () => {
+  it('maps legacy OPFS default slug onto the bundled default', () => {
     expect(
-      threadSystemPromptSelectValue({ ...thread, systemPromptSlug: 'default' }, 'default'),
-    ).toBe(LIBRARY_SYSTEM_PROMPT_VALUE);
+      threadSystemPromptSelectValue({ ...thread, systemPromptSlug: 'default' }),
+    ).toBe(DEFAULT_BUNDLED_PROMPT_ID);
   });
 
-  it('uses the thread slug when it differs from the active preset', () => {
+  it('keeps a known bundled slug', () => {
     expect(
-      threadSystemPromptSelectValue({ ...thread, systemPromptSlug: 'writer' }, 'default'),
-    ).toBe('writer');
+      threadSystemPromptSelectValue({ ...thread, systemPromptSlug: 'personality-test' }),
+    ).toBe('personality-test');
   });
 });
 
 describe('resolveThreadSystemPrompt', () => {
-  beforeEach(() => {
-    loadPreset.mockReset();
+  it('uses the default bundled body when the session has no slug', () => {
+    expect(
+      resolveThreadSystemPrompt({
+        id: 't',
+        title: 'n',
+        messages: [],
+        createdAt: '',
+        updatedAt: '',
+      }),
+    ).toBe(getBundledPromptBody(DEFAULT_BUNDLED_PROMPT_ID));
   });
 
-  it('uses the library prompt when the session has no slug', async () => {
-    await expect(
-      resolveThreadSystemPrompt(
-        { id: 't', title: 'n', messages: [], createdAt: '', updatedAt: '' },
-        'Lib',
-      ),
-    ).resolves.toBe('Lib');
-    expect(loadPreset).not.toHaveBeenCalled();
+  it('loads a bundled prompt body by id', () => {
+    expect(
+      resolveThreadSystemPrompt({
+        id: 't',
+        title: 'n',
+        messages: [],
+        createdAt: '',
+        updatedAt: '',
+        systemPromptSlug: 'personality-test',
+      }),
+    ).toBe(getBundledPromptBody('personality-test'));
   });
 
-  it('loads the session SYS preset body', async () => {
-    loadPreset.mockResolvedValue({
-      slug: 'writer',
-      type: 'system',
-      systemPrompt: 'Be a writer.',
-    });
-
-    await expect(
-      resolveThreadSystemPrompt(
-        {
-          id: 't',
-          title: 'n',
-          messages: [],
-          createdAt: '',
-          updatedAt: '',
-          systemPromptSlug: 'writer',
-        },
-        'Lib',
-      ),
-    ).resolves.toBe('Be a writer.');
-  });
-
-  it('falls back when the preset is not a system prompt', async () => {
-    loadPreset.mockResolvedValue({
-      slug: 'neg',
-      type: 'negative',
-      systemPrompt: 'No negativity.',
-    });
-
-    await expect(
-      resolveThreadSystemPrompt(
-        {
-          id: 't',
-          title: 'n',
-          messages: [],
-          createdAt: '',
-          updatedAt: '',
-          systemPromptSlug: 'neg',
-        },
-        'Lib',
-      ),
-    ).resolves.toBe('Lib');
+  it('falls back to the default for unknown slugs', () => {
+    expect(
+      resolveThreadSystemPrompt({
+        id: 't',
+        title: 'n',
+        messages: [],
+        createdAt: '',
+        updatedAt: '',
+        systemPromptSlug: 'missing-preset',
+      }),
+    ).toBe(getBundledPromptBody(DEFAULT_BUNDLED_PROMPT_ID));
   });
 });
 

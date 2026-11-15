@@ -16,7 +16,6 @@ import { createId } from './store/slices/threadSlice';
 import { ChatView } from './views/ChatView/ChatView';
 import { CharacterSheetView } from './views/CharacterSheetView/CharacterSheetView';
 import { ConfigView } from './views/ConfigView/ConfigView';
-import { PromptsView } from './views/PromptsView/PromptsView';
 
 function RootRedirect() {
   const selectedId = useAppSelector(selectSelectedSessionId);
@@ -66,11 +65,6 @@ function AppWorkspace() {
       {visited.has('character') ? (
         <SectionKeepAlive active={section === 'character'} label="Character">
           <CharacterSheetView characterId={characterId} />
-        </SectionKeepAlive>
-      ) : null}
-      {visited.has('prompts') ? (
-        <SectionKeepAlive active={section === 'prompts'} label="Prompts">
-          <PromptsView />
         </SectionKeepAlive>
       ) : null}
       {visited.has('config') ? (

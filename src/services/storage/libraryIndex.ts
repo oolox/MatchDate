@@ -4,9 +4,6 @@ import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import type { SessionDocument } from '../../types/session';
 import {
   LIBRARY_PATH,
-  presetFileName,
-  presetPath,
-  PROMPTS_PRESET_DIR,
   PROMPTS_SESSIONS_DIR,
   sessionDocumentFileName,
   sessionDocumentPath,
@@ -25,7 +22,6 @@ import type {
   LibraryItemKind,
   OpfsDocSubtype,
   OpfsDocType,
-  SystemPromptPreset,
 } from './types';
 import { StorageError } from './types';
 
@@ -38,12 +34,6 @@ function indexByKey(items: LibraryItemMeta[]): Map<string, LibraryItemMeta> {
 }
 
 function libraryPathsForKind(kind: LibraryItemKind, id: string) {
-  if (kind === 'prompt') {
-    return {
-      fileName: presetFileName(id),
-      path: presetPath(id),
-    };
-  }
   if (kind === 'asset') {
     return {
       fileName: assetFileName(id),
@@ -136,14 +126,6 @@ function parseSessionIdFromFileName(fileName: string): string | null {
   return parseSessionIdFromBrandFileName(fileName);
 }
 
-function parsePresetSlugFromFileName(fileName: string): string | null {
-  if (!fileName.endsWith('.json')) {
-    return null;
-  }
-  const slug = fileName.slice(0, -'.json'.length);
-  return slug.trim() ? slug : null;
-}
-
 export function parseSessionDocument(raw: string, path: string): SessionDocument {
   return parseStorageJson(
     raw,
@@ -179,35 +161,6 @@ export function parseSessionDocument(raw: string, path: string): SessionDocument
   );
 }
 
-export function parsePreset(raw: string, path: string): SystemPromptPreset {
-  return parseStorageJson(
-    raw,
-    path,
-    (parsed) => {
-      const value = parsed as Partial<SystemPromptPreset>;
-      if (
-        !value ||
-        typeof value.slug !== 'string' ||
-        typeof value.name !== 'string' ||
-        typeof value.systemPrompt !== 'string'
-      ) {
-        throw new StorageError('PARSE_ERROR', `Invalid preset: ${path}`);
-      }
-
-      return {
-        schemaVersion: value.schemaVersion ?? OPFS_SCHEMA_VERSION,
-        name: value.name,
-        slug: value.slug,
-        systemPrompt: value.systemPrompt,
-        type: 'system',
-        createdAt: value.createdAt ?? nowIso(),
-        updatedAt: value.updatedAt ?? nowIso(),
-      };
-    },
-    'preset',
-  );
-}
-
 async function readSessionCatalogFields(
   storage: FileStorageService,
   id: string,
@@ -218,19 +171,6 @@ async function readSessionCatalogFields(
     name: session.name,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
-  };
-}
-
-async function readPresetCatalogFields(
-  storage: FileStorageService,
-  slug: string,
-): Promise<Pick<LibraryItemMeta, 'name' | 'createdAt' | 'updatedAt'>> {
-  const path = presetPath(slug);
-  const preset = parsePreset(await storage.read(path), path);
-  return {
-    name: preset.name,
-    createdAt: preset.createdAt,
-    updatedAt: preset.updatedAt,
   };
 }
 
@@ -262,41 +202,6 @@ export async function reconcileLibraryIndex(storage: FileStorageService): Promis
         name: fields.name,
         fileName: sessionDocumentFileName(id),
         path: sessionDocumentPath(id),
-        isFavorite: existing?.isFavorite ?? false,
-        favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
-        createdAt: fields.createdAt,
-        updatedAt: fields.updatedAt,
-      });
-    } catch {
-      if (existing) {
-        nextItems.push(existing);
-      }
-    }
-  }
-
-  const presetEntries = await storage.list(PROMPTS_PRESET_DIR);
-  for (const entry of presetEntries) {
-    if (entry.kind !== 'file') {
-      continue;
-    }
-    const fileName = entry.path.split('/').pop() ?? '';
-    const slug = parsePresetSlugFromFileName(fileName);
-    if (!slug) {
-      continue;
-    }
-
-    const key = itemKey('prompt', slug);
-    const existing = byKey.get(key);
-    try {
-      const fields = await readPresetCatalogFields(storage, slug);
-      nextItems.push({
-        kind: 'prompt',
-        type: 'prompt',
-        subtype: 'systemPrompt',
-        id: slug,
-        name: fields.name,
-        fileName: presetFileName(slug),
-        path: presetPath(slug),
         isFavorite: existing?.isFavorite ?? false,
         favoritedAt: existing?.isFavorite ? existing.favoritedAt : undefined,
         createdAt: fields.createdAt,

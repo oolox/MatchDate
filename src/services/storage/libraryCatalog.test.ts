@@ -18,7 +18,7 @@ describe('library catalog', () => {
     setFileStorageForTests(null);
   });
 
-  it('lists sessions and prompts in the library', async () => {
+  it('lists sessions in the library without OPFS prompt presets', async () => {
     const thread: Thread = {
       id: 'chat-1',
       title: 'First chat',
@@ -30,7 +30,7 @@ describe('library catalog', () => {
 
     const items = await listLibrary();
     expect(items.some((item) => item.kind === 'session' && item.id === 'chat-1')).toBe(true);
-    expect(items.some((item) => item.kind === 'prompt' && item.id === 'default')).toBe(true);
+    expect(items.some((item) => item.kind === 'prompt')).toBe(false);
   });
 
   it('toggles favorite on a library item', async () => {

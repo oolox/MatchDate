@@ -42,7 +42,7 @@ import {
   setCharacterEditorName,
   upsertCharacterEditorTrait,
 } from '../../store/slices/characterSlice';
-import { selectStorageReady } from '../../store/slices/promptsSlice';
+import { selectSessionsStorageReady } from '../../store/slices/sessionsSlice';
 
 function clampScore(value: number): number {
   if (!Number.isFinite(value)) {
@@ -80,7 +80,7 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { notify } = useNotification();
-  const storageReady = useAppSelector(selectStorageReady);
+  const storageReady = useAppSelector(selectSessionsStorageReady);
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const characterId = useAppSelector(selectCharacterEditorId);
   const character = useAppSelector(selectCharacterEditorCharacter);

@@ -41,15 +41,12 @@ export interface FileStorageService {
   exists(path: StoragePath): Promise<boolean>;
 }
 
-export type LibraryItemKind = 'session' | 'prompt' | 'asset' | 'character' | (string & {});
+export type LibraryItemKind = 'session' | 'asset' | 'character' | (string & {});
 
-export type PromptType = 'system';
-
-export type OpfsDocType = 'generator' | 'prompt' | 'asset' | 'workflow' | 'character';
+export type OpfsDocType = 'generator' | 'asset' | 'workflow' | 'character';
 
 export type OpfsDocSubtype =
   | 'session'
-  | 'systemPrompt'
   | 'image'
   | 'video'
   | 'text'
@@ -78,16 +75,6 @@ export interface LibraryKindRegistration {
   ) => Promise<LibraryCatalogFields>;
 }
 
-export interface SystemPromptPreset {
-  schemaVersion?: number;
-  name: string;
-  slug: string;
-  systemPrompt: string;
-  type: PromptType;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface LibraryItemMeta {
   kind: LibraryItemKind;
   type?: OpfsDocType;
@@ -112,6 +99,7 @@ export interface LibraryIndex {
 export interface ConfigManifest {
   schemaVersion: number;
   activeSessionId: string | null;
-  activeSystemPresetSlug: string;
+  /** @deprecated Bundled prompts replaced OPFS presets; ignored when present. */
+  activeSystemPresetSlug?: string;
   updatedAt: string;
 }

@@ -34,9 +34,7 @@ export interface LibraryListItemProps {
   item: LibraryItemMeta;
   selected: boolean;
   disabled: boolean;
-  typeActive?: boolean;
   onSelect: (item: LibraryItemMeta) => void;
-  onActivateType?: (item: LibraryItemMeta) => void;
   onToggleFavorite: (item: LibraryItemMeta) => void;
   onCopy?: (item: LibraryItemMeta) => void;
   onDelete: (item: LibraryItemMeta) => void;
@@ -46,9 +44,7 @@ export function LibraryListItem({
   item,
   selected,
   disabled,
-  typeActive = false,
   onSelect,
-  onActivateType,
   onToggleFavorite,
   onCopy,
   onDelete,
@@ -79,18 +75,6 @@ export function LibraryListItem({
       draggable={canDrag}
       onDragStart={canDrag ? handleDragStart : undefined}
     >
-      {item.kind === 'prompt' ? (
-        <button
-          type="button"
-          className={[styles.typeTag, typeActive ? styles.typeTagActive : ''].filter(Boolean).join(' ')}
-          aria-label={`Activate ${item.name}`}
-          aria-pressed={typeActive}
-          disabled={disabled || !onActivateType}
-          onClick={() => onActivateType?.(item)}
-        >
-          SYS
-        </button>
-      ) : null}
       {item.kind === 'character' ? (
         <LibraryCharacterThumb characterId={item.id} name={item.name} />
       ) : null}
