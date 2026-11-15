@@ -21,6 +21,9 @@ function withNormalizedEditorCharacter(character: Character): Character {
   const next: Character = {
     ...character,
     dateSummary: Array.isArray(character.dateSummary) ? character.dateSummary : [],
+    dateTranscript: Array.isArray(character.dateTranscript)
+      ? character.dateTranscript
+      : [],
     images: normalizeSavedImageRefs(character.images),
   };
   if (voiceAssetId) {

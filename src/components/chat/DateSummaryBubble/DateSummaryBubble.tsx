@@ -11,6 +11,8 @@ import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
 import styles from './DateSummaryBubble.module.css';
 
 export interface DateSummaryBubbleProps {
+  /** Outing description — matches dateTranscript.description when set. */
+  description?: string;
   shortSummary: string;
   location: string;
   justification: string;
@@ -84,6 +86,7 @@ function scoreColor(value: number): string | undefined {
 }
 
 export function DateSummaryBubble({
+  description = '',
   shortSummary,
   location,
   justification,
@@ -143,6 +146,7 @@ export function DateSummaryBubble({
       .filter(Boolean)
       .join(' & ') || (complete ? '' : '…');
   const when = formatLocalDateTime(dateTime) || (complete ? '' : '…');
+  const outing = description.trim();
   const where = location.trim();
   const summary = shortSummary.trim();
   const why = justification.trim();
@@ -152,6 +156,7 @@ export function DateSummaryBubble({
       <div className={styles.headerMeta}>
         <cite className={styles.names}>{nameLine}</cite>
         <p className={styles.dateTime}>{when}</p>
+        {outing ? <p className={styles.outingDescription}>{outing}</p> : null}
       </div>
       <div className={styles.headerActions}>
         {onRemove ? (
@@ -181,6 +186,7 @@ export function DateSummaryBubble({
     <>
       <cite className={styles.names}>{nameLine}</cite>
       <p className={styles.dateTime}>{when}</p>
+      {outing ? <p className={styles.outingDescription}>{outing}</p> : null}
     </>
   );
 

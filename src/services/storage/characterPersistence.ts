@@ -16,6 +16,10 @@ import {
 } from '../../types/character';
 import type { DateSummaryData } from '../../types/dateSummary';
 import { dateSummaryDataFromUnknown } from '../../features/chat/attach/dateSummaryAttach';
+import {
+  dateTranscriptDataFromUnknown,
+  type DateTranscriptData,
+} from '../../features/chat/attach/dateTranscriptAttach';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { nowIso } from '../../utils/id';
@@ -32,6 +36,20 @@ export function normalizeDateSummaries(value: unknown): DateSummaryData[] {
   const next: DateSummaryData[] = [];
   for (const entry of value) {
     const parsed = dateSummaryDataFromUnknown(entry);
+    if (parsed) {
+      next.push(parsed);
+    }
+  }
+  return next;
+}
+
+export function normalizeDateTranscripts(value: unknown): DateTranscriptData[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const next: DateTranscriptData[] = [];
+  for (const entry of value) {
+    const parsed = dateTranscriptDataFromUnknown(entry);
     if (parsed) {
       next.push(parsed);
     }
@@ -57,6 +75,7 @@ export function characterDocumentFromCharacter(
     history: normalized.history,
     traits: normalized.traits,
     dateSummary: normalized.dateSummary,
+    dateTranscript: normalized.dateTranscript,
     images: normalized.images,
     ...(normalized.voiceAssetId ? { voiceAssetId: normalized.voiceAssetId } : {}),
     createdAt: options.createdAt ?? now,
@@ -72,6 +91,7 @@ export function characterFromDocument(document: CharacterDocument): Character {
     history: document.history ?? [],
     traits: document.traits ?? [],
     dateSummary: document.dateSummary ?? [],
+    dateTranscript: document.dateTranscript ?? [],
     images: document.images ?? [],
     voiceAssetId: document.voiceAssetId,
   });
@@ -175,6 +195,7 @@ export function normalizeCharacter(character: Character): Character {
     history: normalizeHistory(character.history),
     traits: normalizeTraits(character.traits),
     dateSummary: normalizeDateSummaries(character.dateSummary),
+    dateTranscript: normalizeDateTranscripts(character.dateTranscript),
     images: normalizeSavedImageRefs(character.images),
     ...(voiceAssetId ? { voiceAssetId } : {}),
   };
@@ -213,6 +234,7 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
     history: normalizeHistory(value.history),
     traits: normalizeTraits(value.traits),
     dateSummary: normalizeDateSummaries(value.dateSummary),
+    dateTranscript: normalizeDateTranscripts(value.dateTranscript),
     images: normalizeSavedImageRefs(value.images),
     voiceAssetId: value.voiceAssetId,
   });
@@ -256,6 +278,7 @@ export async function saveCharacterDocument(
     history: document.history ?? [],
     traits: document.traits ?? [],
     dateSummary: document.dateSummary ?? [],
+    dateTranscript: document.dateTranscript ?? [],
     images: document.images ?? [],
     voiceAssetId: document.voiceAssetId,
   });
@@ -271,6 +294,7 @@ export async function saveCharacterDocument(
     history: normalized.history,
     traits: normalized.traits,
     dateSummary: normalized.dateSummary,
+    dateTranscript: normalized.dateTranscript,
     images: normalized.images,
     ...(normalized.voiceAssetId ? { voiceAssetId: normalized.voiceAssetId } : {}),
     createdAt,

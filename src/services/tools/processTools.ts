@@ -16,7 +16,8 @@ export type ProcessToolsResult = {
  * Process tool envelopes in order. Routes `character` tools to
  * {@link processCharacterTool} (update / create → library).
  *
- * Display-only tools such as `quote` / `dateSummary` must not be passed here —
+ * Display-only tools such as `quote` must not be passed here —
+ * (`dateSummary` / `dateTranscript` have their own process helpers).
  * parse with {@link parseCharacterToolMessages} (or filter `tool === "character"`) first.
  * See docs/MD-quotes.md.
  */

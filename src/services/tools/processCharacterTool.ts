@@ -220,6 +220,7 @@ export function applyCharacterUpdatePatch(
       history: [...existing.history, ...historyAdditions],
       traits: traitsMerged.traits,
       dateSummary: existing.dateSummary ?? [],
+      dateTranscript: existing.dateTranscript ?? [],
       images: existing.images ?? [],
       ...(existing.voiceAssetId?.trim()
         ? { voiceAssetId: existing.voiceAssetId.trim() }

@@ -88,6 +88,7 @@ export function parseCharacterDocument(raw: string, path: string): CharacterDocu
         history: Array.isArray(value.history) ? value.history : [],
         traits: Array.isArray(value.traits) ? value.traits : [],
         dateSummary: Array.isArray(value.dateSummary) ? value.dateSummary : [],
+        dateTranscript: Array.isArray(value.dateTranscript) ? value.dateTranscript : [],
         images: Array.isArray(value.images) ? value.images : [],
         ...(typeof value.voiceAssetId === 'string' && value.voiceAssetId.trim()
           ? { voiceAssetId: value.voiceAssetId.trim() }

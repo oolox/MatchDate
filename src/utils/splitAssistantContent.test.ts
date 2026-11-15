@@ -300,6 +300,90 @@ describe('splitAssistantContent', () => {
       complete: true,
     });
   });
+
+  it('extracts completed dateTranscript tool fences with nested quotes', () => {
+    const content = `
+\`\`\`json
+{
+  "tool": "dateTranscript",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "description": "Dinner at a quiet Italian place",
+    "dateTime": "2028-09-12T19:00:00-04:00",
+    "characterIds": [
+      "b97ca029-9b7b-495c-8b8a-ac924e6ed0f6",
+      "0a4fa111-89b6-459f-a3d4-af278e293034"
+    ],
+    "segments": [
+      { "type": "text", "text": "They sat by the window." },
+      {
+        "type": "quote",
+        "quote": "This place is quiet.",
+        "speaker": "b97ca029-9b7b-495c-8b8a-ac924e6ed0f6",
+        "speakerName": "Alex"
+      },
+      { "type": "text", "text": "She smiled." }
+    ]
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'dateTranscript',
+      complete: true,
+      description: 'Dinner at a quiet Italian place',
+      dateTime: '2028-09-12T19:00:00-04:00',
+      segments: [
+        { type: 'text', text: 'They sat by the window.' },
+        {
+          type: 'quote',
+          quote: 'This place is quiet.',
+          speaker: 'b97ca029-9b7b-495c-8b8a-ac924e6ed0f6',
+          speakerName: 'Alex',
+        },
+        { type: 'text', text: 'She smiled.' },
+      ],
+    });
+    expect((blocks[0] as { id: string }).id).toMatch(/^dateTranscript-/);
+  });
+
+  it('streams dateTranscript header before segments arrive', () => {
+    const content = `
+\`\`\`json
+{
+  "tool": "dateTranscript",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "description": "Walk through the market",
+    "dateTime": "2028-09-12T11:00:00-04:00",
+    "characterIds": ["char-a", "char-b"],
+    "segments": [
+      { "type": "text", "text": "Rain started." },
+      {
+        "type": "quote",
+        "quote": "Should we go inside?",
+        "speakerName": "Sam"
+`;
+    const blocks = splitAssistantContent(content, { isStreaming: true });
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'dateTranscript',
+      complete: false,
+      description: 'Walk through the market',
+      dateTime: '2028-09-12T11:00:00-04:00',
+    });
+    const segments = (blocks[0] as { segments: unknown[] }).segments;
+    expect(segments[0]).toEqual({ type: 'text', text: 'Rain started.' });
+    expect(segments[1]).toMatchObject({
+      type: 'quote',
+      quote: 'Should we go inside?',
+      speakerName: 'Sam',
+    });
+  });
 });
 
 describe('formatToolResponseLabel', () => {

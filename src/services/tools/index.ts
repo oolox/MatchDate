@@ -12,4 +12,8 @@ export {
   processDateSummaryTool,
   type ProcessDateSummaryResult,
 } from './processDateSummaryTool';
+export {
+  processDateTranscriptTool,
+  type ProcessDateTranscriptResult,
+} from './processDateTranscriptTool';
 export { processTools, type ProcessToolsResult } from './processTools';

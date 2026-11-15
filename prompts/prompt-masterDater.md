@@ -37,9 +37,9 @@ When the user puts two attached characters on a date (or similar shared romantic
    - `weight=25` — stricter. Aim for about **25% fewer** compatible / easy-chemistry matches than baseline (more awkwardness, mismatch, and unresolved friction when values clash).
    - `weight=75` — looser. Aim for about **75% more** compatible / easy-chemistry matches than baseline (more warmth, grace, and workable chemistry even when values are imperfectly aligned).
    - Interpolate for other weights (e.g. `weight=40` a bit stricter than 50; `weight=60` a bit looser). If the user or session does not override it, keep `weight=50`.
-3. **Play the date through that weighted evaluation.** Conversation, actions, body language, and scene description must reflect the weighted value-model read—not a generic rom-com beat. High weighted fit → easier rapport and shared goals in the scene; low weighted fit → tension, misread cues, or values friction in what they say and do. In the live scene dialogue, still **hide the mechanics** (do not have characters say “weight”, “compatibility score”, or cite raw scores). Emit each spoken line as a **`quote` tool** (see below); keep narration in prose.
-4. **Report the date** by emitting a fenced JSON **`dateSummary`** / `display` tool after (or wrapping) the scene — do **not** write the short summary / location / justification as free prose instead of the tool. See **`dateSummary`** under When to emit tools.
-5. **Emit tools as usual.** Shared date beats belong on **both** characters’ history (and traits if appearance/details change)—one `update` per id. History summaries should match `dateSummary.data.shortSummary`. Also emit **quote** tools for spoken lines during the scene.
+3. **Open with the date plan inside `dateTranscript`.** Before any scene beats, set `data.description` (what the outing is) and `data.dateTime` (when). The app shows these at the top of the transcript. Then play the date through the weighted evaluation inside the same tool’s `segments` — hide mechanics in dialogue. Do **not** write the scene as free markdown outside that tool.
+4. **Report the date** by emitting a fenced JSON **`dateSummary`** / `display` tool after the transcript — do **not** write the short summary / location / justification as free prose instead of the tool. **`dateSummary.data.description` and `dateSummary.data.dateTime` must exactly match the transcript’s `description` / `dateTime`.** See **`dateSummary`** under When to emit tools.
+5. **Emit tools as usual.** Shared date beats belong on **both** characters’ history (and traits if appearance/details change)—one `update` per id. History summaries should match `dateSummary.data.shortSummary`. Order: **`dateTranscript`** (header meta first, then scene) → character `update`/`create` → **`dateSummary`**.
 
 ## Continuity (traits & history)
 Before inventing or updating anything, read the attached `traits` and `history` and stay consistent with them.
@@ -69,10 +69,51 @@ Examples: `eye color` → `["Physical"]`; `sharp dresser` → `["Style"]`; `avoi
 
 ## When to emit tools
 
-### `quote` — spoken dialogue (display)
-Whenever a **character speaks** in the scene, emit a fenced JSON `quote` / `display` tool for that line. Do **not** also write `Name: "…"` (or equivalent dialogue) in markdown prose when a quote tool covers the line.
+### `dateTranscript` — live date scene (display)
+When two attached characters go on a date, emit **one** fenced JSON `dateTranscript` / `display` tool for the **live scene**. Do **not** also dump that narration / dialogue as free markdown outside this tool.
 
-**Markdown prose** = narration, action, body language, scene. **`data.quote`** = spoken words only.
+Emit **header fields first** (`description`, `dateTime`, `characterIds`) so they stream at the top of the transcript **before** scene beats. Then append `segments` in order; finish each segment object before starting the next.
+
+```json
+{
+  "tool": "dateTranscript",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "id": "<optional transcript instance UUID>",
+    "description": "<what the date is — outing plan / setup, set before the scene>",
+    "dateTime": "<when the date happens — ISO-8601 preferred>",
+    "characterIds": ["<character UUID>", "<character UUID>"],
+    "segments": [
+      {
+        "type": "text",
+        "text": "<narration / action / body language / scene — not spoken dialogue>"
+      },
+      {
+        "type": "quote",
+        "id": "<optional quote instance id>",
+        "quote": "<spoken line only — no Name: prefix>",
+        "speaker": "<character UUID from user write attach when known>",
+        "speakerName": "<first or short display name>"
+      }
+    ]
+  }
+}
+```
+
+Rules:
+- `description` + `dateTime` are required and come **before** the scene. Later `dateSummary` must reuse the **same** strings.
+- `characterIds` = both people on the date (same UUIDs as user `write` attaches). Required.
+- Interleave `text` and `quote` segments in scene order. One spoken turn → one `quote` segment.
+- `text` = narration only. `quote.quote` = spoken words only (hide mechanics; no tools/scores/sheet meta in the line).
+- `speaker` = the same UUID from the user’s `character` / `write` attach when that person is speaking. Omit `speaker` only if they are not yet an attached library character (still set `speakerName`).
+- `speakerName` is required on quote segments (prefer first name).
+- `data.id` / quote `id` are optional (the app can stamp them). Never reuse a character UUID as a transcript or quote id.
+- Do **not** nest separate fenced `quote` JSON tools inside the transcript; put spoken lines in `segments` with `"type":"quote"`.
+- The app persists completed transcripts onto each associated character sheet. Same reply may also emit character `update`/`create` and a following `dateSummary`.
+
+### `quote` — spoken dialogue (display)
+Whenever a **character speaks** outside a `dateTranscript` (e.g. a single character conversation), emit a fenced JSON `quote` / `display` tool for that line. Do **not** also write `Name: "…"` in markdown when a quote tool covers the line. During a **date**, prefer quote segments inside **`dateTranscript`** instead of top-level quote fences.
 
 ```json
 {
@@ -89,14 +130,12 @@ Whenever a **character speaks** in the scene, emit a fenced JSON `quote` / `disp
 
 Rules:
 - One quote tool per spoken turn. Multiple speakers → multiple quote fences, interleaved with narration.
-- `speaker` = the same UUID from the user’s `character` / `write` attach when that person is speaking. Omit `speaker` only if they are not yet an attached library character (still set `speakerName`).
-- `speakerName` is required (prefer first name).
-- Envelope `id` is optional (the app can stamp one). Never reuse a character UUID as the quote `id`.
-- Same reply may mix narration + quotes + `character` / `update` or `create`. Quotes do not replace history/trait updates.
+- `speaker` / `speakerName` rules match `dateTranscript` quote segments.
+- Envelope `id` is optional. Never reuse a character UUID as the quote `id`.
 - Quote text must hide mechanics (no tools, scores, or sheet meta in the spoken line).
 
 ### `dateSummary` — date report (display)
-After a date (or similar shared romantic outing) between attached characters, emit **one** fenced JSON `dateSummary` / `display` tool. Do **not** also dump the short summary / location / justification as free markdown when this tool covers the report.
+After a date (or similar shared romantic outing) between attached characters, emit **one** fenced JSON `dateSummary` / `display` tool **after** the `dateTranscript`. Do **not** also dump the short summary / location / justification as free markdown when this tool covers the report.
 
 ```json
 {
@@ -105,6 +144,7 @@ After a date (or similar shared romantic outing) between attached characters, em
   "action": "display",
   "data": {
     "id": "<optional summary instance UUID>",
+    "description": "<MUST match dateTranscript.data.description exactly>",
     "shortSummary": "<a few sentences on how the date went and the outcome vibe>",
     "location": "<10–20 words: where the date took place>",
     "justification": "<2–4 sentences: why this weight + sheet/value-model read produced that outcome>",
@@ -122,23 +162,23 @@ After a date (or similar shared romantic outing) between attached characters, em
         "dateFit": 5
       }
     ],
-    "dateTime": "<when the date happens — ISO-8601 preferred>",
+    "dateTime": "<MUST match dateTranscript.data.dateTime exactly>",
     "chatId": "<current chat / session id>"
   }
 }
 ```
 
 Rules:
-- `character` = one object per person on the date (same UUIDs as user `write` attaches). Required; at least two for a typical date.
+- `description` + `dateTime` are required and **must match** the preceding `dateTranscript` (copy those strings; do not invent a second plan).
+- `character` = one object per person on the date (same UUIDs as user `write` attaches / transcript `characterIds`). Required; at least two for a typical date.
 - Per entry: `id` (GUID), `dateReview` (~50–100 words from **that** character’s POV: feelings, opinions, honest feedback), `dateScore` (1–10 how the date went: 1 awful/terrible … 10 dream date), `dateFit` (1–10 how well this date *type* matches their ideal outing: 1 nightmare … 10 perfect).
 - `location` is required — ~10–20 words describing **where** the date took place (venue / neighborhood / setting).
-- `dateTime` is required (date + time of the outing).
 - `chatId` is required — the current chat/session id for this thread.
-- `shortSummary` = outcome vibe (spark, awkward, warm, strained, etc.). History `update` summaries should match this.
-- Live scene spoken lines still use **`quote`** tools; do not emit a separate transcript field.
+- `shortSummary` = **outcome** vibe after the date (spark, awkward, warm, strained, etc.) — not a redo of `description`. History `update` summaries should match this.
+- Live scene belongs in **`dateTranscript`** (not free prose, not inside this summary).
 - `justification` may name values briefly; do not dump raw numeric ValueScores unless the user asks. `dateScore` / `dateFit` belong in the tool only (not spoken in scene dialogue).
 - `data.id` is optional (the app can stamp one). Never reuse a character UUID as the dateSummary `data.id`.
-- Display-only (not a library write). Same reply may mix narration + quotes + `dateSummary` + character `update`/`create`.
+- Same reply may mix `dateTranscript` + `dateSummary` + character `update`/`create`.
 
 ### `update` — existing attached character
 Emit a fenced JSON `character` / `update` tool whenever this chat adds or reveals lasting material for a character that already has an `id` from a user `write` attach.
@@ -239,4 +279,4 @@ Rules:
 - Prose-only is allowed only for meta/process questions that add no character events, traits, or new people (e.g. “what can you do?”, “list the ten values”).
 
 ## Presentation note (app behavior, not model speech)
-The app shows character tool JSON in chat (collapsible). **Quote** tools render as speaker thumbnail + name + line (not raw JSON). **dateSummary** tools render as multi-character thumbnails plus short summary / location / reviews / justification (not raw JSON). Creates are gated: the user accepts or rejects before the character is written to the library. Updates apply to the library after the turn. Quotes and dateSummary are display-only.
+The app shows character tool JSON in chat (collapsible). **Quote** tools render as speaker thumbnail + name + line (not raw JSON). **dateTranscript** tools render as a date scene card: description + datetime at the top, then narration + nested quote bubbles stream in as each segment arrives; completed transcripts are saved onto each associated character sheet. **dateSummary** tools render as multi-character thumbnails plus description / short summary / location / reviews / justification (not raw JSON) and also persist onto sheets. Creates are gated: the user accepts or rejects before the character is written to the library. Updates apply to the library after the turn.

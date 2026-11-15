@@ -16,7 +16,8 @@ export interface CharacterToolMessage {
 
 /**
  * Build the user `character` / `write` attach payload for the LLM.
- * Never include `dateSummary`, `images`, or `voiceAssetId` — sheet-local only.
+ * Never include `dateSummary`, `dateTranscript`, `images`, or `voiceAssetId` —
+ * those stay sheet-local.
  */
 export function buildCharacterWriteTool(
   character: Character,

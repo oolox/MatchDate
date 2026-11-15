@@ -113,6 +113,8 @@ export function dateSummaryDataFromUnknown(data: unknown): DateSummaryData | nul
   }
   const record = data as Record<string, unknown>;
   const id = typeof record.id === 'string' ? record.id.trim() : '';
+  const description =
+    typeof record.description === 'string' ? record.description.trim() : '';
   const shortSummary =
     typeof record.shortSummary === 'string' ? record.shortSummary.trim() : '';
   const justification =
@@ -121,7 +123,7 @@ export function dateSummaryDataFromUnknown(data: unknown): DateSummaryData | nul
   const dateTime = typeof record.dateTime === 'string' ? record.dateTime.trim() : '';
   const chatId = typeof record.chatId === 'string' ? record.chatId.trim() : '';
 
-  // `location` preferred; legacy tools may omit it (still render).
+  // `location` / `description` preferred; legacy tools may omit them (still render).
   if (!shortSummary || !justification || !dateTime || !chatId) {
     return null;
   }
@@ -133,6 +135,7 @@ export function dateSummaryDataFromUnknown(data: unknown): DateSummaryData | nul
 
   return {
     ...(id ? { id } : {}),
+    description,
     shortSummary,
     justification,
     location,

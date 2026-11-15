@@ -1,3 +1,4 @@
+import type { DateTranscriptData } from '../features/chat/attach/dateTranscriptAttach';
 import type { DateSummaryData } from './dateSummary';
 import type { SavedImageRef } from './savedImage';
 
@@ -87,6 +88,8 @@ export interface Character {
   traits: CharacterTrait[];
   /** Past dateSummary tool payloads involving this character. */
   dateSummary: DateSummaryData[];
+  /** Past dateTranscript tool payloads involving this character. */
+  dateTranscript: DateTranscriptData[];
   /** Image asset refs (by guid / `SavedImageRef.id`), LuxNova-style. */
   images: SavedImageRef[];
   /**
@@ -107,6 +110,8 @@ export interface CharacterDocument {
   traits: CharacterTrait[];
   /** Past dateSummary tool payloads involving this character. */
   dateSummary?: DateSummaryData[];
+  /** Past dateTranscript tool payloads involving this character. */
+  dateTranscript?: DateTranscriptData[];
   /** Image asset refs keyed by asset id. */
   images?: SavedImageRef[];
   /** Library voice asset GUID when bound. */
@@ -131,6 +136,7 @@ export function createDefaultCharacter(name = ''): Character {
     history: [],
     traits: [],
     dateSummary: [],
+    dateTranscript: [],
     images: [],
   };
 }

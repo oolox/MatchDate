@@ -18,6 +18,7 @@ describe('jsonAttach', () => {
     character.dateSummary = [
       {
         id: 'summary-1',
+        description: 'Dinner out',
         shortSummary: 'Quiet evening.',
         location: 'Garden.',
         justification: 'Aligned.',
@@ -26,6 +27,15 @@ describe('jsonAttach', () => {
         ],
         dateTime: '2028-09-12T19:00:00-04:00',
         chatId: 'chat-1',
+      },
+    ];
+    character.dateTranscript = [
+      {
+        id: 'transcript-1',
+        description: 'Dinner out',
+        dateTime: '2028-09-12T19:00:00-04:00',
+        characterIds: ['char-1'],
+        segments: [{ type: 'text', text: 'They sat down.' }],
       },
     ];
     const payload = buildCharacterWriteTool(character, 'char-1');
@@ -41,8 +51,10 @@ describe('jsonAttach', () => {
       traits: [],
     });
     expect(payload.data).not.toHaveProperty('dateSummary');
+    expect(payload.data).not.toHaveProperty('dateTranscript');
     expect(payload.data).not.toHaveProperty('voiceAssetId');
     expect(JSON.stringify(payload)).not.toContain('dateSummary');
+    expect(JSON.stringify(payload)).not.toContain('dateTranscript');
     expect(JSON.stringify(payload)).not.toContain('voiceAssetId');
   });
 

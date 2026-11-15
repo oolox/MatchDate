@@ -1,6 +1,9 @@
 import type { DateSummaryCharacterEntry } from '../features/chat/attach/dateSummaryAttach';
+import type { DateTranscriptSegment } from '../features/chat/attach/dateTranscriptAttach';
+import { extractDateTranscriptSegments } from '../features/chat/attach/extractDateTranscriptSegments';
 import { isCharacterToolMessage } from '../features/chat/attach/parseCharacterTools';
 import { normalizeDateSummaryToolMessage } from '../features/chat/attach/parseDateSummaryTools';
+import { normalizeDateTranscriptToolMessage } from '../features/chat/attach/parseDateTranscriptTools';
 import { normalizeQuoteToolMessage } from '../features/chat/attach/parseQuoteTools';
 
 export type AssistantMarkdownBlock = { type: 'markdown'; content: string };
@@ -33,6 +36,7 @@ export type AssistantQuoteBlock = {
 export type AssistantDateSummaryBlock = {
   type: 'dateSummary';
   id: string;
+  description: string;
   shortSummary: string;
   location: string;
   justification: string;
@@ -42,11 +46,22 @@ export type AssistantDateSummaryBlock = {
   complete: boolean;
 };
 
+export type AssistantDateTranscriptBlock = {
+  type: 'dateTranscript';
+  id: string;
+  description: string;
+  dateTime: string;
+  characterIds: string[];
+  segments: DateTranscriptSegment[];
+  complete: boolean;
+};
+
 export type AssistantMessageBlock =
   | AssistantMarkdownBlock
   | AssistantToolBlock
   | AssistantQuoteBlock
-  | AssistantDateSummaryBlock;
+  | AssistantDateSummaryBlock
+  | AssistantDateTranscriptBlock;
 
 export interface SplitAssistantContentOptions {
   isStreaming?: boolean;
@@ -192,6 +207,7 @@ function extractDateSummaryInstanceId(fromData: string): string | undefined {
 
 function extractDateSummaryFields(raw: string): {
   id?: string;
+  description?: string;
   shortSummary?: string;
   location?: string;
   justification?: string;
@@ -205,6 +221,7 @@ function extractDateSummaryFields(raw: string): {
       ? raw.slice(dataMatch.index + dataMatch[0].length)
       : raw;
   const id = extractDateSummaryInstanceId(fromData);
+  const description = /"description"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
   const shortSummary = /"shortSummary"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
   const location = /"location"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
   const justification = /"justification"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1];
@@ -213,6 +230,9 @@ function extractDateSummaryFields(raw: string): {
   return {
     character: extractDateSummaryCharacterEntries(fromData),
     ...(id ? { id } : {}),
+    ...(description !== undefined
+      ? { description: unescapeJsonString(description).trim() }
+      : {}),
     ...(shortSummary !== undefined
       ? { shortSummary: unescapeJsonString(shortSummary).trim() }
       : {}),
@@ -322,6 +342,59 @@ function looksLikeDateSummaryTool(raw: string): boolean {
   return /"tool"\s*:\s*"dateSummary"/.test(raw);
 }
 
+function looksLikeDateTranscriptTool(raw: string): boolean {
+  return /"tool"\s*:\s*"dateTranscript"/.test(raw);
+}
+
+function unescapeHeaderString(value: string | undefined): string {
+  if (value === undefined) {
+    return '';
+  }
+  try {
+    return (JSON.parse(`"${value}"`) as string).trim();
+  } catch {
+    return value.trim();
+  }
+}
+
+function extractDateTranscriptHeaderFields(raw: string): {
+  id?: string;
+  description: string;
+  dateTime: string;
+  characterIds: string[];
+} {
+  const dataMatch = /"data"\s*:\s*\{/.exec(raw);
+  const fromData =
+    dataMatch && dataMatch.index !== undefined
+      ? raw.slice(dataMatch.index + dataMatch[0].length)
+      : raw;
+  const segmentsIndex = fromData.search(/"segments"\s*:/);
+  const head = segmentsIndex >= 0 ? fromData.slice(0, segmentsIndex) : fromData;
+  const id = /"id"\s*:\s*"([^"]+)"/.exec(head)?.[1]?.trim();
+  const descriptionRaw =
+    /"description"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1] ??
+    /"description"\s*:\s*"((?:\\.|[^"\\])*)$/.exec(fromData)?.[1];
+  const dateTimeRaw =
+    /"dateTime"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1] ??
+    /"dateTime"\s*:\s*"((?:\\.|[^"\\])*)$/.exec(fromData)?.[1];
+  const characterIds: string[] = [];
+  const idsMatch = /"characterIds"\s*:\s*\[([^\]]*)\]/.exec(fromData);
+  if (idsMatch?.[1]) {
+    for (const idMatch of idsMatch[1].matchAll(/"([^"]+)"/g)) {
+      const value = idMatch[1]?.trim();
+      if (value) {
+        characterIds.push(value);
+      }
+    }
+  }
+  return {
+    ...(id ? { id } : {}),
+    description: unescapeHeaderString(descriptionRaw),
+    dateTime: unescapeHeaderString(dateTimeRaw),
+    characterIds,
+  };
+}
+
 function pushMarkdown(blocks: AssistantMessageBlock[], content: string) {
   if (!content.trim()) {
     return;
@@ -397,12 +470,29 @@ export function splitAssistantContent(
         blocks.push({
           type: 'dateSummary',
           id: dateSummary.data.id!,
+          description: dateSummary.data.description,
           shortSummary: dateSummary.data.shortSummary,
           location: dateSummary.data.location,
           justification: dateSummary.data.justification,
           character: dateSummary.data.character,
           dateTime: dateSummary.data.dateTime,
           chatId: dateSummary.data.chatId,
+          complete: true,
+        });
+        cursor = fence.closeIndex! + 3;
+        continue;
+      }
+
+      const dateTranscript = normalizeDateTranscriptToolMessage(parsed);
+      if (dateTranscript) {
+        pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+        blocks.push({
+          type: 'dateTranscript',
+          id: dateTranscript.data.id!,
+          description: dateTranscript.data.description,
+          dateTime: dateTranscript.data.dateTime,
+          characterIds: dateTranscript.data.characterIds,
+          segments: dateTranscript.data.segments,
           complete: true,
         });
         cursor = fence.closeIndex! + 3;
@@ -455,12 +545,31 @@ export function splitAssistantContent(
       blocks.push({
         type: 'dateSummary',
         id: fields.id?.trim() || `streaming-dateSummary-${fence.openIndex}`,
+        description: fields.description?.trim() ?? '',
         shortSummary: fields.shortSummary?.trim() ?? '',
         location: fields.location?.trim() ?? '',
         justification: fields.justification?.trim() ?? '',
         character: fields.character,
         dateTime: fields.dateTime?.trim() ?? '',
         chatId: fields.chatId?.trim() ?? '',
+        complete: false,
+      });
+      cursor = content.length;
+      break;
+    }
+
+    if (isStreaming && looksLikeDateTranscriptTool(raw)) {
+      const header = extractDateTranscriptHeaderFields(raw);
+      const id =
+        header.id?.trim() || `streaming-dateTranscript-${fence.openIndex}`;
+      pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+      blocks.push({
+        type: 'dateTranscript',
+        id,
+        description: header.description,
+        dateTime: header.dateTime,
+        characterIds: header.characterIds,
+        segments: extractDateTranscriptSegments(raw),
         complete: false,
       });
       cursor = content.length;

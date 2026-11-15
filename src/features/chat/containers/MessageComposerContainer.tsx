@@ -24,10 +24,16 @@ import { apiContentForMessage } from '../attach/xmlAttach';
 import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
 import { parseDateSummaryToolMessages } from '../attach/parseDateSummaryTools';
+import { parseDateTranscriptToolMessages } from '../attach/parseDateTranscriptTools';
 import {
   appendDateSummaryEntry,
   ensureDateSummaryToolId,
 } from '../attach/dateSummaryAttach';
+import {
+  appendDateTranscriptEntry,
+  dateTranscriptAssociatedCharacterIds,
+  ensureDateTranscriptToolId,
+} from '../attach/dateTranscriptAttach';
 import { useTxtChatAttachments, type DraftAttachment } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
 import { useStore } from 'react-redux';
@@ -59,6 +65,7 @@ import {
   characterFromCreateData,
   processCharacterTool,
   processDateSummaryTool,
+  processDateTranscriptTool,
   processTools,
 } from '../../../services/tools';
 import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
@@ -285,12 +292,13 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         );
         dispatch(setIsStreaming(false));
         void (async () => {
-          // Character tools apply to library; dateSummary also persists onto character sheets.
+          // Character tools apply to library; dateTranscript/dateSummary persist onto sheets.
           const agentTools = parseCharacterToolMessages(accumulated).filter(
             (tool) => tool.origin === 'agent',
           );
           const updates = agentTools.filter((tool) => tool.action === 'update');
           const creates = agentTools.filter((tool) => tool.action === 'create');
+          const dateTranscripts = parseDateTranscriptToolMessages(accumulated);
           const dateSummaries = parseDateSummaryToolMessages(accumulated);
 
           let libraryChanged = false;
@@ -303,6 +311,36 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
               } else {
                 notify(result.message);
               }
+            }
+          }
+
+          for (const rawTranscript of dateTranscripts) {
+            const stamped = ensureDateTranscriptToolId(rawTranscript);
+            const associatedIds = dateTranscriptAssociatedCharacterIds(stamped.data);
+            const editorId = selectCharacterEditorId(store.getState());
+            if (editorId && associatedIds.includes(editorId)) {
+              const editorCharacter = selectCharacterEditorCharacter(store.getState());
+              dispatch(
+                markCharacterEditorSaved({
+                  characterId: editorId,
+                  character: {
+                    ...editorCharacter,
+                    dateTranscript: appendDateTranscriptEntry(
+                      editorCharacter.dateTranscript,
+                      stamped.data,
+                    ),
+                  },
+                }),
+              );
+            }
+            const result = await processDateTranscriptTool(stamped);
+            if (result.ok) {
+              libraryChanged = true;
+            } else if (result.updatedCharacterIds.length === 0) {
+              notify(result.message);
+            } else {
+              libraryChanged = true;
+              notify(result.message);
             }
           }
 

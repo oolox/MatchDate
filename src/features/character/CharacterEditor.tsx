@@ -550,6 +550,7 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
               {datesNewestFirst.map((summary, index) => (
                 <DateSummaryBubble
                   key={summary.id?.trim() || `${summary.dateTime}-${summary.chatId}-${index}`}
+                  description={summary.description}
                   shortSummary={summary.shortSummary}
                   location={summary.location}
                   justification={summary.justification}
