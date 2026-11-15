@@ -194,8 +194,15 @@
 .reviewHeader {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.35rem 0.75rem;
+  min-width: 0;
+}
+
+.nameWithPlay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   min-width: 0;
 }
 

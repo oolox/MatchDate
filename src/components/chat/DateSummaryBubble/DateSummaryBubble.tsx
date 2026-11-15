@@ -4,6 +4,7 @@ import { IconButton } from '../../ui/IconButton/IconButton';
 import { LibraryCharacterThumb } from '../../library/LibraryList/LibraryCharacterThumb';
 import { useOpenCharacterFromChat } from '../../../features/character/openCharacterFromChat';
 import type { DateSummaryCharacterEntry } from '../../../features/chat/attach/dateSummaryAttach';
+import { SayPlayButton } from '../../../features/voice/SayPlayButton';
 import { loadCharacter } from '../../../services/storage/persistenceService';
 import { useAppSelector } from '../../../store/hooks';
 import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
@@ -239,15 +240,22 @@ export function DateSummaryBubble({
                       </button>
                       <div className={styles.reviewBody}>
                         <header className={styles.reviewHeader}>
-                          <button
-                            type="button"
-                            className={styles.reviewNameButton}
-                            onClick={() => {
-                              void openCharacter(id);
-                            }}
-                          >
-                            {displayName}
-                          </button>
+                          <div className={styles.nameWithPlay}>
+                            <button
+                              type="button"
+                              className={styles.reviewNameButton}
+                              onClick={() => {
+                                void openCharacter(id);
+                              }}
+                            >
+                              {displayName}
+                            </button>
+                            <SayPlayButton
+                              speakerId={id}
+                              text={review}
+                              enabled={complete && Boolean(review)}
+                            />
+                          </div>
                           {hasScores ? (
                             <p className={styles.scores}>
                               <span>

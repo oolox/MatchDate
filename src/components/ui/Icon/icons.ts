@@ -20,6 +20,7 @@ import sendSvg from '../../../assets/icons/send.svg?raw';
 import sortSvg from '../../../assets/icons/sort.svg?raw';
 import starSvg from '../../../assets/icons/star.svg?raw';
 import starFilledSvg from '../../../assets/icons/star-filled.svg?raw';
+import stopSvg from '../../../assets/icons/stop.svg?raw';
 import tagSvg from '../../../assets/icons/tag.svg?raw';
 import textFileSvg from '../../../assets/icons/text-file.svg?raw';
 import timeSvg from '../../../assets/icons/time.svg?raw';
@@ -40,6 +41,7 @@ export const iconSources = {
   time: timeSvg,
   star: starSvg,
   'star-filled': starFilledSvg,
+  stop: stopSvg,
   search: searchSvg,
   sort: sortSvg,
   'caret-up': caretUpSvg,

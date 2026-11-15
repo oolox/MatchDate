@@ -11,7 +11,7 @@ import {
   pickRandomGeminiVoiceForGender,
   type VoiceGenderHint,
 } from '../../services/fal/models/tts';
-import { synthesizeSpeech } from '../../services/fal/ttsService';
+import { synthesizeAndPlaySpeech } from './synthesizeAndPlay';
 import { bumpLibraryEpoch } from '../../store/slices/appShellSlice';
 import { useAppDispatch } from '../../store/hooks';
 import type { AssetDocument } from '../../types/opfsDoc';
@@ -459,53 +459,20 @@ export function useVoiceEditor(): VoiceEditor {
       setLastError(null);
       const controller = begin();
       try {
-        const result = await synthesizeSpeech({
+        revokePlayback();
+        await synthesizeAndPlaySpeech({
           text,
-          modelId: DEFAULT_TTS_MODEL_ID,
           voice: {
             voiceId: voiceIdRef.current,
             styleInstructions: styleInstructionsRef.current,
             temperature: temperatureRef.current,
           },
           signal: controller.signal,
-        });
-        if (controller.signal.aborted) {
-          return;
-        }
-        revokePlayback();
-        const objectUrl = URL.createObjectURL(result.blob);
-        objectUrlRef.current = objectUrl;
-        const audio = new Audio(objectUrl);
-        audio.loop = false;
-        audioRef.current = audio;
-        // play() resolves when playback *starts*; wait for end so we don't unlock
-        // early and allow a second synthesize/play of the same line.
-        await new Promise<void>((resolve, reject) => {
-          let settled = false;
-          const settle = (fn: () => void) => {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            if (playWaitCancelRef.current === cancel) {
-              playWaitCancelRef.current = null;
-            }
-            cleanup();
-            fn();
-          };
-          const onEnded = () => settle(() => resolve());
-          const onError = () => settle(() => reject(new Error('Audio playback failed')));
-          const cancel = () => settle(() => resolve());
-          const cleanup = () => {
-            audio.removeEventListener('ended', onEnded);
-            audio.removeEventListener('error', onError);
-          };
-          playWaitCancelRef.current = cancel;
-          audio.addEventListener('ended', onEnded);
-          audio.addEventListener('error', onError);
-          void audio.play().catch((error: unknown) => {
-            settle(() => reject(error));
-          });
+          onAudioCreated: ({ audio, objectUrl, cancelWait }) => {
+            objectUrlRef.current = objectUrl;
+            audioRef.current = audio;
+            playWaitCancelRef.current = cancelWait;
+          },
         });
       } catch (error) {
         if (controller.signal.aborted) {

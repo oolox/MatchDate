@@ -1,6 +1,7 @@
 import { Icon } from '../../ui/Icon/Icon';
 import { LibraryCharacterThumb } from '../../library/LibraryList/LibraryCharacterThumb';
 import { useOpenCharacterFromChat } from '../../../features/character/openCharacterFromChat';
+import { SayPlayButton } from '../../../features/voice/SayPlayButton';
 import styles from './QuoteBubble.module.css';
 
 export interface QuoteBubbleProps {
@@ -47,7 +48,10 @@ export function QuoteBubble({
         </div>
       )}
       <blockquote className={styles.quoteBody}>
-        <cite className={styles.name}>{name}</cite>
+        <div className={styles.nameRow}>
+          <cite className={styles.name}>{name}</cite>
+          <SayPlayButton speakerId={speakerId} text={line} enabled={complete} />
+        </div>
         <p
           className={[styles.quote, line ? '' : styles.quoteEmpty].filter(Boolean).join(' ')}
         >
