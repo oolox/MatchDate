@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ThreadMessage } from '../../../types/chat';
 import { MessageBubble } from './MessageBubble';
-import styles from './MessageBubble.module.css';
+import styles from '../../chat/ReasoningTool/ReasoningTool.module.css';
 
 vi.mock('../AssistantMessageContent/AssistantMessageContent', () => ({
   AssistantMessageContent: ({ content }: { content: string }) => <div>{content}</div>,
@@ -27,7 +27,8 @@ describe('MessageBubble reasoning', () => {
     expect(screen.getByRole('article', { name: 'MasterDater is generating' })).toBeInTheDocument();
     const reasoning = screen.getByLabelText('Reasoning');
     expect(reasoning).toHaveTextContent('line one');
-    expect(reasoning).toHaveClass(styles.reasoning);
+    expect(reasoning).toHaveClass(styles.root);
+    expect(reasoning.querySelector(`.${styles.text}`)).toBeTruthy();
   });
 
   it('hides reasoning once the answer has text', () => {
