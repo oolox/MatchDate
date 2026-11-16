@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/ui/Icon/Icon';
-import { useObjectUrl } from '../../hooks/useObjectUrl';
 import { loadImage } from '../../services/storage/imageStorage';
+import { loadAssetThumb, peekAssetThumb } from '../../services/storage/imageThumbCache';
 import type { SavedImageRef } from '../../types/savedImage';
 import styles from './CharacterImagesSection.module.css';
 
@@ -13,7 +13,7 @@ export interface CharacterImagePreviewProps {
 }
 
 export function CharacterImagePreview({ image, name }: CharacterImagePreviewProps) {
-  const { objectUrl, setFromBlob, clear } = useObjectUrl();
+  const [objectUrl, setObjectUrl] = useState<string | null>(() => peekAssetThumb(image.id));
   const [failed, setFailed] = useState(false);
 
   const width = image.metadata?.width;
@@ -27,28 +27,30 @@ export function CharacterImagePreview({ image, name }: CharacterImagePreviewProp
       : undefined;
 
   useEffect(() => {
-    let cancelled = false;
-    setFailed(false);
-    clear();
+    const cached = peekAssetThumb(image.id);
+    if (cached) {
+      setObjectUrl(cached);
+      setFailed(false);
+      return;
+    }
 
-    void (async () => {
-      try {
-        const blob = await loadImage(image.id);
-        if (!cancelled) {
-          setFromBlob(blob);
-        }
-      } catch (error) {
-        console.info('Could not load character image preview', { id: image.id, error });
-        if (!cancelled) {
-          setFailed(true);
-        }
+    let cancelled = false;
+    void loadAssetThumb(image.id, (id) => loadImage(id)).then((url) => {
+      if (cancelled) {
+        return;
       }
-    })();
+      if (url) {
+        setObjectUrl(url);
+        setFailed(false);
+      } else {
+        setFailed(true);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [clear, image.id, setFromBlob]);
+  }, [image.id]);
 
   return (
     <div

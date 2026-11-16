@@ -33,10 +33,8 @@ export function normalizeDatePlanToolMessage(value: unknown): DatePlanToolMessag
   if (!data) {
     return null;
   }
-  const legacyEnvelopeId =
-    typeof (value as { id?: unknown }).id === 'string'
-      ? ((value as { id: string }).id).trim()
-      : '';
+  const envelopeId = (value as { id?: unknown }).id;
+  const legacyEnvelopeId = typeof envelopeId === 'string' ? envelopeId.trim() : '';
   return ensureDatePlanToolId({
     tool: DATE_PLAN_TOOL,
     origin: 'agent',

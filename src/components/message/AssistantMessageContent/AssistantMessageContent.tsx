@@ -28,7 +28,7 @@ function AssistantMessageContentComponent({
         if (block.type === 'quote') {
           return (
             <QuoteBubble
-              key={`quote-${index}-${block.id}`}
+              key={`quote-${index}`}
               quote={block.quote}
               speakerName={block.speakerName}
               speaker={block.speaker}
@@ -39,7 +39,7 @@ function AssistantMessageContentComponent({
         if (block.type === 'datePlan') {
           return (
             <DatePlanBubble
-              key={`datePlan-${index}-${block.id}`}
+              key={`datePlan-${index}`}
               dateTime={block.dateTime}
               location={block.location}
               characterIds={block.characterIds}
@@ -50,7 +50,7 @@ function AssistantMessageContentComponent({
         if (block.type === 'dateSummary') {
           return (
             <DateSummaryBubble
-              key={`dateSummary-${index}-${block.id}`}
+              key={`dateSummary-${index}`}
               shortSummary={block.shortSummary}
               location={block.location}
               justification={block.justification}
@@ -66,7 +66,7 @@ function AssistantMessageContentComponent({
         if (block.type === 'dateTranscript') {
           return (
             <DateTranscriptBubble
-              key={`dateTranscript-${index}-${block.id}`}
+              key={`dateTranscript-${index}`}
               location={block.location}
               dateTime={block.dateTime}
               segments={block.segments}
@@ -79,7 +79,7 @@ function AssistantMessageContentComponent({
         if (block.type === 'tool') {
           return (
             <ToolResponse
-              key={`tool-${index}-${block.tool}-${block.action ?? ''}-${block.id ?? ''}-${block.name ?? ''}`}
+              key={`tool-${index}`}
               tool={block.tool}
               action={block.action}
               id={block.id}

@@ -8,7 +8,6 @@ import {
 import { saveImage } from '../../services/storage/imageStorage';
 import {
   loadAsset,
-  loadCharacter,
   loadCharacterWithMigration,
   saveCharacter,
 } from '../../services/storage/persistenceService';
@@ -56,7 +55,13 @@ function clampScore(value: number): number {
   return Math.min(100, Math.max(0, Math.round(value)));
 }
 
-function toEditorCharacter(character: Character, images?: SavedImageRef[]): Character {
+function toEditorCharacter(
+  character: Pick<Character, 'name' | 'attributes'> &
+    Partial<
+      Pick<Character, 'identity' | 'history' | 'traits' | 'dateHistory' | 'images' | 'voiceAssetId'>
+    >,
+  images?: SavedImageRef[],
+): Character {
   const voiceAssetId = character.voiceAssetId?.trim();
   return {
     name: character.name,

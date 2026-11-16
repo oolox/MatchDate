@@ -137,6 +137,7 @@ export function characterFromCreateData(
     attributes: mergeAttributePatches(base.attributes, patch.attributes),
     history: stampSessionId(normalizeHistory(patch.history), options?.sessionId),
     traits: traitsMerged.traits,
+    dateHistory: [],
     images: [],
   };
 }
@@ -185,9 +186,10 @@ export function applyCharacterUpdatePatch(
       ? patch.name.trim()
       : existing.name;
   const nameChanged = nextName !== existing.name;
-  const identityProvided = isCharacterIdentity(patch.identity);
+  const patchIdentity = patch.identity;
+  const identityProvided = isCharacterIdentity(patchIdentity);
   const nextIdentity = identityProvided
-    ? patch.identity
+    ? patchIdentity
     : normalizeCharacterIdentity(existing.identity);
   const identityChanged = identityProvided && nextIdentity !== existing.identity;
 

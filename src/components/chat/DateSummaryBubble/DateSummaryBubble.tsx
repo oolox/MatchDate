@@ -106,6 +106,7 @@ export function DateSummaryBubble({
   const detailsId = useId();
   const entries = character.filter((entry) => entry.id.trim());
   const ids = entries.map((entry) => entry.id.trim());
+  const idsKey = ids.join('|');
   const [namesById, setNamesById] = useState<Record<string, string>>({});
   const [compatibilityOpen, setCompatibilityOpen] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -113,7 +114,7 @@ export function DateSummaryBubble({
 
   useEffect(() => {
     let cancelled = false;
-    const characterIds = character.map((entry) => entry.id.trim()).filter(Boolean);
+    const characterIds = idsKey ? idsKey.split('|') : [];
     if (characterIds.length === 0) {
       setNamesById({});
       return;
@@ -141,7 +142,7 @@ export function DateSummaryBubble({
     return () => {
       cancelled = true;
     };
-  }, [character, libraryEpoch]);
+  }, [idsKey, libraryEpoch]);
 
   const nameLine =
     ids

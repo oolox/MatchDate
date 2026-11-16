@@ -37,10 +37,8 @@ export function normalizeDateTranscriptToolMessage(
   if (!data) {
     return null;
   }
-  const legacyEnvelopeId =
-    typeof (value as { id?: unknown }).id === 'string'
-      ? ((value as { id: string }).id).trim()
-      : '';
+  const envelopeId = (value as { id?: unknown }).id;
+  const legacyEnvelopeId = typeof envelopeId === 'string' ? envelopeId.trim() : '';
   return ensureDateTranscriptToolId({
     tool: DATE_TRANSCRIPT_TOOL,
     origin: 'agent',

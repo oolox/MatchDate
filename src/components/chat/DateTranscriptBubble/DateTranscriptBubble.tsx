@@ -115,7 +115,7 @@ export function DateTranscriptBubble({
             const isLast = index === segments.length - 1;
             return (
               <QuoteBubble
-                key={`quote-${index}-${segment.id ?? segment.speakerName}`}
+                key={`quote-${index}`}
                 quote={segment.quote}
                 speakerName={segment.speakerName}
                 speaker={segment.speaker}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useObjectUrl } from '../../../hooks/useObjectUrl';
 import { loadImage } from '../../../services/storage/imageStorage';
+import { loadAssetThumb, peekAssetThumb } from '../../../services/storage/imageThumbCache';
 import { Icon } from '../../ui/Icon/Icon';
 import styles from './LibraryList.module.css';
 
@@ -10,32 +10,34 @@ export interface LibraryAssetThumbProps {
 }
 
 export function LibraryAssetThumb({ assetId, name }: LibraryAssetThumbProps) {
-  const { objectUrl, setFromBlob, clear } = useObjectUrl();
+  const [objectUrl, setObjectUrl] = useState<string | null>(() => peekAssetThumb(assetId));
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    setFailed(false);
-    clear();
+    const cached = peekAssetThumb(assetId);
+    if (cached) {
+      setObjectUrl(cached);
+      setFailed(false);
+      return;
+    }
 
-    void (async () => {
-      try {
-        const blob = await loadImage(assetId);
-        if (!cancelled) {
-          setFromBlob(blob);
-        }
-      } catch (error) {
-        console.info('Could not load image thumb', { assetId, error });
-        if (!cancelled) {
-          setFailed(true);
-        }
+    let cancelled = false;
+    void loadAssetThumb(assetId, (id) => loadImage(id)).then((url) => {
+      if (cancelled) {
+        return;
       }
-    })();
+      if (url) {
+        setObjectUrl(url);
+        setFailed(false);
+      } else {
+        setFailed(true);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [assetId, clear, setFromBlob]);
+  }, [assetId]);
 
   return (
     <div className={styles.thumbWrap} aria-hidden="true">

@@ -40,13 +40,13 @@ export function QuoteBubble({
         if (cancelled) {
           return;
         }
-        setSpeakerId(matchCharacterIdByName(name, items) ?? '');
+        const match = matchCharacterIdByName(name, items);
+        if (match) {
+          setSpeakerId(match);
+        }
       })
       .catch((error) => {
         console.info('Could not match quote speaker to a character', { name, error });
-        if (!cancelled) {
-          setSpeakerId('');
-        }
       });
     return () => {
       cancelled = true;

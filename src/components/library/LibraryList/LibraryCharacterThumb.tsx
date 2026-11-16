@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useObjectUrl } from '../../../hooks/useObjectUrl';
 import { loadImage } from '../../../services/storage/imageStorage';
+import {
+  loadCharacterThumb,
+  peekCharacterThumb,
+} from '../../../services/storage/imageThumbCache';
 import { loadCharacter } from '../../../services/storage/persistenceService';
 import { useAppSelector } from '../../../store/hooks';
 import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
-import type { SavedImageRef } from '../../../types/savedImage';
 import { Icon } from '../../ui/Icon/Icon';
 import styles from './LibraryList.module.css';
 
@@ -15,9 +17,9 @@ export interface LibraryCharacterThumbProps {
   name: string;
 }
 
-function aspectWidthFor(image: SavedImageRef | null): number | undefined {
-  const width = image?.metadata?.width;
-  const height = image?.metadata?.height;
+function aspectWidthFor(image: { width?: number; height?: number } | null): number | undefined {
+  const width = image?.width;
+  const height = image?.height;
   if (
     typeof width !== 'number' ||
     typeof height !== 'number' ||
@@ -31,47 +33,39 @@ function aspectWidthFor(image: SavedImageRef | null): number | undefined {
 
 export function LibraryCharacterThumb({ characterId, name }: LibraryCharacterThumbProps) {
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
-  const { objectUrl, setFromBlob, clear } = useObjectUrl();
-  const [failed, setFailed] = useState(false);
-  const [firstImage, setFirstImage] = useState<SavedImageRef | null>(null);
+  const [thumb, setThumb] = useState(() => peekCharacterThumb(characterId));
 
   useEffect(() => {
-    let cancelled = false;
-    setFailed(false);
-    setFirstImage(null);
-    clear();
+    const cached = peekCharacterThumb(characterId);
+    if (cached && cached.epoch === libraryEpoch) {
+      setThumb(cached);
+      return;
+    }
+    if (!cached) {
+      setThumb(null);
+    }
 
-    void (async () => {
-      try {
-        const character = await loadCharacter(characterId);
-        if (cancelled) {
-          return;
-        }
-        const image = character.images?.[0] ?? null;
-        setFirstImage(image);
-        if (!image) {
-          return;
-        }
-        const blob = await loadImage(image.id);
-        if (!cancelled) {
-          setFromBlob(blob);
-        }
-      } catch (error) {
-        console.info('Could not load character library thumb', { characterId, error });
-        if (!cancelled) {
-          setFailed(true);
-          setFirstImage(null);
-        }
+    let cancelled = false;
+    void loadCharacterThumb(
+      characterId,
+      libraryEpoch,
+      () => loadCharacter(characterId),
+      (imageId) => loadImage(imageId),
+    ).then((next) => {
+      if (!cancelled && next) {
+        setThumb(next);
       }
-    })();
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [characterId, clear, libraryEpoch, setFromBlob]);
+  }, [characterId, libraryEpoch]);
 
-  const aspectWidth = aspectWidthFor(firstImage);
-  const showImage = Boolean(objectUrl && firstImage && !failed);
+  const aspectWidth = aspectWidthFor(
+    thumb?.url ? { width: thumb.width, height: thumb.height } : null,
+  );
+  const showImage = Boolean(thumb?.url);
 
   return (
     <div
@@ -82,7 +76,7 @@ export function LibraryCharacterThumb({ characterId, name }: LibraryCharacterThu
       {showImage ? (
         <img
           className={styles.characterThumbImg}
-          src={objectUrl!}
+          src={thumb!.url!}
           alt=""
           title={name}
           width={aspectWidth}

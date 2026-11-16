@@ -37,10 +37,8 @@ export function normalizeDateSummaryToolMessage(
   if (!data) {
     return null;
   }
-  const legacyEnvelopeId =
-    typeof (value as { id?: unknown }).id === 'string'
-      ? ((value as { id: string }).id).trim()
-      : '';
+  const envelopeId = (value as { id?: unknown }).id;
+  const legacyEnvelopeId = typeof envelopeId === 'string' ? envelopeId.trim() : '';
   return ensureDateSummaryToolId({
     tool: DATE_SUMMARY_TOOL,
     origin: 'agent',

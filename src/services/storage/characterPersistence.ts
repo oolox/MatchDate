@@ -147,7 +147,10 @@ export function mergeTraitPatches(
   return { traits: [...byKey.values()], changed };
 }
 
-export function normalizeCharacter(character: Character): Character {
+export function normalizeCharacter(
+  character: Omit<Character, 'identity' | 'history' | 'traits' | 'dateHistory' | 'images'> &
+    Partial<Pick<Character, 'identity' | 'history' | 'traits' | 'dateHistory' | 'images'>>,
+): Character {
   const byName = new Map(character.attributes.map((attribute) => [attribute.name, attribute]));
   const voiceAssetId = normalizeVoiceAssetId(character.voiceAssetId);
   return {
