@@ -219,15 +219,21 @@ function isDefinitionSection(section: MarkdownSection): boolean {
 }
 
 /**
- * Schwartz models contribute the definition sections plus the passages that
- * name this turn's top scores. Any other model is included in full.
+ * A date or a conversation sends a Schwartz model whole so every score can be
+ * read against the full theory. Other turns keep the definition sections plus
+ * the passages that name this turn's top scores. Any non-Schwartz model is
+ * included in full.
  */
 export function selectValueModelPassages(
   body: string,
   cards: CharacterScoreCard[],
+  intent?: ChatIntent,
 ): string {
   const trimmed = body.trim();
   if (!trimmed || !isSchwartzValueModel(trimmed)) {
+    return trimmed;
+  }
+  if (intent === 'date' || intent === 'conversation') {
     return trimmed;
   }
 
@@ -291,7 +297,7 @@ export function assembleChatContext(options: {
 
   const passages = options.valueModels
     .map((model) => {
-      const body = selectValueModelPassages(model.body, cards);
+      const body = selectValueModelPassages(model.body, cards, intent);
       if (!body) {
         return '';
       }

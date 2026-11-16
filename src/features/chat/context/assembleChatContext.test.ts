@@ -135,6 +135,18 @@ describe('selectValueModelPassages', () => {
     const body = '# Other theory\n\nBe kind.';
     expect(selectValueModelPassages(body, [])).toBe(body);
   });
+
+  it('sends the whole Schwartz model on a date or a conversation', () => {
+    const cards = characterScoreCards(
+      characterFence('Alex', [['Stimulation', 90], ['Hedonism', 40]], []),
+    );
+    for (const intent of ['date', 'conversation'] as const) {
+      const passages = selectValueModelPassages(SCHWARTZ, cards, intent);
+      expect(passages).toContain('Thrill-Seeker');
+      expect(passages).toContain('Rebel and the Rule-Follower');
+      expect(passages).toContain('Low Compatibility');
+    }
+  });
 });
 
 describe('limitCharacterHistory', () => {
@@ -173,5 +185,17 @@ describe('assembleChatContext', () => {
     expect(text).toContain('[Value model: MD-ValueModel.md]');
     expect(text).toContain('The 10 Basic Values');
     expect(text).not.toContain('Thrill-Seeker');
+  });
+
+  it('sends the whole Schwartz model when the turn is a conversation', () => {
+    const text = assembleChatContext({
+      promptBody: getBundledPromptBody('prompt-masterDater'),
+      userText: 'hello',
+      apiContent: 'hello',
+      intent: 'conversation',
+      valueModels: [{ name: 'MD-ValueModel.md', body: SCHWARTZ }],
+    });
+    expect(text).toContain('Thrill-Seeker');
+    expect(text).toContain('Rebel and the Rule-Follower');
   });
 });

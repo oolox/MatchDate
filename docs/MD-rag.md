@@ -6,7 +6,7 @@
 >
 > **Last updated:** 2026-11-15
 >
-> **Related:** [`MD-ValueModel.md`](./MD-ValueModel.md), [`MD-CharacterPrompt.md`](./MD-CharacterPrompt.md), [`MD-tools.md`](./MD-tools.md), [`MD-Models.md`](./MD-Models.md), [`MD-Chat-Feature.md`](./MD-Chat-Feature.md), [`prompts/prompt-masterDater.md`](../prompts/prompt-masterDater.md)
+> **Related:** `[MD-ValueModel.md](./MD-ValueModel.md)`, `[MD-CharacterPrompt.md](./MD-CharacterPrompt.md)`, `[MD-tools.md](./MD-tools.md)`, `[MD-Models.md](./MD-Models.md)`, `[MD-Chat-Feature.md](./MD-Chat-Feature.md)`, `[prompts/prompt-masterDater.md](../prompts/prompt-masterDater.md)`
 
 ---
 
@@ -14,13 +14,15 @@
 
 Baseline before any RAG or agent implementation. That tree was `main` at the commit below. Later RAG work is also on `main` (no pull request).
 
-| | |
-|--|--|
-| Remote | https://github.com/oolox/MatchDate.git |
-| Branch | `main` |
-| Commit | `cf3f3ca912df8119ab00d8810c318dc9c041a832` |
-| Subject | Add datePlan tool and paired dateHistory for plan, transcript, and summary. |
-| Date | 2026-11-15 |
+
+|         |                                                                                  |
+| ------- | -------------------------------------------------------------------------------- |
+| Remote  | [https://github.com/oolox/MatchDate.git](https://github.com/oolox/MatchDate.git) |
+| Branch  | `main`                                                                           |
+| Commit  | `cf3f3ca912df8119ab00d8810c318dc9c041a832`                                       |
+| Subject | Add datePlan tool and paired dateHistory for plan, transcript, and summary.      |
+| Date    | 2026-11-15                                                                       |
+
 
 To drop later RAG changes and return to this tree: `git checkout cf3f3ca912df8119ab00d8810c318dc9c041a832`. This doc itself is not in that commit.
 
@@ -28,13 +30,15 @@ To drop later RAG changes and return to this tree: `git checkout cf3f3ca912df811
 
 Keyword intent and retrieval, before the classifier call. Pushed to `main`.
 
-| | |
-|--|--|
-| Remote | https://github.com/oolox/MatchDate.git |
-| Branch | `main` |
-| Commit | `ff12abdd1ad658ff1ccd26a093bfeae53968457a` |
-| Subject | Record an intent classifier as required scope before it is built. |
-| Date | 2026-11-15 |
+
+|         |                                                                                  |
+| ------- | -------------------------------------------------------------------------------- |
+| Remote  | [https://github.com/oolox/MatchDate.git](https://github.com/oolox/MatchDate.git) |
+| Branch  | `main`                                                                           |
+| Commit  | `ff12abdd1ad658ff1ccd26a093bfeae53968457a`                                       |
+| Subject | Record an intent classifier as required scope before it is built.                |
+| Date    | 2026-11-15                                                                       |
+
 
 To drop the classifier and return to keyword intent: `git checkout ff12abdd1ad658ff1ccd26a093bfeae53968457a`.
 
@@ -43,7 +47,7 @@ To drop the classifier and return to keyword intent: `git checkout ff12abdd1ad65
 Each send classifies, then builds the system message in `assembleChatContext`, then streams one writer:
 
 - The MasterDater prompt is split on headings (`#` through `####`). `classifyChatIntent` returns `date`, `conversation`, `edit`, or `question` and uses the same registry model as the writer, with thinking off. `detectChatIntent` runs only when that call fails or the label is unusable. Cancelling the turn aborts the classifier instead of falling back. A date label gets the date protocol and the `datePlan`, `dateTranscript`, and `dateSummary` schemas. A plain question with no characters in the turn or the thread gets the preamble, Inputs, Your job, and the presentation note — not the tool schemas. Characters already in the thread count, so a follow-up still gets conversation, quote, continuity, and the character create/update schemas. If a date selection does not contain `datePlan`, the full MasterDater prompt is sent. Any bundled prompt without a “When to emit tools” heading is sent whole.
-- The session’s value-model text is retrieved on **every** turn, after the prompt sections, under `[Value model: <name>]`. A body that mentions Schwartz and all ten Basic Value names contributes the top-level and definition sections, plus later sections that name this turn’s top two scores. Sections that name none of the ten, or eight or more, are skipped. With two or more attached characters, a section is kept only when its named values cover at least two characters’ top scores. With no scores attached, clash write-ups stay out. Any other model is sent whole. The Inputs section of `prompt-masterDater.md` still says the preprompt arrives on the first turn; the assembler sends the passages every turn anyway.
+- The session’s value-model text is retrieved on **every** turn, after the prompt sections, under `[Value model: <name>]`. On a `date` or `conversation` label, a Schwartz model is sent whole so every score can be read against the full theory. On `edit` or `question`, Schwartz still contributes the top-level and definition sections, plus later sections that name this turn’s top two scores. Sections that name none of the ten, or eight or more, are skipped on those turns. With two or more attached characters, a section is kept only when its named values cover at least two characters’ top scores. With no scores attached, clash write-ups stay out. Any other model is sent whole.
 - The active list lives on the session (`valueModelIds`). The dropdown still writes one id, or an empty list for none. A thread with no list yet inherits the last dropdown choice from `localStorage`.
 - `weight` and `recentHistoryCount` live on the session (defaults 50 and 3). `set weight N` (0–100) and `set history N` (0–20) update them before the classifier runs. The system message then includes a `[Session]` block: the weight, the history count, the active model names, and a line that the session weight overrides any `weight=` example in the playbook. There is no `get weight` parser.
 - Character tool fences in the user message and in earlier turns keep the last N history beats. Traits and all ten scores stay.
@@ -54,14 +58,16 @@ Not built: embeddings, memory search, heading chunks for non-Schwartz models, to
 
 ## 0. TL;DR
 
-| Question | Answer |
-|----------|--------|
-| What is RAG? | Look up a few relevant passages, paste those into the prompt, then generate. Retrieval-Augmented Generation. |
-| What is an agent? | A loop that can decide “I need more information or a tool” before it writes the final reply. MasterDater’s writer is still one streaming call, then the app parses JSON tools out of the reply. A short classifier call runs first. |
-| Should we embed the current prompt and value model into a vector database? | **Not yet.** Both documents are small and highly structured. Embedding them would be less reliable than picking sections on purpose. |
-| What *should* change? | Split “rules the model must always obey” from “reference it should see only when relevant.” Inject the rules every turn. Retrieve value-model passages from the characters’ scores, and retrieve prompt sections from what the user is trying to do. |
-| Where do agents fit? | A fixed pipeline: classify intent → retrieve → one writer → apply tools. The classifier is a short model call, not a second writer. A tool-calling loop comes later, only for open-ended lookups. |
-| When do real embeddings earn their keep? | When the library outgrows the window: long date histories, many characters, several behavioral-model essays, user text assets. |
+
+| Question                                                                   | Answer                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What is RAG?                                                               | Look up a few relevant passages, paste those into the prompt, then generate. Retrieval-Augmented Generation.                                                                                                                                         |
+| What is an agent?                                                          | A loop that can decide “I need more information or a tool” before it writes the final reply. MasterDater’s writer is still one streaming call, then the app parses JSON tools out of the reply. A short classifier call runs first.                  |
+| Should we embed the current prompt and value model into a vector database? | **Not yet.** Both documents are small and highly structured. Embedding them would be less reliable than picking sections on purpose.                                                                                                                 |
+| What *should* change?                                                      | Split “rules the model must always obey” from “reference it should see only when relevant.” Inject the rules every turn. Retrieve value-model passages from the characters’ scores, and retrieve prompt sections from what the user is trying to do. |
+| Where do agents fit?                                                       | A fixed pipeline: classify intent → retrieve → one writer → apply tools. The classifier is a short model call, not a second writer. A tool-calling loop comes later, only for open-ended lookups.                                                    |
+| When do real embeddings earn their keep?                                   | When the library outgrows the window: long date histories, many characters, several behavioral-model essays, user text assets.                                                                                                                       |
+
 
 **Recommendation:** treat the system prompt as a constitution (always present, short) and the value model as a reference book (fetched by the values actually in play). Add a vector index only after section-and-score retrieval is not enough.
 
@@ -91,13 +97,15 @@ question  →  find a few passages  →  paste them into the prompt  →  model 
 
 The letters:
 
-| Piece | Plain meaning | MasterDater example |
-|-------|----------------|---------------------|
-| **Corpus** | The pile of text you might need | Value-model doc, prompt sections, character history, past dates, library text assets |
-| **Chunk** | One labeled slice of that pile | “Stimulation vs. Security” section, or the `dateTranscript` rules |
-| **Retrieve** | Pick the slices that matter for *this* turn | A date between a thrill-seeker and a homebody pulls the clash write-up, not the whole essay |
-| **Augment** | Paste those slices into the prompt | They show up as a “reference” block under the short system rules |
-| **Generate** | The model writes, using that paste as its source | Compatibility talk and scores follow the retrieved definitions |
+
+| Piece        | Plain meaning                                    | MasterDater example                                                                         |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| **Corpus**   | The pile of text you might need                  | Value-model doc, prompt sections, character history, past dates, library text assets        |
+| **Chunk**    | One labeled slice of that pile                   | “Stimulation vs. Security” section, or the `dateTranscript` rules                           |
+| **Retrieve** | Pick the slices that matter for *this* turn      | A date between a thrill-seeker and a homebody pulls the clash write-up, not the whole essay |
+| **Augment**  | Paste those slices into the prompt               | They show up as a “reference” block under the short system rules                            |
+| **Generate** | The model writes, using that paste as its source | Compatibility talk and scores follow the retrieved definitions                              |
+
 
 People often picture RAG as “embeddings + a vector database.” That is one way to retrieve. It is not the only way, and it is the wrong first tool for a ten-value circle.
 
@@ -121,10 +129,12 @@ MasterDater already has the *second half* of tools. The model emits fenced JSON 
 
 Two shapes, from simpler to freer:
 
-| Shape | Who decides the steps | Fit for MasterDater |
-|-------|------------------------|---------------------|
-| **Pipeline** | The app. Same stages every turn, with branches. | Best first step. Predictable, testable, cheap. |
-| **Tool-calling agent** | The model. It chooses tools until it stops. | Later, for open questions (“compare these three and only update the one who changed”). Easy to wander, easy to skip a required tool. |
+
+| Shape                  | Who decides the steps                           | Fit for MasterDater                                                                                                                  |
+| ---------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Pipeline**           | The app. Same stages every turn, with branches. | Best first step. Predictable, testable, cheap.                                                                                       |
+| **Tool-calling agent** | The model. It chooses tools until it stops.     | Later, for open questions (“compare these three and only update the one who changed”). Easy to wander, easy to skip a required tool. |
+
 
 A pipeline can still be described as “an agent” in product language. The important design choice is that **the app owns the plan** until a free-form loop proves necessary.
 
@@ -134,12 +144,14 @@ A pipeline can still be described as “an agent” in product language. The imp
 
 One model call does every job: role-play, compatibility judgment, date scripting, and sheet updates.
 
-| Input | Where it comes from | When it is sent |
-|-------|---------------------|-----------------|
-| System prompt | Bundled file, default `prompts/prompt-masterDater.md`. For that file, `selectPromptSections` keeps the sections the intent needs. Other bundled prompts go out whole | Every turn, after the classifier |
-| Value model (“preprompt”) | Library text assets named on the session (`valueModelIds`). The dropdown sets one id. Empty means none | **Every turn**, as retrieved passages (the whole asset when it is not Schwartz) |
-| Characters | `@` mentions become fenced JSON (`name`, identity, all ten scores, traits, history) in the **user** message, not the system message | The turn they are attached, and again inside earlier turns. History on the wire is the last N beats (default 3). Traits and scores stay whole |
-| Session block | `weight` and `recentHistoryCount` on the session. `set weight N` / `set history N` write them | Every turn, as `[Session]` after the prompt sections and before the value-model passages |
+
+| Input                     | Where it comes from                                                                                                                                                  | When it is sent                                                                                                                               |                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| System prompt             | Bundled file, default `prompts/prompt-masterDater.md`. For that file, `selectPromptSections` keeps the sections the intent needs. Other bundled prompts go out whole | Every turn, after the classifier                                                                                                              |                                                                                 |
+| Value model (“preprompt”) | Library text assets named on the session (`valueModelIds`). The dropdown sets one id. Empty means none                                                               |                                                                                                                                               | **Every turn**, as retrieved passages (the whole asset when it is not Schwartz) |
+| Characters                | `@` mentions become fenced JSON (`name`, identity, all ten scores, traits, history) in the **user** message, not the system message                                  | The turn they are attached, and again inside earlier turns. History on the wire is the last N beats (default 3). Traits and scores stay whole |                                                                                 |
+| Session block             | `weight` and `recentHistoryCount` on the session. `set weight N` / `set history N` write them                                                                        | Every turn, as `[Session]` after the prompt sections and before the value-model passages                                                      |                                                                                 |
+
 
 `classifyChatIntent` runs, then `assembleChatContext`, then `streamChatTurn` sends `system + history + user` to FAL OpenRouter. There is no agent loop and no embedding index. Character history older than the last N beats is still on the sheet, and is not searched by meaning yet.
 
@@ -153,12 +165,14 @@ This is the design rule that keeps RAG from making the product worse.
 
 **Retrieve** text that is true, long, and only sometimes relevant. If the lookup fails, the reply should get more generic, not break the product.
 
-| Kind | Examples | Treatment |
-|------|----------|-----------|
-| Constitution | Voice (“speak as the character”, “do not mention scores”), tool envelope shape, “do not invent value names”, emit order for a date | Always in the system message |
-| Playbook | Conversation-in-character vs. date scene, trait-tag table, per-tool JSON examples, the `weight` rubric | Retrieved by **intent** |
-| Value reference | Definitions, higher-order dimensions, adjacent pairs, opposite clashes, romantic compromises | Retrieved by **the scores on the attached characters** |
-| Memory | Old history beats, past date transcripts, unused characters, extra essays in the library | Retrieved by **who is in the scene**, and later by semantic search |
+
+| Kind            | Examples                                                                                                                           | Treatment                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Constitution    | Voice (“speak as the character”, “do not mention scores”), tool envelope shape, “do not invent value names”, emit order for a date | Always in the system message                                       |
+| Playbook        | Conversation-in-character vs. date scene, trait-tag table, per-tool JSON examples, the `weight` rubric                             | Retrieved by **intent**                                            |
+| Value reference | Definitions, higher-order dimensions, adjacent pairs, opposite clashes, romantic compromises                                       | Retrieved by **the scores on the attached characters**             |
+| Memory          | Old history beats, past date transcripts, unused characters, extra essays in the library                                           | Retrieved by **who is in the scene**, and later by semantic search |
+
 
 Do not retrieve the constitution. If a vector search drops “emit `datePlan` before the transcript,” the date UI breaks. Do not pin the whole value-model essay forever either: most turns need two or three passages, and models follow a long stuffed prompt less carefully than a short one (the middle gets ignored).
 
@@ -209,20 +223,22 @@ The writer still speaks to the user. Retrieval changes what it is allowed to see
 
 For each attached character, take the top one or two `attributes` (highest `value`). Then:
 
-| Situation | What to pull |
-|-----------|----------------|
-| Any scoring or comparison | One-line definition of each value that is high or being edited |
-| Two characters | The higher-order dimension of each top value, plus the adjacent-pair note if they neighbor, or the opposite-clash note if they face each other |
-| A date | The matching “Romantic Relationships” subsection (rebel/rule-follower, thrill-seeker/homebody, altruist/alpha, or a natural-match blurb) |
-| User asks about a named value | That value’s row only |
+
+| Situation                     | What to pull                                                                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Any scoring or comparison     | One-line definition of each value that is high or being edited                                                                                 |
+| Two characters                | The higher-order dimension of each top value, plus the adjacent-pair note if they neighbor, or the opposite-clash note if they face each other |
+| A date                        | The matching “Romantic Relationships” subsection (rebel/rule-follower, thrill-seeker/homebody, altruist/alpha, or a natural-match blurb)       |
+| User asks about a named value | That value’s row only                                                                                                                          |
+
 
 Hedonism sits on a border; if it is a top value, also pull the short “Role of Hedonism” note.
 
 This lookup is a table, not a similarity search. “They want different weekends” does not need an embedding to land on Stimulation vs. Security if those are the top scores. Embeddings can miss that heading because the user’s words and the heading do not look alike.
 
-Send the retrieved passages **every turn they apply**, including turn two and later. The app does this now. The bundled prompt still describes a first-turn paste; the assembler does not.
+Send the retrieved passages **every turn they apply**, including turn two and later. The app does this now. The bundled prompt says the value model is in the system context on every turn.
 
-**In the app,** Schwartz lookup is narrower than the table above. Top two scores per attached character fence. Kept sections are heading level 1 or less, titles that match “10 basic values” or “higher-order,” and later sections whose named values match those scores. There is no separate Hedonism branch and no special case for a user naming a value in prose. A non-Schwartz body is the whole asset. Passages are labeled `[Value model: <name>]`.
+**In the app,** a `date` or `conversation` label sends the Schwartz asset whole. `edit` and `question` still use the narrower lookup: top two scores per attached character fence. Kept sections are heading level 1 or less, titles that match “10 basic values” or “higher-order,” and later sections whose named values match those scores. There is no separate Hedonism branch and no special case for a user naming a value in prose. A non-Schwartz body is the whole asset on every label. Passages are labeled `[Value model: <name>]`.
 
 Sessions can carry more than one value model, and not all of them will be Schwartz. See [Decisions](#8-decisions): each active model is another book in the retrieval pack, not another agent. The session field is already a list. The dropdown still stores one id. Schwartz keeps the score-to-passage table above as the target; the app uses the narrower rule in the previous paragraph. Any other model should be chunked on its own headings and its own score names. A model with no fixed score list should be heading chunks, then embeddings, until it grows enough structure to tag. That chunking is not built. Label every passage with the asset it came from so the writer can say which lens a judgment used.
 
@@ -230,16 +246,18 @@ Sessions can carry more than one value model, and not all of them will be Schwar
 
 Split `prompt-masterDater.md` into sections the assembler can mix. The file stays the authoring source. `selectPromptSections` loads slices when the file has a “When to emit tools” heading, and returns any other prompt whole.
 
-| Section | Include when |
-|---------|----------------|
-| Role, boundaries, “hide the mechanics” | Always |
-| Tool envelope (fence, `origin`, `action`, ids) | Always, compressed |
-| In-character conversation | User is talking *to* a character |
-| Trait continuity + tag table | A trait is being created, changed, or the user asks about appearance or personality facts |
-| Date protocol and emit order | User asked for a date, or two characters are in a shared scene |
-| `datePlan` / `dateTranscript` / `dateSummary` schemas | Same as date protocol — and only those schemas |
-| `character` create/update schema | A sheet write is likely |
-| Quote / other tools | Only if that tool is in play |
+
+| Section                                               | Include when                                                                              |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Role, boundaries, “hide the mechanics”                | Always                                                                                    |
+| Tool envelope (fence, `origin`, `action`, ids)        | Always, compressed                                                                        |
+| In-character conversation                             | User is talking *to* a character                                                          |
+| Trait continuity + tag table                          | A trait is being created, changed, or the user asks about appearance or personality facts |
+| Date protocol and emit order                          | User asked for a date, or two characters are in a shared scene                            |
+| `datePlan` / `dateTranscript` / `dateSummary` schemas | Same as date protocol — and only those schemas                                            |
+| `character` create/update schema                      | A sheet write is likely                                                                   |
+| Quote / other tools                                   | Only if that tool is in play                                                              |
+
 
 Intent is a **classifier call**, specified in [§8.6](#86-intent-classifier). The app does not train a model. Before the writer streams, it asks the same chat provider for one label. `detectChatIntent` remains only as the fallback when that call fails or returns a label outside the set.
 
@@ -247,14 +265,16 @@ The keyword list is the fragile version of this step: “take them out tonight�
 
 The table above is the target pack. What ships is coarser:
 
-| Shipped rule | Include when |
-|--------------|----------------|
-| Preamble, Inputs, Your job, Presentation note | Always, once the file is recognized as the MasterDater prompt |
-| Continuity, trait tags, `update` / `create` schemas | A character is attached this turn or already in the thread, or the label is `edit`, `date`, or `conversation` |
-| Conversation and Character Activities | Same character presence, or the label is `conversation` or `date` |
-| Date protocol, `datePlan` / `dateTranscript` / `dateSummary` | Label is `date` only. Two attached characters do not add this pack by themselves |
-| `quote` schema | A date, a conversation label, or any character in the turn or the thread |
-| “When to emit tools” | Any of the tool packs above |
+
+| Shipped rule                                                 | Include when                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Preamble, Inputs, Your job, Presentation note                | Always, once the file is recognized as the MasterDater prompt                                                 |
+| Continuity, trait tags, `update` / `create` schemas          | A character is attached this turn or already in the thread, or the label is `edit`, `date`, or `conversation` |
+| Conversation and Character Activities                        | Same character presence, or the label is `conversation` or `date`                                             |
+| Date protocol, `datePlan` / `dateTranscript` / `dateSummary` | Label is `date` only. Two attached characters do not add this pack by themselves                              |
+| `quote` schema                                               | A date, a conversation label, or any character in the turn or the thread                                      |
+| “When to emit tools”                                         | Any of the tool packs above                                                                                   |
+
 
 A date pack that does not contain the text `datePlan` is replaced by the full file.
 
@@ -276,11 +296,13 @@ When a reply needs an older beat (“the trip you took in March”), retrieval s
 
 That index is the RAG system worth building:
 
-| Stored | Why |
-|--------|-----|
-| History summaries, trait lines, date summaries | Short, factual, per character |
-| Optional: transcript segments | Only if summary search is not enough |
+
+| Stored                                                 | Why                                                        |
+| ------------------------------------------------------ | ---------------------------------------------------------- |
+| History summaries, trait lines, date summaries         | Short, factual, per character                              |
+| Optional: transcript segments                          | Only if summary search is not enough                       |
 | Each active value-model asset, plus other library text | One corpus per model; essays that are not models stay data |
+
 
 Each chunk needs metadata the filter can use before any similarity math: `characterId`, `valueModelId`, `kind` (`history` | `trait` | `date` | `value-model` | `prompt`), `at`, value tags. Filter first (“this character, history only” or “this value model only”), then rank. Unfiltered vector search will mix one character’s dates into another’s voice, or one theory into another.
 
@@ -288,11 +310,13 @@ Each chunk needs metadata the filter can use before any similarity math: `charac
 
 MasterDater is a browser app. Chat goes to FAL; files live in OPFS. A RAG index should follow that, not add a server, until there is a reason to.
 
-| Stage | Store | Lookup |
-|-------|--------|--------|
-| Now → first retrieval | In-memory maps built from the value-model headings, prompt sections, and the open character | Exact: value pair, intent, character id |
-| Library starts to get long | Vectors next to the library (IndexedDB or an OPFS sidecar) | Filter by metadata, then nearest-neighbor in the browser |
-| Embeddings | FAL/OpenRouter, same key and billing path as chat ([`MD-Models.md`](./MD-Models.md)). Run when a character or text asset is saved — not on every keystroke | Cache by chunk text so unchanged beats are not re-embedded |
+
+| Stage                      | Store                                                                                                                                                      | Lookup                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Now → first retrieval      | In-memory maps built from the value-model headings, prompt sections, and the open character                                                                | Exact: value pair, intent, character id                    |
+| Library starts to get long | Vectors next to the library (IndexedDB or an OPFS sidecar)                                                                                                 | Filter by metadata, then nearest-neighbor in the browser   |
+| Embeddings                 | FAL/OpenRouter, same key and billing path as chat (`[MD-Models.md](./MD-Models.md)`). Run when a character or text asset is saved — not on every keystroke | Cache by chunk text so unchanged beats are not re-embedded |
+
 
 Avoid a hosted vector database while the corpus is one user’s library. Revisit that only if search must run somewhere other than the browser, or if libraries become large enough that client-side ranking is slow. They will not be, for a long time, at the size of personal character sheets.
 
@@ -337,12 +361,14 @@ The loop in §4.1 is the agent. The app is the planner. The writer model does no
 
 Stages and what each is allowed to do:
 
-| Stage | Reads | Writes | Model? |
-|-------|--------|--------|--------|
+
+| Stage    | Reads                                                    | Writes                                                | Model?                                                |
+| -------- | -------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
 | Classify | User text, who is attached, who is already in the thread | One label: `date`, `conversation`, `edit`, `question` | Yes. A short non-streaming call. No user-facing prose |
-| Retrieve | Label + character scores + library index | The reference block | No |
-| Write | Pinned rules + reference + recent chat | User-visible prose and tool JSON | Yes, the existing streaming model |
-| Apply | Tool JSON | Character sheets, date history | No. Already implemented after the stream |
+| Retrieve | Label + character scores + library index                 | The reference block                                   | No                                                    |
+| Write    | Pinned rules + reference + recent chat                   | User-visible prose and tool JSON                      | Yes, the existing streaming model                     |
+| Apply    | Tool JSON                                                | Character sheets, date history                        | No. Already implemented after the stream              |
+
 
 One writer keeps voice consistent. Splitting “judge” and “novelist” into two model calls sounds cleaner and usually produces a date scene that ignores the judgment, or a judgment the scene contradicts. The same rule is why several value models do not become several agents: they are packs of text in this one call. If a numeric compatibility callout is wanted later, ask the **same** writer for a structured field inside `dateSummary`, and compute adjacency in the app from the active model’s rules so the number is not a vibe.
 
@@ -356,14 +382,16 @@ Move the planner into the model only for turns where the app cannot know the pla
 
 Those need a loop because the next read depends on the last result. The tools to expose, still high level:
 
-| Tool | Why the loop needs it |
-|------|------------------------|
-| `search_memory` | Find history or dates by meaning, then read them |
-| `get_character` | Load a sheet that was not @-mentioned |
-| `get_value_passage` | Pull a clash or definition after the model notices which values matter |
-| `list_characters` | Library-wide comparison |
 
-Do **not** give the loop `update_character` as its only write path at first. Keep writes as the fenced JSON the app already validates. A loop that can both invent a scene and patch storage in the same breath is harder to undo. The accept path described in [`MD-tools.md`](./MD-tools.md) stays the gate.
+| Tool                | Why the loop needs it                                                  |
+| ------------------- | ---------------------------------------------------------------------- |
+| `search_memory`     | Find history or dates by meaning, then read them                       |
+| `get_character`     | Load a sheet that was not @-mentioned                                  |
+| `get_value_passage` | Pull a clash or definition after the model notices which values matter |
+| `list_characters`   | Library-wide comparison                                                |
+
+
+Do **not** give the loop `update_character` as its only write path at first. Keep writes as the fenced JSON the app already validates. A loop that can both invent a scene and patch storage in the same breath is harder to undo. The accept path described in `[MD-tools.md](./MD-tools.md)` stays the gate.
 
 Tool-calling here is the provider’s tool API (the model returns a tool name and arguments, the app returns a result, the model continues). That is different from today’s “tools,” which are JSON the model writes *into the answer*. Both can coexist: retrieval tools run before or during the loop; character and date tools remain the answer’s structured output.
 
@@ -397,9 +425,9 @@ A small debug surface (even a collapsed “context used” list in a dev build) 
 
 No estimates. Each step is useful alone.
 
-1. **Fix the contract before adding search.** Append the selected value-model text on every turn, or stop telling the model it is in context. **In the app:** passages go out every send. The Inputs section of `prompt-masterDater.md` still tells the model the preprompt is a first-turn paste.
+1. **Fix the contract before adding search.** Append the selected value-model text on every turn, or stop telling the model it is in context. **In the app:** passages go out every send, and the prompt says the value model is present on every turn.
 2. **Split the bundled prompt** into pinned rules and named sections. Assemble by intent. Ship that without any embeddings. **In the app** for `prompt-masterDater.md`. The classifier chooses the label; keyword intent is the fallback.
-3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session. **Partial:** Schwartz passages follow the top scores, other models are the whole asset, and `valueModelIds` is a list the dropdown fills with one id.
+3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session. **Partial:** a date or conversation sends Schwartz whole so the full profile can be judged. Edit and question still follow the top scores. Other models are the whole asset. `valueModelIds` is a list the dropdown fills with one id.
 4. **Shrink character attaches** to cards plus the session’s recent-history count (default 3). Keep full sheets in OPFS. **Partial:** history is capped. Scores and traits are still whole.
 5. **Replace keyword intent with the classifier** in [§8.6](#86-intent-classifier). Keep `detectChatIntent` as the fallback. **In the app.**
 6. **Add memory search** when the history cap is not enough: chunk history and date summaries, embed on save, filter by character, then rank.
@@ -411,16 +439,18 @@ Steps 6–7 are where embeddings and a tool-calling agent appear. The clerk retr
 
 ## 7. Risks
 
-| Risk | Why it happens | Guard |
-|------|----------------|-------|
-| Retrieved instructions contradict each other | Two prompt versions, or a library essay that says “ignore the tools” | Only the app’s pinned sections can contain instructions. Retrieved library text is data, and the prompt should say so |
-| Wrong clash for the couple | Embedding search on the user’s wording | Select passages from top scores first. Use search only inside that short list |
-| Lost tool format | Date schema was “retrieved” and missed, or the classifier picked `question` for a date | Schemas for the chosen label are included as a set. An unrecognized classifier answer falls back to `detectChatIntent` |
-| Stale index | History updated in the library, vectors still describe the old beat | Rebuild a character’s chunks on save. The sheet in OPFS stays the source of truth |
-| First-turn preprompt bug, repeated | Retrieval runs once and its text is not stored, or the prompt still says the preprompt arrived only on turn one | `assembleChatContext` rebuilds the system message on every send. `resolveThreadSystemPrompt` only returns the bundled prompt body |
-| Agent loops that never finish | Model keeps searching | Cap tool rounds (a handful). Then force a final write with whatever was retrieved |
-| Cost and latency | A classifier call before every writer call, plus embeddings later | The classifier prompt is a few lines and does not stream. Same FAL path as chat. Keyword fallback skips the wait when the call fails |
-| Privacy | Character history sent to an embeddings API | Same trust boundary as chat today (FAL). Do not add a second vendor casually. Local embeddings are an option later if that boundary becomes a problem |
+
+| Risk                                         | Why it happens                                                                                                  | Guard                                                                                                                                                 |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Retrieved instructions contradict each other | Two prompt versions, or a library essay that says “ignore the tools”                                            | Only the app’s pinned sections can contain instructions. Retrieved library text is data, and the prompt should say so                                 |
+| Wrong clash for the couple                   | Embedding search on the user’s wording                                                                          | Select passages from top scores first. Use search only inside that short list                                                                         |
+| Lost tool format                             | Date schema was “retrieved” and missed, or the classifier picked `question` for a date                          | Schemas for the chosen label are included as a set. An unrecognized classifier answer falls back to `detectChatIntent`                                |
+| Stale index                                  | History updated in the library, vectors still describe the old beat                                             | Rebuild a character’s chunks on save. The sheet in OPFS stays the source of truth                                                                     |
+| First-turn preprompt bug, repeated           | Retrieval runs once and its text is not stored, or the prompt tells the model the reference is missing after turn one | `assembleChatContext` rebuilds the system message on every send. The prompt says the value model is present on every turn. `resolveThreadSystemPrompt` only returns the bundled prompt body |
+| Agent loops that never finish                | Model keeps searching                                                                                           | Cap tool rounds (a handful). Then force a final write with whatever was retrieved                                                                     |
+| Cost and latency                             | A classifier call before every writer call, plus embeddings later                                               | The classifier prompt is a few lines and does not stream. Same FAL path as chat. Keyword fallback skips the wait when the call fails                  |
+| Privacy                                      | Character history sent to an embeddings API                                                                     | Same trust boundary as chat today (FAL). Do not add a second vendor casually. Local embeddings are an option later if that boundary becomes a problem |
+
 
 ---
 
@@ -440,11 +470,13 @@ Use a separate agent only if a model changes the **procedure**, not the facts �
 
 How a model is retrieved depends on its shape:
 
-| Model shape | Lookup |
-|-------------|---------|
-| Fixed named scores (Schwartz today) | Table from the characters’ top scores to passages. No embeddings |
+
+| Model shape                          | Lookup                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------- |
+| Fixed named scores (Schwartz today)  | Table from the characters’ top scores to passages. No embeddings                       |
 | Different names, but stable headings | Chunk on those headings and on that model’s score names. Same pipeline, different tags |
-| Prose with no score list | Heading chunks first. Embeddings when a heading match is not enough |
+| Prose with no score list             | Heading chunks first. Embeddings when a heading match is not enough                    |
+
 
 Character sheets still store the ten Schwartz scores only. Until a sheet can record scores for more than one model, the score table runs for Schwartz, and every other active model is retrieved as text.
 
@@ -462,13 +494,13 @@ Character sheets still store the ten Schwartz scores only. Until a sheet can rec
 
 ### 8.5 Embeddings provider
 
-**Decision.** When embeddings are added, call them through FAL/OpenRouter, same key and billing path as chat ([`MD-Models.md`](./MD-Models.md)). Do not add a second vendor for the index.
+**Decision.** When embeddings are added, call them through FAL/OpenRouter, same key and billing path as chat (`[MD-Models.md](./MD-Models.md)`). Do not add a second vendor for the index.
 
 ### 8.6 Intent classifier
 
 **Decision.** Keyword matching in `detectChatIntent` is the fallback, not the authority. Each send classifies intent with a model call before `assembleChatContext` picks prompt sections.
 
-This is not a model we train, and it is not a second writer. It is one short, non-streaming completion on the same FAL/OpenRouter path as chat ([`MD-Models.md`](./MD-Models.md)). The same registry model as the writer is fine. A faster chat model from that registry is also fine. No new npm package and no new service.
+This is not a model we train, and it is not a second writer. It is one short, non-streaming completion on the same FAL/OpenRouter path as chat (`[MD-Models.md](./MD-Models.md)`). The same registry model as the writer is fine. A faster chat model from that registry is also fine. No new npm package and no new service.
 
 What the call sees:
 
@@ -492,15 +524,18 @@ The classifier does not emit tools, does not see the value-model essay, and does
 
 ## 9. Glossary
 
-| Term | Meaning here |
-|------|----------------|
-| System prompt | The instruction message. Not the user’s text. |
-| Preprompt | Today’s name for the value-model document appended to that instruction. |
-| RAG | Retrieve passages, add them to the prompt, then generate. |
-| Chunk | A slice of a document stored for lookup. |
-| Embedding | A numeric fingerprint of a chunk’s meaning, used for “sounds like this” search. |
-| Pin | Always include. Used for rules. |
-| Pipeline agent | Fixed stages the app runs. |
-| Classifier | A short model call that returns one intent label. Not a writer, and not a model we train. |
-| Tool-calling agent | The model chooses the next tool. |
-| Constitution | The short rules that must survive a bad search. |
+
+| Term               | Meaning here                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| System prompt      | The instruction message. Not the user’s text.                                             |
+| Preprompt          | Today’s name for the value-model document appended to that instruction.                   |
+| RAG                | Retrieve passages, add them to the prompt, then generate.                                 |
+| Chunk              | A slice of a document stored for lookup.                                                  |
+| Embedding          | A numeric fingerprint of a chunk’s meaning, used for “sounds like this” search.           |
+| Pin                | Always include. Used for rules.                                                           |
+| Pipeline agent     | Fixed stages the app runs.                                                                |
+| Classifier         | A short model call that returns one intent label. Not a writer, and not a model we train. |
+| Tool-calling agent | The model chooses the next tool.                                                          |
+| Constitution       | The short rules that must survive a bad search.                                           |
+
+
