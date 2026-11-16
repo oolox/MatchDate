@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useLayoutEffect, useRef } from 'react';
 import type { ThreadMessage } from '../../../types/chat';
 import { AssistantMessageContent } from '../AssistantMessageContent/AssistantMessageContent';
 import { UserMessageContent } from '../UserMessageContent/UserMessageContent';
@@ -7,11 +7,31 @@ import styles from './MessageBubble.module.css';
 
 export interface MessageBubbleProps {
   message: ThreadMessage;
+  /** Live reasoning text while this bubble is the waiting spinner. */
+  reasoning?: string;
 }
 
 const CHAT_WAITING_SPINNER_SIZE = 200;
 
-function MessageBubbleComponent({ message }: MessageBubbleProps) {
+function ReasoningLines({ text }: { text: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+    element.scrollTop = element.scrollHeight;
+  }, [text]);
+
+  return (
+    <div ref={ref} className={styles.reasoning} aria-label="Reasoning">
+      {text}
+    </div>
+  );
+}
+
+function MessageBubbleComponent({ message, reasoning }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isError = message.status === 'error';
   const isWaitingForResponse =
@@ -36,6 +56,7 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
           label="MasterDater is generating"
           className={styles.waitingSpinner}
         />
+        {reasoning ? <ReasoningLines text={reasoning} /> : null}
       </article>
     );
   }
@@ -66,5 +87,6 @@ export const MessageBubble = memo(
   (prev, next) =>
     prev.message.id === next.message.id &&
     prev.message.content === next.message.content &&
-    prev.message.status === next.message.status,
+    prev.message.status === next.message.status &&
+    prev.reasoning === next.reasoning,
 );

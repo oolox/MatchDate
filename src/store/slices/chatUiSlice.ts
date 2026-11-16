@@ -4,12 +4,15 @@ interface ChatUiState {
   composerDraft: string;
   isPinnedToBottom: boolean;
   isStreaming: boolean;
+  /** Reasoning text for the in-flight assistant turn. Cleared when the turn ends. */
+  streamingReasoning: string;
 }
 
 const initialState: ChatUiState = {
   composerDraft: '',
   isPinnedToBottom: true,
   isStreaming: false,
+  streamingReasoning: '',
 };
 
 const chatUiSlice = createSlice({
@@ -28,11 +31,19 @@ const chatUiSlice = createSlice({
     setIsStreaming: (state, action: PayloadAction<boolean>) => {
       state.isStreaming = action.payload;
     },
+    setStreamingReasoning: (state, action: PayloadAction<string>) => {
+      state.streamingReasoning = action.payload;
+    },
   },
 });
 
-export const { setComposerDraft, clearComposerDraft, setPinnedToBottom, setIsStreaming } =
-  chatUiSlice.actions;
+export const {
+  setComposerDraft,
+  clearComposerDraft,
+  setPinnedToBottom,
+  setIsStreaming,
+  setStreamingReasoning,
+} = chatUiSlice.actions;
 
 export type { ChatUiState };
 
@@ -41,5 +52,7 @@ export const selectComposerDraft = (state: { chatUi: ChatUiState }) =>
 export const selectIsPinnedToBottom = (state: { chatUi: ChatUiState }) =>
   state.chatUi.isPinnedToBottom;
 export const selectIsStreaming = (state: { chatUi: ChatUiState }) => state.chatUi.isStreaming;
+export const selectStreamingReasoning = (state: { chatUi: ChatUiState }) =>
+  state.chatUi.streamingReasoning;
 
 export default chatUiSlice.reducer;

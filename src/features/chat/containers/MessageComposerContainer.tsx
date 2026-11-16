@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { ChatModelSelect } from '../../../components/chat/ChatModelSelect';
 import { CreateCharacterModal } from '../../../components/chat/CreateCharacterModal';
 import { PrepromptSelect } from '../../../components/chat/PrepromptSelect';
+import { ReasoningToggle } from '../../../components/chat/ReasoningToggle';
 import { SystemPromptSelect } from '../../../components/chat/SystemPromptSelect';
 import { AttachmentChips } from '../../../components/chat/AttachmentChips/AttachmentChips';
 import { MentionMenu } from '../../../components/chat/MentionMenu/MentionMenu';
@@ -63,8 +64,13 @@ import {
   setComposerDraft,
   setIsStreaming,
   setPinnedToBottom,
+  setStreamingReasoning,
 } from '../../../store/slices/chatUiSlice';
-import { selectChatModel, selectPrepromptAssetId } from '../../../store/slices/localStorageSlice';
+import {
+  selectChatModel,
+  selectChatReasoning,
+  selectPrepromptAssetId,
+} from '../../../store/slices/localStorageSlice';
 import {
   appendMessage,
   createId,
@@ -109,6 +115,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   const isStreaming = useAppSelector(selectIsStreaming);
   const messages = useAppSelector(selectActiveMessages);
   const chatModel = useAppSelector(selectChatModel);
+  const chatReasoning = useAppSelector(selectChatReasoning);
   const storedPrepromptId = useAppSelector(selectPrepromptAssetId);
   const thread = useAppSelector(
     (state): Thread | undefined => state.thread.threads[threadId],
@@ -260,6 +267,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
       }),
     );
     dispatch(setIsStreaming(true));
+    dispatch(setStreamingReasoning(''));
     dispatch(setPinnedToBottom(true));
 
     const commands = parseSessionCommands(trimmed);
@@ -321,6 +329,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           }),
         );
         dispatch(setIsStreaming(false));
+        dispatch(setStreamingReasoning(''));
         return;
       }
       throw error;
@@ -344,10 +353,16 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
       })),
       userContent,
       model,
+      thinking: chatReasoning ? true : undefined,
       signal: controller.signal,
       abortRef,
       controller,
       notify,
+      onReasoning: chatReasoning
+        ? (accumulated) => {
+            dispatch(setStreamingReasoning(accumulated));
+          }
+        : undefined,
       onChunk: (accumulated) => {
         dispatch(
           updateMessage({
@@ -366,6 +381,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           }),
         );
         dispatch(setIsStreaming(false));
+        dispatch(setStreamingReasoning(''));
         void (async () => {
           // Character tools apply to library; date tools persist into dateHistory on sheets.
           const agentTools = parseCharacterToolMessages(accumulated).filter(
@@ -513,6 +529,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           }),
         );
         dispatch(setIsStreaming(false));
+        dispatch(setStreamingReasoning(''));
       },
     });
   }, [
@@ -520,6 +537,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     attach,
     begin,
     chatModel,
+    chatReasoning,
     dispatch,
     draft,
     isStreaming,
@@ -535,6 +553,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
   const handleAbort = useCallback(() => {
     abort();
     dispatch(setIsStreaming(false));
+    dispatch(setStreamingReasoning(''));
   }, [abort, dispatch]);
 
   const activeItem = attach.mentionItems[attach.activeIndex];
@@ -572,6 +591,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
             <ChatModelSelect disabled={isStreaming} />
             <SystemPromptSelect threadId={threadId} disabled={isStreaming} />
             <PrepromptSelect threadId={threadId} disabled={isStreaming} />
+            <ReasoningToggle disabled={isStreaming} />
           </>
         }
         placeholder="Type a message… (@ to attach)"

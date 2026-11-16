@@ -9,6 +9,8 @@ export const FAL_CHAT_COMPLETIONS_URL =
 export interface StreamCompletionOptions {
   messages: ChatMessage[];
   onChunk: (contentDelta: string) => void;
+  /** OpenRouter reasoning deltas (`delta.reasoning`). Not part of the answer. */
+  onReasoningChunk?: (reasoningDelta: string) => void;
   onDone: () => void;
   onError: (error: Error) => void;
   signal?: AbortSignal;
@@ -18,16 +20,51 @@ export interface StreamCompletionOptions {
 
 export const DEFAULT_MODEL = DEFAULT_CHAT_MODEL_ID;
 
+interface ReasoningDetail {
+  text?: string;
+}
+
+interface ChatCompletionDelta {
+  content?: string | null;
+  reasoning?: string | null;
+  reasoning_content?: string | null;
+  reasoning_details?: ReasoningDetail[] | null;
+}
+
 interface ChatCompletionChunk {
   choices?: Array<{
-    delta?: { content?: string };
+    delta?: ChatCompletionDelta;
     finish_reason?: string | null;
   }>;
+}
+
+/** Prefer OpenRouter `reasoning`, then DeepSeek `reasoning_content`. Details duplicate `reasoning`. */
+export function reasoningTextFromDelta(delta: ChatCompletionDelta | undefined): string {
+  if (!delta) {
+    return '';
+  }
+  if (typeof delta.reasoning === 'string' && delta.reasoning.length > 0) {
+    return delta.reasoning;
+  }
+  if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) {
+    return delta.reasoning_content;
+  }
+  if (!Array.isArray(delta.reasoning_details)) {
+    return '';
+  }
+  let text = '';
+  for (const detail of delta.reasoning_details) {
+    if (typeof detail?.text === 'string') {
+      text += detail.text;
+    }
+  }
+  return text;
 }
 
 async function consumeSseStream(
   body: ReadableStream<Uint8Array>,
   onChunk: (contentDelta: string) => void,
+  onReasoningChunk: ((reasoningDelta: string) => void) | undefined,
   signal?: AbortSignal,
 ): Promise<void> {
   const reader = body.getReader();
@@ -62,9 +99,14 @@ async function consumeSseStream(
 
         try {
           const parsed = JSON.parse(payload) as ChatCompletionChunk;
-          const content = parsed.choices?.[0]?.delta?.content;
+          const delta = parsed.choices?.[0]?.delta;
+          const content = delta?.content;
           if (content) {
             onChunk(content);
+          }
+          const reasoning = reasoningTextFromDelta(delta);
+          if (reasoning) {
+            onReasoningChunk?.(reasoning);
           }
         } catch (error) {
           console.info('Skipped malformed fal SSE chunk', { payload, error });
@@ -84,6 +126,7 @@ export async function streamCompletion({
   signal,
   model = DEFAULT_MODEL,
   thinking,
+  onReasoningChunk,
 }: StreamCompletionOptions): Promise<void> {
   try {
     const chatModel = getChatModel(model);
@@ -94,7 +137,7 @@ export async function streamCompletion({
       response_format: { type: 'text' },
     };
     if (thinking === true) {
-      body.reasoning_effort = 'high';
+      body.reasoning = { effort: 'high' };
       body.thinking = { type: 'enabled' };
     } else if (thinking === false) {
       body.thinking = { type: 'disabled' };
@@ -110,7 +153,7 @@ export async function streamCompletion({
       throw new Error('fal API returned an empty response body');
     }
 
-    await consumeSseStream(response.body, onChunk, signal);
+    await consumeSseStream(response.body, onChunk, onReasoningChunk, signal);
     onDone();
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {

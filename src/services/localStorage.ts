@@ -7,6 +7,8 @@ export {
   loadLibrarySortState,
   readTxtModel,
   writeTxtModel,
+  readChatReasoning,
+  writeChatReasoning,
   DEFAULT_PREPROMPT_ASSET_NAME,
   PREPROMPT_NONE_VALUE,
   readPrepromptAssetId,

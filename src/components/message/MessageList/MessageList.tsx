@@ -8,6 +8,8 @@ export interface MessageListProps {
   messages: ThreadMessage[];
   isPinnedToBottom: boolean;
   isStreaming?: boolean;
+  /** Reasoning text for the assistant message that is still waiting on an answer. */
+  streamingReasoning?: string;
   onPinnedToBottomChange: (pinned: boolean) => void;
 }
 
@@ -15,6 +17,7 @@ export function MessageList({
   messages,
   isPinnedToBottom,
   isStreaming = false,
+  streamingReasoning = '',
   onPinnedToBottomChange,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -98,9 +101,19 @@ export function MessageList({
       aria-relevant="additions text"
     >
       <div className={styles.messages} ref={messagesRef}>
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+        {messages.map((message) => {
+          const showReasoning =
+            message.role === 'assistant' &&
+            message.status === 'streaming' &&
+            message.content.trim().length === 0;
+          return (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              reasoning={showReasoning ? streamingReasoning : undefined}
+            />
+          );
+        })}
       </div>
     </div>
   );

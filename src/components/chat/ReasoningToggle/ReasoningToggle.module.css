@@ -1,0 +1,7 @@
+/* Selected state matches header tab toggles (Tabs .tabActive). */
+.on {
+  color: #000;
+  background: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+  border-color: transparent;
+  cursor: pointer;
+}

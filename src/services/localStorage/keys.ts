@@ -1,5 +1,6 @@
 export const LOCAL_STORAGE_KEYS = {
   txtModel: 'masterdater.txtModel',
+  chatReasoning: 'masterdater.chatReasoning',
   prepromptAssetId: 'masterdater.prepromptAssetId',
   librarySidebarWidthPx: 'masterdater.librarySidebarWidthPx',
   librarySortSession: 'masterdater.librarySort.session',

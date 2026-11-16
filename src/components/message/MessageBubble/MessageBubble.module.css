@@ -73,3 +73,18 @@
 .waitingSpinner {
   display: block;
 }
+
+.reasoning {
+  box-sizing: border-box;
+  width: min(40rem, 100%);
+  max-height: calc(1.4em * 3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+}
