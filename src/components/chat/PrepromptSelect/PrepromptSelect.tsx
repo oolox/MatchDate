@@ -13,15 +13,13 @@ import {
   selectPrepromptAssetId,
   setPrepromptAssetId,
 } from '../../../store/slices/localStorageSlice';
+import { setThreadValueModelIds } from '../../../store/slices/threadSlice';
+import type { ThreadId } from '../../../types/chat';
 import styles from './PrepromptSelect.module.css';
 
 export interface PrepromptSelectProps {
+  threadId: ThreadId;
   disabled?: boolean;
-  /**
-   * Preprompt already applied on this session's first message.
-   * Still editable (saves preference); muted look; will not re-send until a new session.
-   */
-  consumed?: boolean;
   className?: string;
 }
 
@@ -36,13 +34,16 @@ async function loadTextAssetOptions(): Promise<TextOption[]> {
 }
 
 export function PrepromptSelect({
+  threadId,
   disabled = false,
-  consumed = false,
   className,
 }: PrepromptSelectProps) {
   const dispatch = useAppDispatch();
   const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const storedPrepromptId = useAppSelector(selectPrepromptAssetId);
+  const threadValueModelIds = useAppSelector(
+    (state) => state.thread.threads[threadId]?.valueModelIds,
+  );
   const [texts, setTexts] = useState<TextOption[]>([]);
 
   useEffect(() => {
@@ -61,24 +62,21 @@ export function PrepromptSelect({
     };
   }, [libraryEpoch]);
 
-  const value = resolvePrepromptSelectValue(storedPrepromptId, texts);
+  const storedForThread = threadValueModelIds
+    ? (threadValueModelIds[0] ?? PREPROMPT_NONE_VALUE)
+    : storedPrepromptId;
+  const value = resolvePrepromptSelectValue(storedForThread, texts);
   const options = useMemo(
     () => prepromptSelectOptions(texts, value),
     [texts, value],
   );
 
-  const classes = [
-    styles.select,
-    consumed ? styles.consumed : '',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const classes = [styles.select, className].filter(Boolean).join(' ');
 
   return (
     <DropdownSelect
       className={classes}
-      aria-label={consumed ? 'Preprompt (already sent this session)' : 'Preprompt'}
+      aria-label="Value model"
       icon="text-file"
       menuPlacement="top"
       options={options}
@@ -86,7 +84,15 @@ export function PrepromptSelect({
       disabled={disabled}
       onChange={(next) => {
         const saved = writePrepromptAssetId(next);
-        dispatch(setPrepromptAssetId(saved === PREPROMPT_NONE_VALUE ? PREPROMPT_NONE_VALUE : saved));
+        dispatch(
+          setPrepromptAssetId(saved === PREPROMPT_NONE_VALUE ? PREPROMPT_NONE_VALUE : saved),
+        );
+        dispatch(
+          setThreadValueModelIds({
+            threadId,
+            ids: saved === PREPROMPT_NONE_VALUE ? [] : [saved],
+          }),
+        );
       }}
     />
   );

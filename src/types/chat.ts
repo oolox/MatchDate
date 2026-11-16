@@ -37,6 +37,15 @@ export interface Thread {
   updatedAt: string;
   systemPromptSlug?: string;
   modelId?: string;
+  /** Compatibility strictness for dates. 0–100, default 50. */
+  weight?: number;
+  /** History beats included on a character card. Default 3. */
+  recentHistoryCount?: number;
+  /**
+   * Library text assets used as value models.
+   * Missing means “inherit the global preprompt”. Empty means none.
+   */
+  valueModelIds?: string[];
 }
 
 export interface ChatMessage {

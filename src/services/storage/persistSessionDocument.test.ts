@@ -39,6 +39,9 @@ describe('persistSessionDocument', () => {
       ],
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:01.000Z',
+      weight: 25,
+      recentHistoryCount: 4,
+      valueModelIds: ['model-1'],
     };
 
     const saved = await saveSessionDocument(sessionFromThread(thread));
@@ -47,6 +50,9 @@ describe('persistSessionDocument', () => {
 
     const { session } = await loadSessionDocument('abc-123');
     expect(session.text.messages[1]?.content).toBe('Hi there!');
+    expect(session.text.weight).toBe(25);
+    expect(session.text.recentHistoryCount).toBe(4);
+    expect(session.text.valueModelIds).toEqual(['model-1']);
   });
 
   it('sets active session in config', async () => {

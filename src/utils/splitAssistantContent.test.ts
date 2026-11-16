@@ -112,6 +112,29 @@ describe('splitAssistantContent', () => {
     expect((blocks[1] as { id: string }).id).toMatch(/^quote-/);
   });
 
+  it('renders a quote whose fields sit on the envelope', () => {
+    const content = `\`\`\`json
+{
+  "tool": "quote",
+  "origin": "agent",
+  "action": "display",
+  "id": "ae23edbc-f2c9-4858-8e7b-fd24eda541ad",
+  "speakerName": "Peyton",
+  "quote": "It's honest."
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'quote',
+      id: 'ae23edbc-f2c9-4858-8e7b-fd24eda541ad',
+      quote: "It's honest.",
+      speakerName: 'Peyton',
+      complete: true,
+    });
+  });
+
   it('shows a streaming incomplete quote fence as an incomplete quote block', () => {
     const content = `Story
 

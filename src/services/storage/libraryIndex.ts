@@ -1,7 +1,7 @@
 import { nowIso } from '../../utils/id';
 import { isCharacterIdentity } from '../../types/character';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
-import type { SessionDocument } from '../../types/session';
+import { readSessionTextFields, type SessionDocument } from '../../types/session';
 import {
   LIBRARY_PATH,
   PROMPTS_SESSIONS_DIR,
@@ -148,11 +148,7 @@ export function parseSessionDocument(raw: string, path: string): SessionDocument
         subtype: 'session',
         id: value.id,
         name: value.name,
-        text: {
-          messages: value.text.messages,
-          systemPromptSlug: value.text.systemPromptSlug,
-          modelId: value.text.modelId,
-        },
+        text: readSessionTextFields(value.text),
         createdAt: value.createdAt ?? nowIso(),
         updatedAt: value.updatedAt ?? nowIso(),
       };

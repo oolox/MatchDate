@@ -119,6 +119,39 @@ const threadSlice = createSlice({
       }
       thread.updatedAt = nowIso();
     },
+    setThreadWeight: (
+      state,
+      action: PayloadAction<{ threadId: ThreadId; weight: number }>,
+    ) => {
+      const thread = state.threads[action.payload.threadId];
+      if (!thread) {
+        return;
+      }
+      thread.weight = action.payload.weight;
+      thread.updatedAt = nowIso();
+    },
+    setThreadRecentHistoryCount: (
+      state,
+      action: PayloadAction<{ threadId: ThreadId; recentHistoryCount: number }>,
+    ) => {
+      const thread = state.threads[action.payload.threadId];
+      if (!thread) {
+        return;
+      }
+      thread.recentHistoryCount = action.payload.recentHistoryCount;
+      thread.updatedAt = nowIso();
+    },
+    setThreadValueModelIds: (
+      state,
+      action: PayloadAction<{ threadId: ThreadId; ids: string[] }>,
+    ) => {
+      const thread = state.threads[action.payload.threadId];
+      if (!thread) {
+        return;
+      }
+      thread.valueModelIds = action.payload.ids;
+      thread.updatedAt = nowIso();
+    },
     setThreadTitle: (
       state,
       action: PayloadAction<{ threadId: ThreadId; title: string }>,
@@ -142,6 +175,9 @@ export const {
   startNewChat,
   loadThread,
   setThreadSystemPromptSlug,
+  setThreadWeight,
+  setThreadRecentHistoryCount,
+  setThreadValueModelIds,
   setThreadTitle,
 } = threadSlice.actions;
 

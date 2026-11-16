@@ -2,10 +2,17 @@ import {
   ensureQuoteToolId,
   quoteDataFromUnknown,
   QUOTE_TOOL,
+  type QuoteToolData,
   type QuoteToolMessage,
 } from './quoteAttach';
 
 const JSON_FENCE_RE = /```json\s*([\s\S]*?)```/gi;
+
+/** `data` is canonical. Also accept `quote` / `speakerName` on the envelope. */
+function readQuoteData(value: object): QuoteToolData | null {
+  const record = value as { data?: unknown };
+  return quoteDataFromUnknown(record.data) ?? quoteDataFromUnknown(value);
+}
 
 export function isQuoteToolMessage(value: unknown): value is QuoteToolMessage {
   if (!value || typeof value !== 'object') {
@@ -20,15 +27,19 @@ export function isQuoteToolMessage(value: unknown): value is QuoteToolMessage {
   ) {
     return false;
   }
-  return quoteDataFromUnknown(message.data) != null;
+  return readQuoteData(value) != null;
 }
 
 /** Normalize a parsed quote tool (validate data + stamp stable id if missing). */
 export function normalizeQuoteToolMessage(value: unknown): QuoteToolMessage | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const message = value as Partial<QuoteToolMessage>;
   if (!isQuoteToolMessage(value)) {
     return null;
   }
-  const data = quoteDataFromUnknown(value.data);
+  const data = readQuoteData(value);
   if (!data) {
     return null;
   }
@@ -36,7 +47,7 @@ export function normalizeQuoteToolMessage(value: unknown): QuoteToolMessage | nu
     tool: QUOTE_TOOL,
     origin: 'agent',
     action: 'display',
-    ...(value.id?.trim() ? { id: value.id.trim() } : {}),
+    ...(message.id?.trim() ? { id: message.id.trim() } : {}),
     data,
   });
 }

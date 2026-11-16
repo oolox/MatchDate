@@ -13,6 +13,15 @@ import {
   PREPROMPT_NONE_VALUE,
   resolvePrepromptSelectValue,
 } from '../sessionPreprompt';
+import {
+  assembleChatContext,
+  limitCharacterHistory,
+  parseSessionCommands,
+} from '../context/assembleChatContext';
+import {
+  DEFAULT_COMPATIBILITY_WEIGHT,
+  DEFAULT_RECENT_HISTORY_COUNT,
+} from '../constants';
 import { listAssets } from '../../../services/storage/persistenceService';
 import { loadTextContent } from '../../../services/storage/textStorage';
 import {
@@ -59,6 +68,9 @@ import {
   createId,
   nowIso,
   selectActiveMessages,
+  setThreadRecentHistoryCount,
+  setThreadValueModelIds,
+  setThreadWeight,
   updateMessage,
 } from '../../../store/slices/threadSlice';
 import {
@@ -248,33 +260,63 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
     dispatch(setIsStreaming(true));
     dispatch(setPinnedToBottom(true));
 
-    const isFirstMessage = messages.length === 0;
-    let systemPrompt = resolveThreadSystemPrompt(thread);
-    if (isFirstMessage) {
-      try {
-        const texts = (await listAssets())
-          .filter((item) => item.subtype === 'text')
-          .map((item) => ({ id: item.id, name: item.name }));
-        const prepromptId = resolvePrepromptSelectValue(storedPrepromptId, texts);
-        if (prepromptId !== PREPROMPT_NONE_VALUE) {
-          const prepromptBody = (await loadTextContent(prepromptId)).trim();
-          if (prepromptBody) {
-            systemPrompt = `${systemPrompt.trim()}\n\n${prepromptBody}`;
-          }
-        }
-      } catch (error) {
-        console.info('Could not load preprompt text asset', { error });
-      }
+    const commands = parseSessionCommands(trimmed);
+    let weight = thread?.weight ?? DEFAULT_COMPATIBILITY_WEIGHT;
+    let recentHistoryCount = thread?.recentHistoryCount ?? DEFAULT_RECENT_HISTORY_COUNT;
+    if (commands.weight !== undefined) {
+      weight = commands.weight;
+      dispatch(setThreadWeight({ threadId, weight }));
     }
+    if (commands.recentHistoryCount !== undefined) {
+      recentHistoryCount = commands.recentHistoryCount;
+      dispatch(setThreadRecentHistoryCount({ threadId, recentHistoryCount }));
+    }
+
+    const valueModels: Array<{ name: string; body: string }> = [];
+    try {
+      const texts = (await listAssets())
+        .filter((item) => item.subtype === 'text')
+        .map((item) => ({ id: item.id, name: item.name }));
+      const inherited = resolvePrepromptSelectValue(storedPrepromptId, texts);
+      const ids =
+        thread?.valueModelIds ??
+        (inherited === PREPROMPT_NONE_VALUE ? [] : [inherited]);
+      if (!thread?.valueModelIds) {
+        dispatch(setThreadValueModelIds({ threadId, ids }));
+      }
+      for (const id of ids) {
+        const name = texts.find((item) => item.id === id)?.name ?? 'Value model';
+        const body = (await loadTextContent(id)).trim();
+        if (body) {
+          valueModels.push({ name, body });
+        }
+      }
+    } catch (error) {
+      console.info('Could not load value model text', { error });
+    }
+
+    const historyApiContent = messages
+      .map((message) => apiContentForMessage(message))
+      .join('\n');
+    const userContent = limitCharacterHistory(apiContent, recentHistoryCount);
+    const systemPrompt = assembleChatContext({
+      promptBody: resolveThreadSystemPrompt(thread),
+      userText: trimmed,
+      apiContent: userContent,
+      historyApiContent,
+      weight,
+      recentHistoryCount,
+      valueModels,
+    });
     const model = resolveThreadChatModel(thread, chatModel);
 
     await streamChatTurn({
       systemPrompt,
       historyMessages: messages.map((message) => ({
         role: message.role,
-        content: apiContentForMessage(message),
+        content: limitCharacterHistory(apiContentForMessage(message), recentHistoryCount),
       })),
-      userContent: apiContent,
+      userContent,
       model,
       signal: controller.signal,
       abortRef,
@@ -503,7 +545,7 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           <>
             <ChatModelSelect disabled={isStreaming} />
             <SystemPromptSelect threadId={threadId} disabled={isStreaming} />
-            <PrepromptSelect disabled={isStreaming} consumed={messages.length > 0} />
+            <PrepromptSelect threadId={threadId} disabled={isStreaming} />
           </>
         }
         placeholder="Type a message… (@ to attach)"

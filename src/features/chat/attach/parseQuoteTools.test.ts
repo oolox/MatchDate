@@ -35,6 +35,29 @@ describe('parseQuoteToolMessages', () => {
     expect(again[0].id).toBe(tools[0].id);
   });
 
+  it('accepts quote and speakerName on the envelope when data is omitted', () => {
+    const content = `\`\`\`json
+{
+  "tool": "quote",
+  "origin": "agent",
+  "action": "display",
+  "id": "ae23edbc-f2c9-4858-8e7b-fd24eda541ad",
+  "speakerName": "Peyton",
+  "quote": "Me and Hector? It's honest."
+}
+\`\`\`
+`;
+    const tools = parseQuoteToolMessages(content);
+    expect(tools).toHaveLength(1);
+    expect(tools[0]).toMatchObject({
+      id: 'ae23edbc-f2c9-4858-8e7b-fd24eda541ad',
+      data: {
+        quote: "Me and Hector? It's honest.",
+        speakerName: 'Peyton',
+      },
+    });
+  });
+
   it('keeps an explicit quote id', () => {
     const normalized = normalizeQuoteToolMessage({
       tool: 'quote',

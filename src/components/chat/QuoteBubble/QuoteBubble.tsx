@@ -1,7 +1,12 @@
+import { useEffect, useState } from 'react';
 import { Icon } from '../../ui/Icon/Icon';
 import { LibraryCharacterThumb } from '../../library/LibraryList/LibraryCharacterThumb';
+import { matchCharacterIdByName } from '../../../features/chat/attach/matchCharacterByName';
 import { useOpenCharacterFromChat } from '../../../features/character/openCharacterFromChat';
 import { SayPlayButton } from '../../../features/voice/SayPlayButton';
+import { listCharacters } from '../../../services/storage/persistenceService';
+import { useAppSelector } from '../../../store/hooks';
+import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
 import styles from './QuoteBubble.module.css';
 
 export interface QuoteBubbleProps {
@@ -18,9 +23,36 @@ export function QuoteBubble({
   complete = true,
 }: QuoteBubbleProps) {
   const openCharacter = useOpenCharacterFromChat();
+  const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const name = speakerName.trim() || '…';
   const line = quote.trim();
-  const speakerId = speaker?.trim() || '';
+  const explicitSpeakerId = speaker?.trim() || '';
+  const [speakerId, setSpeakerId] = useState(explicitSpeakerId);
+
+  useEffect(() => {
+    if (explicitSpeakerId) {
+      setSpeakerId(explicitSpeakerId);
+      return;
+    }
+    let cancelled = false;
+    void listCharacters()
+      .then((items) => {
+        if (cancelled) {
+          return;
+        }
+        setSpeakerId(matchCharacterIdByName(name, items) ?? '');
+      })
+      .catch((error) => {
+        console.info('Could not match quote speaker to a character', { name, error });
+        if (!cancelled) {
+          setSpeakerId('');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [explicitSpeakerId, libraryEpoch, name]);
+
   const canOpen = Boolean(speakerId);
 
   return (

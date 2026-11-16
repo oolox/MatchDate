@@ -4,6 +4,44 @@ export interface SessionTextFields {
   messages: ThreadMessage[];
   systemPromptSlug?: string;
   modelId?: string;
+  /** Compatibility strictness for dates. 0–100. */
+  weight?: number;
+  /** History beats included on a character card. */
+  recentHistoryCount?: number;
+  /**
+   * Library text assets used as value models.
+   * Missing means “inherit the global preprompt”. Empty means none.
+   */
+  valueModelIds?: string[];
+}
+
+/** Keep optional session fields when loading or saving a chat. Drops invalid values. */
+export function readSessionTextFields(
+  text: Partial<SessionTextFields> & { messages: ThreadMessage[] },
+): SessionTextFields {
+  const next: SessionTextFields = { messages: text.messages };
+  if (typeof text.systemPromptSlug === 'string' && text.systemPromptSlug.trim()) {
+    next.systemPromptSlug = text.systemPromptSlug;
+  }
+  if (typeof text.modelId === 'string' && text.modelId.trim()) {
+    next.modelId = text.modelId;
+  }
+  if (typeof text.weight === 'number' && text.weight >= 0 && text.weight <= 100) {
+    next.weight = Math.round(text.weight);
+  }
+  if (
+    typeof text.recentHistoryCount === 'number' &&
+    text.recentHistoryCount >= 0 &&
+    text.recentHistoryCount <= 20
+  ) {
+    next.recentHistoryCount = Math.round(text.recentHistoryCount);
+  }
+  if (Array.isArray(text.valueModelIds)) {
+    next.valueModelIds = text.valueModelIds.filter(
+      (id): id is string => typeof id === 'string' && id.trim().length > 0,
+    );
+  }
+  return next;
 }
 
 /** Chat-only session document (MasterDater v1). */
@@ -23,14 +61,18 @@ export function emptyTextFields(): SessionTextFields {
 }
 
 export function sessionToThread(session: SessionDocument): Thread {
+  const text = readSessionTextFields(session.text);
   return {
     id: session.id,
     title: session.name,
-    messages: session.text.messages,
+    messages: text.messages,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
-    systemPromptSlug: session.text.systemPromptSlug,
-    modelId: session.text.modelId,
+    systemPromptSlug: text.systemPromptSlug,
+    modelId: text.modelId,
+    weight: text.weight,
+    recentHistoryCount: text.recentHistoryCount,
+    valueModelIds: text.valueModelIds,
   };
 }
 
@@ -39,11 +81,14 @@ export function applyThreadToSession(session: SessionDocument, thread: Thread): 
     ...session,
     id: thread.id,
     name: thread.title,
-    text: {
+    text: readSessionTextFields({
       messages: thread.messages,
       systemPromptSlug: thread.systemPromptSlug,
       modelId: thread.modelId,
-    },
+      weight: thread.weight,
+      recentHistoryCount: thread.recentHistoryCount,
+      valueModelIds: thread.valueModelIds,
+    }),
     updatedAt: thread.updatedAt,
   };
 }
@@ -56,11 +101,14 @@ export function sessionFromThread(thread: Thread): SessionDocument {
     subtype: 'session',
     id: thread.id,
     name: thread.title,
-    text: {
+    text: readSessionTextFields({
       messages: thread.messages,
       systemPromptSlug: thread.systemPromptSlug,
       modelId: thread.modelId,
-    },
+      weight: thread.weight,
+      recentHistoryCount: thread.recentHistoryCount,
+      valueModelIds: thread.valueModelIds,
+    }),
     createdAt: thread.createdAt || now,
     updatedAt: now,
   };
