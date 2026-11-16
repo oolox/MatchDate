@@ -2,7 +2,7 @@
 
 > **Purpose:** High-level research on how MasterDater could stop pasting the whole value model and system prompt into every chat call, and instead **retrieve** the pieces a turn actually needs — then how an **agent** would use that retrieval. Written for someone new to both ideas.
 >
-> **Status:** research, plus a first retrieval pipeline in the app (no embeddings, no second model). See [What is in the app](#what-is-in-the-app).
+> **Status:** research, plus a first retrieval pipeline in the app. Intent is still keyword matching. A classifier call is now required scope and is not built yet. See [What is in the app](#what-is-in-the-app) and [§8.6](#86-intent-classifier).
 >
 > **Last updated:** 2026-11-15
 >
@@ -28,12 +28,12 @@ To drop later RAG changes and return to this tree: `git checkout cf3f3ca912df811
 
 Each send builds the system message in `assembleChatContext`:
 
-- The MasterDater prompt is split by heading. A date turn gets the date schemas. A plain question does not. Any other bundled prompt is still sent whole.
+- The MasterDater prompt is split by heading. Which pack is sent depends on `detectChatIntent` in `assembleChatContext.ts`: a word list (`date`, `ask`, `trait`, and so on) plus how many characters are attached or already in the thread. A date turn gets the date schemas. A plain question does not. Any other bundled prompt is still sent whole.
 - The session’s value-model text is retrieved on **every** turn. A Schwartz model contributes the definitions plus the passages that name the attached characters’ top scores. Any other model is sent whole. The active list lives on the session (`valueModelIds`). The dropdown still picks one. An empty list means none.
 - `weight` and `recentHistoryCount` live on the session (defaults 50 and 3). `set weight N` and `set history N` update them before the model replies.
 - Character tool fences sent to the model keep the last N history beats. Traits stay.
 
-Not built: embeddings, memory search, a tool-calling loop, and the clerk retry.
+Not built: the **intent classifier** (next; see [§8.6](#86-intent-classifier)), embeddings, memory search, a tool-calling loop, and the clerk retry.
 
 ---
 
@@ -45,7 +45,7 @@ Not built: embeddings, memory search, a tool-calling loop, and the clerk retry.
 | What is an agent? | A loop that can decide “I need more information or a tool” before it writes the final reply. Today MasterDater is one shot: one model call, then the app parses JSON tools out of the reply. |
 | Should we embed the current prompt and value model into a vector database? | **Not yet.** Both documents are small and highly structured. Embedding them would be less reliable than picking sections on purpose. |
 | What *should* change? | Split “rules the model must always obey” from “reference it should see only when relevant.” Inject the rules every turn. Retrieve value-model passages from the characters’ scores, and retrieve prompt sections from what the user is trying to do. |
-| Where do agents fit? | First as a **fixed pipeline** the app runs (route → retrieve → write → apply tools). Later, if needed, as a model that chooses tools itself. |
+| Where do agents fit? | A fixed pipeline: classify intent → retrieve → one writer → apply tools. The classifier is a short model call, not a second writer. A tool-calling loop comes later, only for open-ended lookups. |
 | When do real embeddings earn their keep? | When the library outgrows the window: long date histories, many characters, several behavioral-model essays, user text assets. |
 
 **Recommendation:** treat the system prompt as a constitution (always present, short) and the value model as a reference book (fetched by the values actually in play). Add a vector index only after section-and-score retrieval is not enough.
@@ -160,7 +160,8 @@ user text + attached character ids
         │
         ▼
 ┌───────────────────┐
-│ 1. Intent         │  conversation | date | sheet edit | question | mixed
+│ 1. Classify       │  short model call → date | conversation | edit | question
+│                   │  keyword list only if that call fails
 └─────────┬─────────┘
           ▼
 ┌───────────────────┐
@@ -223,14 +224,9 @@ Split `prompt-masterDater.md` into sections the assembler can mix. The file can 
 | `character` create/update schema | A sheet write is likely |
 | Quote / other tools | Only if that tool is in play |
 
-Intent can start as rules, not a model:
+Intent is a **classifier call**, specified in [§8.6](#86-intent-classifier). The app does not train a model. Before the writer streams, it asks the same chat provider for one label. `detectChatIntent` remains only as the fallback when that call fails or returns a label outside the set.
 
-- Words like “date”, “go out”, two attached characters, or an existing date thread → date pack.
-- Direct address of one character → conversation pack.
-- “Change her eyes”, “add a trait”, “set Security to …” → trait or attribute pack.
-- Otherwise → question pack (definitions + short character cards, no date schemas).
-
-A later classifier (a tiny model call, or the same model with a constrained first step) can replace the keyword list when users describe scenes without the word “date”. Keep the keyword path as the fallback so a classifier failure still sends a safe pack.
+The keyword list that ships today is the fragile version of this step: “take them out tonight” can miss `date`, and “ask what a date is” can look like one. The section table above still says which pack each label includes. The classifier only chooses the label.
 
 `weight` is a field on the session document, not a line buried in the prompt. Default 50. When the user says `set weight`, the app updates the session and injects one line: “compatibility weight is 62.” The long rubric stays in the date pack. Today the number lives only inside `prompt-masterDater.md`.
 
@@ -313,7 +309,7 @@ Stages and what each is allowed to do:
 
 | Stage | Reads | Writes | Model? |
 |-------|--------|--------|--------|
-| Intent | User text, who is attached, session mode | A label: conversation, date, edit, question | Optional. Rules first |
+| Classify | User text, who is attached, who is already in the thread | One label: `date`, `conversation`, `edit`, `question` | Yes. A short non-streaming call. No user-facing prose |
 | Retrieve | Label + character scores + library index | The reference block | No |
 | Write | Pinned rules + reference + recent chat | User-visible prose and tool JSON | Yes, the existing streaming model |
 | Apply | Tool JSON | Character sheets, date history | No. Already implemented after the stream |
@@ -372,13 +368,14 @@ A small debug surface (even a collapsed “context used” list in a dev build) 
 No estimates. Each step is useful alone.
 
 1. **Fix the contract before adding search.** Append the selected value-model text on every turn, or stop telling the model it is in context. This is the current bug a RAG design must not preserve.
-2. **Split the bundled prompt** into pinned rules and named sections. Assemble by intent with simple rules. Ship that without any embeddings.
-3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session.
-4. **Shrink character attaches** to cards plus the session’s recent-history count (default 3). Keep full sheets in OPFS.
-5. **Add memory search** when step 4 is not enough: chunk history and date summaries, embed on save, filter by character, then rank.
-6. **Add a tool loop** only for the cross-library and “find that old date” cases. Leave ordinary chat and ordinary dates on the pipeline.
+2. **Split the bundled prompt** into pinned rules and named sections. Assemble by intent. Ship that without any embeddings. **In the app**, with keyword intent.
+3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session. **In the app** for Schwartz.
+4. **Shrink character attaches** to cards plus the session’s recent-history count (default 3). Keep full sheets in OPFS. **In the app.**
+5. **Replace keyword intent with the classifier** in [§8.6](#86-intent-classifier). Keep `detectChatIntent` as the fallback. This is the next build.
+6. **Add memory search** when the history cap is not enough: chunk history and date summaries, embed on save, filter by character, then rank.
+7. **Add a tool loop** only for the cross-library and “find that old date” cases. Leave ordinary chat and ordinary dates on the pipeline.
 
-Steps 2–4 are the rearchitecture. Steps 5–6 are the point where the usual RAG-and-agent stack actually appears.
+Steps 2–4 are in the app. Step 5 is required scope and not built. Steps 6–7 are where embeddings and a tool-calling agent appear.
 
 ---
 
@@ -388,11 +385,11 @@ Steps 2–4 are the rearchitecture. Steps 5–6 are the point where the usual RA
 |------|----------------|-------|
 | Retrieved instructions contradict each other | Two prompt versions, or a library essay that says “ignore the tools” | Only the app’s pinned sections can contain instructions. Retrieved library text is data, and the prompt should say so |
 | Wrong clash for the couple | Embedding search on the user’s wording | Select passages from top scores first. Use search only inside that short list |
-| Lost tool format | Date schema was “retrieved” and missed | Schemas for tools this intent must emit are part of the playbook, included as a set, not one chunk at random |
+| Lost tool format | Date schema was “retrieved” and missed, or the classifier picked `question` for a date | Schemas for the chosen label are included as a set. An unrecognized classifier answer falls back to `detectChatIntent` |
 | Stale index | History updated in the library, vectors still describe the old beat | Rebuild a character’s chunks on save. The sheet in OPFS stays the source of truth |
 | First-turn preprompt bug, repeated | Retrieval runs once and its text is not stored | Assemble the system message on every send, the way `resolveThreadSystemPrompt` already does |
 | Agent loops that never finish | Model keeps searching | Cap tool rounds (a handful). Then force a final write with whatever was retrieved |
-| Cost and latency | A planner call plus a writer call plus embeddings | Pipeline with no extra model call until intent rules fail. Embed on save, not per token of chat |
+| Cost and latency | A classifier call before every writer call, plus embeddings later | The classifier prompt is a few lines and does not stream. Same FAL path as chat. Keyword fallback skips the wait when the call fails |
 | Privacy | Character history sent to an embeddings API | Same trust boundary as chat today (FAL). Do not add a second vendor casually. Local embeddings are an option later if that boundary becomes a problem |
 
 ---
@@ -437,6 +434,30 @@ Character sheets still store the ten Schwartz scores only. Until a sheet can rec
 
 **Decision.** When embeddings are added, call them through FAL/OpenRouter, same key and billing path as chat ([`MD-Models.md`](./MD-Models.md)). Do not add a second vendor for the index.
 
+### 8.6 Intent classifier
+
+**Decision.** Keyword matching in `detectChatIntent` is the fallback, not the authority. Each send classifies intent with a model call before `assembleChatContext` picks prompt sections.
+
+This is not a model we train, and it is not a second writer. It is one short, non-streaming completion on the same FAL/OpenRouter path as chat ([`MD-Models.md`](./MD-Models.md)). The same registry model as the writer is fine. A faster chat model from that registry is also fine. No new npm package and no new service.
+
+What the call sees:
+
+- The user’s text for this turn
+- How many characters are attached on this turn
+- How many characters already appear in the thread
+
+What it must return, and nothing else:
+
+```text
+{ "intent": "date" | "conversation" | "edit" | "question" }
+```
+
+The app parses that JSON. Any other shape, a timeout, or a network error uses `detectChatIntent` and continues. The user does not see the classifier’s text. The streaming writer is the only voice.
+
+The label selects the pack in §4.3. It does not choose individual headings inside a pack. A `date` label still includes the date schemas as a set.
+
+The classifier does not emit tools, does not see the value-model essay, and does not replace session `weight` or the score-to-passage lookup.
+
 ---
 
 ## 9. Glossary
@@ -450,5 +471,6 @@ Character sheets still store the ten Schwartz scores only. Until a sheet can rec
 | Embedding | A numeric fingerprint of a chunk’s meaning, used for “sounds like this” search. |
 | Pin | Always include. Used for rules. |
 | Pipeline agent | Fixed stages the app runs. |
+| Classifier | A short model call that returns one intent label. Not a writer, and not a model we train. |
 | Tool-calling agent | The model chooses the next tool. |
 | Constitution | The short rules that must survive a bad search. |
