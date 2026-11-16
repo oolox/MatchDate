@@ -15,9 +15,11 @@ import {
 } from '../sessionPreprompt';
 import {
   assembleChatContext,
+  characterScoreCards,
   limitCharacterHistory,
   parseSessionCommands,
 } from '../context/assembleChatContext';
+import { classifyChatIntent } from '../context/classifyChatIntent';
 import {
   DEFAULT_COMPATIBILITY_WEIGHT,
   DEFAULT_RECENT_HISTORY_COUNT,
@@ -299,16 +301,40 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
       .map((message) => apiContentForMessage(message))
       .join('\n');
     const userContent = limitCharacterHistory(apiContent, recentHistoryCount);
+    const model = resolveThreadChatModel(thread, chatModel);
+    let intent;
+    try {
+      intent = await classifyChatIntent({
+        userText: trimmed,
+        attachedCharacterCount: characterScoreCards(userContent).length,
+        historyCharacterCount: characterScoreCards(historyApiContent).length,
+        model,
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        dispatch(
+          updateMessage({
+            threadId,
+            messageId: assistantMessageId,
+            patch: { status: 'complete' },
+          }),
+        );
+        dispatch(setIsStreaming(false));
+        return;
+      }
+      throw error;
+    }
     const systemPrompt = assembleChatContext({
       promptBody: resolveThreadSystemPrompt(thread),
       userText: trimmed,
       apiContent: userContent,
       historyApiContent,
+      intent,
       weight,
       recentHistoryCount,
       valueModels,
     });
-    const model = resolveThreadChatModel(thread, chatModel);
 
     await streamChatTurn({
       systemPrompt,

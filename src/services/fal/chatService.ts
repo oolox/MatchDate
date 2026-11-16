@@ -121,7 +121,41 @@ export async function streamCompletion({
   }
 }
 
+/** One non-streaming completion. Used by the intent classifier, not the writer. */
+export async function completeText(options: {
+  messages: ChatMessage[];
+  model?: string;
+  signal?: AbortSignal;
+  thinking?: boolean;
+}): Promise<string> {
+  const chatModel = getChatModel(options.model ?? DEFAULT_MODEL);
+  const body: Record<string, unknown> = {
+    model: chatModel.modelName,
+    messages: options.messages,
+    stream: false,
+    response_format: { type: 'text' },
+  };
+  if (options.thinking === false) {
+    body.thinking = { type: 'disabled' };
+  }
+
+  const response = await falFetch(FAL_CHAT_COMPLETIONS_URL, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    signal: options.signal,
+  });
+  const payload = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = payload.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) {
+    throw new Error('fal API returned an empty completion');
+  }
+  return content;
+}
+
 export const chatService = {
   streamCompletion,
+  completeText,
   DEFAULT_MODEL,
 };

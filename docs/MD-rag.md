@@ -2,7 +2,7 @@
 
 > **Purpose:** High-level research on how MasterDater could stop pasting the whole value model and system prompt into every chat call, and instead **retrieve** the pieces a turn actually needs — then how an **agent** would use that retrieval. Written for someone new to both ideas.
 >
-> **Status:** research, plus a first retrieval pipeline in the app. Intent is still keyword matching. A classifier call is now required scope and is not built yet. See [What is in the app](#what-is-in-the-app) and [§8.6](#86-intent-classifier).
+> **Status:** research, plus a retrieval pipeline and an intent classifier in the app. See [What is in the app](#what-is-in-the-app) and [§8.6](#86-intent-classifier).
 >
 > **Last updated:** 2026-11-15
 >
@@ -24,16 +24,30 @@ Baseline before any RAG or agent implementation. There is no pull request for th
 
 To drop later RAG changes and return to this tree: `git checkout cf3f3ca912df8119ab00d8810c318dc9c041a832`. This doc itself is not in that commit.
 
+### Revert point before the classifier
+
+Keyword intent and retrieval, before the classifier call. Pushed to `main`.
+
+| | |
+|--|--|
+| Remote | https://github.com/oolox/MatchDate.git |
+| Branch | `main` |
+| Commit | `ff12abdd1ad658ff1ccd26a093bfeae53968457a` |
+| Subject | Record an intent classifier as required scope before it is built. |
+| Date | 2026-11-15 |
+
+To drop the classifier and return to keyword intent: `git checkout ff12abdd1ad658ff1ccd26a093bfeae53968457a`.
+
 ### What is in the app
 
 Each send builds the system message in `assembleChatContext`:
 
-- The MasterDater prompt is split by heading. Which pack is sent depends on `detectChatIntent` in `assembleChatContext.ts`: a word list (`date`, `ask`, `trait`, and so on) plus how many characters are attached or already in the thread. A date turn gets the date schemas. A plain question does not. Any other bundled prompt is still sent whole.
+- The MasterDater prompt is split by heading. Which pack is sent depends on a short classifier call (`classifyChatIntent`) that returns `date`, `conversation`, `edit`, or `question`. `detectChatIntent` runs only when that call fails or the label is unusable. A date turn gets the date schemas. A plain question does not. Any other bundled prompt is still sent whole.
 - The session’s value-model text is retrieved on **every** turn. A Schwartz model contributes the definitions plus the passages that name the attached characters’ top scores. Any other model is sent whole. The active list lives on the session (`valueModelIds`). The dropdown still picks one. An empty list means none.
 - `weight` and `recentHistoryCount` live on the session (defaults 50 and 3). `set weight N` and `set history N` update them before the model replies.
 - Character tool fences sent to the model keep the last N history beats. Traits stay.
 
-Not built: the **intent classifier** (next; see [§8.6](#86-intent-classifier)), embeddings, memory search, a tool-calling loop, and the clerk retry.
+Not built: embeddings, memory search, a tool-calling loop, and the clerk retry. The intent classifier from [§8.6](#86-intent-classifier) is in the app.
 
 ---
 
@@ -371,11 +385,11 @@ No estimates. Each step is useful alone.
 2. **Split the bundled prompt** into pinned rules and named sections. Assemble by intent. Ship that without any embeddings. **In the app**, with keyword intent.
 3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session. **In the app** for Schwartz.
 4. **Shrink character attaches** to cards plus the session’s recent-history count (default 3). Keep full sheets in OPFS. **In the app.**
-5. **Replace keyword intent with the classifier** in [§8.6](#86-intent-classifier). Keep `detectChatIntent` as the fallback. This is the next build.
+5. **Replace keyword intent with the classifier** in [§8.6](#86-intent-classifier). Keep `detectChatIntent` as the fallback. **In the app.**
 6. **Add memory search** when the history cap is not enough: chunk history and date summaries, embed on save, filter by character, then rank.
 7. **Add a tool loop** only for the cross-library and “find that old date” cases. Leave ordinary chat and ordinary dates on the pipeline.
 
-Steps 2–4 are in the app. Step 5 is required scope and not built. Steps 6–7 are where embeddings and a tool-calling agent appear.
+Steps 2–5 are in the app. Steps 6–7 are where embeddings and a tool-calling agent appear.
 
 ---
 

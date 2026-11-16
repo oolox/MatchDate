@@ -149,6 +149,17 @@ describe('limitCharacterHistory', () => {
 });
 
 describe('assembleChatContext', () => {
+  it('uses a classifier label instead of the keyword intent', () => {
+    const text = assembleChatContext({
+      promptBody: getBundledPromptBody('prompt-masterDater'),
+      userText: 'hello',
+      apiContent: 'hello',
+      intent: 'date',
+      valueModels: [],
+    });
+    expect(text).toContain('### `datePlan`');
+  });
+
   it('puts the session weight and the named value model after the prompt', () => {
     const text = assembleChatContext({
       promptBody: getBundledPromptBody('prompt-masterDater'),

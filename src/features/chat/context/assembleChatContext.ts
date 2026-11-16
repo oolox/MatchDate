@@ -260,6 +260,8 @@ export function assembleChatContext(options: {
   apiContent: string;
   /** Earlier turns. Used so a follow-up still gets conversation and quote rules. */
   historyApiContent?: string;
+  /** From the classifier. Omitted means keyword intent. */
+  intent?: ChatIntent;
   weight?: number;
   recentHistoryCount?: number;
   valueModels: ValueModelSource[];
@@ -269,7 +271,7 @@ export function assembleChatContext(options: {
     ? characterScoreCards(options.historyApiContent).length
     : 0;
   const characterCount = Math.max(cards.length, historyCount);
-  const intent = detectChatIntent(options.userText, characterCount);
+  const intent = options.intent ?? detectChatIntent(options.userText, characterCount);
   const weight = options.weight ?? DEFAULT_COMPATIBILITY_WEIGHT;
   const recentHistoryCount = options.recentHistoryCount ?? DEFAULT_RECENT_HISTORY_COUNT;
   const prompt = selectPromptSections(options.promptBody, intent, characterCount);
