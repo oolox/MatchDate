@@ -133,6 +133,8 @@ Rules:
 - Do **not** include `shortSummary` (or outcome vibe) on `dateTranscript` — that belongs only on `dateSummary`.
 - Interleave `text` and `quote` segments in scene order. One spoken turn → one `quote` segment.
 - `text` = narration only. `quote.quote` = spoken words only (hide mechanics; no tools/scores/sheet meta in the line).
+- Every spoken line, including a whisper, an aside, or a line in another language, is its own `quote` segment. Do not bury speech inside `text`, and do not wrap it in quotation marks or markdown italics there.
+- Never put a raw double quote (`"`) inside any string in this JSON (`text`, `quote`, `location`, `speakerName`, or any other field). A raw `"` ends the string and the app drops the whole transcript. Apostrophes are fine.
 - `speaker` = the same UUID from the user’s `character` / `write` attach when that person is speaking. Omit `speaker` only if they are not yet an attached library character (still set `speakerName`).
 - `speakerName` is required on quote segments (prefer first name).
 - `data.id` / quote `id` are optional (the app can stamp them). Never reuse a character UUID as a transcript or quote id.

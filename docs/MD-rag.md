@@ -12,7 +12,7 @@
 
 ## Revert point
 
-Baseline before any RAG or agent implementation. There is no pull request for this work. The branch is `main`, in sync with `origin/main`.
+Baseline before any RAG or agent implementation. That tree was `main` at the commit below. Later RAG work is also on `main` (no pull request).
 
 | | |
 |--|--|
@@ -40,14 +40,15 @@ To drop the classifier and return to keyword intent: `git checkout ff12abdd1ad65
 
 ### What is in the app
 
-Each send builds the system message in `assembleChatContext`:
+Each send classifies, then builds the system message in `assembleChatContext`, then streams one writer:
 
-- The MasterDater prompt is split by heading. Which pack is sent depends on a short classifier call (`classifyChatIntent`) that returns `date`, `conversation`, `edit`, or `question`. `detectChatIntent` runs only when that call fails or the label is unusable. A date turn gets the date schemas. A plain question does not. Any other bundled prompt is still sent whole.
-- The session’s value-model text is retrieved on **every** turn. A Schwartz model contributes the definitions plus the passages that name the attached characters’ top scores. Any other model is sent whole. The active list lives on the session (`valueModelIds`). The dropdown still picks one. An empty list means none.
-- `weight` and `recentHistoryCount` live on the session (defaults 50 and 3). `set weight N` and `set history N` update them before the model replies.
-- Character tool fences sent to the model keep the last N history beats. Traits stay.
+- The MasterDater prompt is split on headings (`#` through `####`). `classifyChatIntent` returns `date`, `conversation`, `edit`, or `question` and uses the same registry model as the writer, with thinking off. `detectChatIntent` runs only when that call fails or the label is unusable. Cancelling the turn aborts the classifier instead of falling back. A date label gets the date protocol and the `datePlan`, `dateTranscript`, and `dateSummary` schemas. A plain question with no characters in the turn or the thread gets the preamble, Inputs, Your job, and the presentation note — not the tool schemas. Characters already in the thread count, so a follow-up still gets conversation, quote, continuity, and the character create/update schemas. If a date selection does not contain `datePlan`, the full MasterDater prompt is sent. Any bundled prompt without a “When to emit tools” heading is sent whole.
+- The session’s value-model text is retrieved on **every** turn, after the prompt sections, under `[Value model: <name>]`. A body that mentions Schwartz and all ten Basic Value names contributes the top-level and definition sections, plus later sections that name this turn’s top two scores. Sections that name none of the ten, or eight or more, are skipped. With two or more attached characters, a section is kept only when its named values cover at least two characters’ top scores. With no scores attached, clash write-ups stay out. Any other model is sent whole. The Inputs section of `prompt-masterDater.md` still says the preprompt arrives on the first turn; the assembler sends the passages every turn anyway.
+- The active list lives on the session (`valueModelIds`). The dropdown still writes one id, or an empty list for none. A thread with no list yet inherits the last dropdown choice from `localStorage`.
+- `weight` and `recentHistoryCount` live on the session (defaults 50 and 3). `set weight N` (0–100) and `set history N` (0–20) update them before the classifier runs. The system message then includes a `[Session]` block: the weight, the history count, the active model names, and a line that the session weight overrides any `weight=` example in the playbook. There is no `get weight` parser.
+- Character tool fences in the user message and in earlier turns keep the last N history beats. Traits and all ten scores stay.
 
-Not built: embeddings, memory search, a tool-calling loop, and the clerk retry. The intent classifier from [§8.6](#86-intent-classifier) is in the app.
+Not built: embeddings, memory search, heading chunks for non-Schwartz models, top-scores-only character cards, a tool-calling loop, and the clerk retry. The intent classifier from [§8.6](#86-intent-classifier) is in the app.
 
 ---
 
@@ -56,7 +57,7 @@ Not built: embeddings, memory search, a tool-calling loop, and the clerk retry. 
 | Question | Answer |
 |----------|--------|
 | What is RAG? | Look up a few relevant passages, paste those into the prompt, then generate. Retrieval-Augmented Generation. |
-| What is an agent? | A loop that can decide “I need more information or a tool” before it writes the final reply. Today MasterDater is one shot: one model call, then the app parses JSON tools out of the reply. |
+| What is an agent? | A loop that can decide “I need more information or a tool” before it writes the final reply. MasterDater’s writer is still one streaming call, then the app parses JSON tools out of the reply. A short classifier call runs first. |
 | Should we embed the current prompt and value model into a vector database? | **Not yet.** Both documents are small and highly structured. Embedding them would be less reliable than picking sections on purpose. |
 | What *should* change? | Split “rules the model must always obey” from “reference it should see only when relevant.” Inject the rules every turn. Retrieve value-model passages from the characters’ scores, and retrieve prompt sections from what the user is trying to do. |
 | Where do agents fit? | A fixed pipeline: classify intent → retrieve → one writer → apply tools. The classifier is a short model call, not a second writer. A tool-calling loop comes later, only for open-ended lookups. |
@@ -135,12 +136,12 @@ One model call does every job: role-play, compatibility judgment, date scripting
 
 | Input | Where it comes from | When it is sent |
 |-------|---------------------|-----------------|
-| System prompt | Whole bundled file, default `prompts/prompt-masterDater.md` (~300 lines: role, trait rules, date protocol, every tool schema) | Every turn |
-| Value model (“preprompt”) | A library text asset, default name `MD-ValueModel.md`, chosen in the value-model dropdown and stored on the session | **Every turn**, as retrieved passages (the whole asset when it is not Schwartz). This replaced a first-message-only paste |
-| Characters | `@` mentions become fenced JSON (`name`, identity, all ten scores, traits, history) | The turn they are attached. History on the wire is the last N beats (default 3). Traits stay whole |
-| Session weight | Field on the session. `set weight N` writes it. One line is injected each turn | Every turn |
+| System prompt | Bundled file, default `prompts/prompt-masterDater.md`. For that file, `selectPromptSections` keeps the sections the intent needs. Other bundled prompts go out whole | Every turn, after the classifier |
+| Value model (“preprompt”) | Library text assets named on the session (`valueModelIds`). The dropdown sets one id. Empty means none | **Every turn**, as retrieved passages (the whole asset when it is not Schwartz) |
+| Characters | `@` mentions become fenced JSON (`name`, identity, all ten scores, traits, history) in the **user** message, not the system message | The turn they are attached, and again inside earlier turns. History on the wire is the last N beats (default 3). Traits and scores stay whole |
+| Session block | `weight` and `recentHistoryCount` on the session. `set weight N` / `set history N` write them | Every turn, as `[Session]` after the prompt sections and before the value-model passages |
 
-`assembleChatContext` runs on every send, then `streamChatTurn` still sends `system + history + user` to FAL OpenRouter. There is no agent loop and no embedding index. Character history older than the last N beats is still on the sheet, and is not searched by meaning yet.
+`classifyChatIntent` runs, then `assembleChatContext`, then `streamChatTurn` sends `system + history + user` to FAL OpenRouter. There is no agent loop and no embedding index. Character history older than the last N beats is still on the sheet, and is not searched by meaning yet.
 
 ---
 
@@ -219,13 +220,15 @@ Hedonism sits on a border; if it is a top value, also pull the short “Role of 
 
 This lookup is a table, not a similarity search. “They want different weekends” does not need an embedding to land on Stimulation vs. Security if those are the top scores. Embeddings can miss that heading because the user’s words and the heading do not look alike.
 
-Send the retrieved passages **every turn they apply**, including turn two and later. That closes the first-message-only preprompt gap without pasting the full essay every time.
+Send the retrieved passages **every turn they apply**, including turn two and later. The app does this now. The bundled prompt still describes a first-turn paste; the assembler does not.
 
-Sessions will carry more than one value model, and not all of them will be Schwartz. See [Decisions](#8-decisions): each active model is another book in the retrieval pack, not another agent. Schwartz keeps the score-to-passage table above. Any other model is chunked on its own headings and its own score names. A model with no fixed score list is sent as heading chunks, then by embedding, until it grows enough structure to tag. Label every passage with the asset it came from so the writer can say which lens a judgment used.
+**In the app,** Schwartz lookup is narrower than the table above. Top two scores per attached character fence. Kept sections are heading level 1 or less, titles that match “10 basic values” or “higher-order,” and later sections whose named values match those scores. There is no separate Hedonism branch and no special case for a user naming a value in prose. A non-Schwartz body is the whole asset. Passages are labeled `[Value model: <name>]`.
+
+Sessions can carry more than one value model, and not all of them will be Schwartz. See [Decisions](#8-decisions): each active model is another book in the retrieval pack, not another agent. The session field is already a list. The dropdown still stores one id. Schwartz keeps the score-to-passage table above as the target; the app uses the narrower rule in the previous paragraph. Any other model should be chunked on its own headings and its own score names. A model with no fixed score list should be heading chunks, then embeddings, until it grows enough structure to tag. That chunking is not built. Label every passage with the asset it came from so the writer can say which lens a judgment used.
 
 ### 4.3 System prompt: retrieve by intent
 
-Split `prompt-masterDater.md` into sections the assembler can mix. The file can stay the authoring source; the app would load slices instead of the raw file.
+Split `prompt-masterDater.md` into sections the assembler can mix. The file stays the authoring source. `selectPromptSections` loads slices when the file has a “When to emit tools” heading, and returns any other prompt whole.
 
 | Section | Include when |
 |---------|----------------|
@@ -240,15 +243,28 @@ Split `prompt-masterDater.md` into sections the assembler can mix. The file can 
 
 Intent is a **classifier call**, specified in [§8.6](#86-intent-classifier). The app does not train a model. Before the writer streams, it asks the same chat provider for one label. `detectChatIntent` remains only as the fallback when that call fails or returns a label outside the set.
 
-The keyword list that ships today is the fragile version of this step: “take them out tonight” can miss `date`, and “ask what a date is” can look like one. The section table above still says which pack each label includes. The classifier only chooses the label.
+The keyword list is the fragile version of this step: “take them out tonight” can miss `date`, and “ask what a date is” can look like one. The classifier only chooses the label. It does not pick headings inside a pack.
 
-`weight` is a field on the session document, not a line buried in the prompt. Default 50. When the user says `set weight`, the app updates the session and injects one line: “compatibility weight is 62.” The long rubric stays in the date pack. Today the number lives only inside `prompt-masterDater.md`.
+The table above is the target pack. What ships is coarser:
+
+| Shipped rule | Include when |
+|--------------|----------------|
+| Preamble, Inputs, Your job, Presentation note | Always, once the file is recognized as the MasterDater prompt |
+| Continuity, trait tags, `update` / `create` schemas | A character is attached this turn or already in the thread, or the label is `edit`, `date`, or `conversation` |
+| Conversation and Character Activities | Same character presence, or the label is `conversation` or `date` |
+| Date protocol, `datePlan` / `dateTranscript` / `dateSummary` | Label is `date` only. Two attached characters do not add this pack by themselves |
+| `quote` schema | A date, a conversation label, or any character in the turn or the thread |
+| “When to emit tools” | Any of the tool packs above |
+
+A date pack that does not contain the text `datePlan` is replaced by the full file.
+
+`weight` is a field on the session document, not only a line in the prompt. Default 50. When the user says `set weight N`, the app updates the session and injects `compatibility weight: N`, plus a line that this overrides the playbook. The long rubric still sits in the Date section (`weight=50` and the examples) and is sent only on a date label. `set history N` is the same kind of session write. The prompt still mentions `get weight`; the app does not parse it.
 
 ### 4.4 Character memory: the first real RAG corpus
 
 Scores and prompt sections do not need vectors. Character memory will.
 
-Today an attach sends the whole sheet. A better card for the prompt:
+An attach still sends the sheet: name, identity, all ten scores, every trait, and history trimmed to the session’s recent-history count. A better card for the prompt, not built yet:
 
 - Name, identity, voice asset name if any
 - Top values (name + score, not the unused low scores, unless the user is editing them)
@@ -282,7 +298,7 @@ Avoid a hosted vector database while the corpus is one user’s library. Revisit
 
 ### 4.6 What the model should see (sketch)
 
-Not an implementation — the shape of the assembled system message:
+Not an implementation — the shape of the assembled system message. What ships today is the selected prompt sections, then `[Session]`, then one `[Value model: <name>]` block per active asset. Character JSON stays in the user message and in history. The block below is the later card, including memory that is not retrieved yet:
 
 ```text
 [Pinned rules — always, short]
@@ -381,15 +397,15 @@ A small debug surface (even a collapsed “context used” list in a dev build) 
 
 No estimates. Each step is useful alone.
 
-1. **Fix the contract before adding search.** Append the selected value-model text on every turn, or stop telling the model it is in context. This is the current bug a RAG design must not preserve.
-2. **Split the bundled prompt** into pinned rules and named sections. Assemble by intent. Ship that without any embeddings. **In the app**, with keyword intent.
-3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session. **In the app** for Schwartz.
-4. **Shrink character attaches** to cards plus the session’s recent-history count (default 3). Keep full sheets in OPFS. **In the app.**
+1. **Fix the contract before adding search.** Append the selected value-model text on every turn, or stop telling the model it is in context. **In the app:** passages go out every send. The Inputs section of `prompt-masterDater.md` still tells the model the preprompt is a first-turn paste.
+2. **Split the bundled prompt** into pinned rules and named sections. Assemble by intent. Ship that without any embeddings. **In the app** for `prompt-masterDater.md`. The classifier chooses the label; keyword intent is the fallback.
+3. **Index each active value model by its own headings and score names.** Inject the matching passages, not the file. Schwartz can ship first; the index must already allow a list of models on the session. **Partial:** Schwartz passages follow the top scores, other models are the whole asset, and `valueModelIds` is a list the dropdown fills with one id.
+4. **Shrink character attaches** to cards plus the session’s recent-history count (default 3). Keep full sheets in OPFS. **Partial:** history is capped. Scores and traits are still whole.
 5. **Replace keyword intent with the classifier** in [§8.6](#86-intent-classifier). Keep `detectChatIntent` as the fallback. **In the app.**
 6. **Add memory search** when the history cap is not enough: chunk history and date summaries, embed on save, filter by character, then rank.
 7. **Add a tool loop** only for the cross-library and “find that old date” cases. Leave ordinary chat and ordinary dates on the pipeline.
 
-Steps 2–5 are in the app. Steps 6–7 are where embeddings and a tool-calling agent appear.
+Steps 6–7 are where embeddings and a tool-calling agent appear. The clerk retry in [§8.4](#84-one-writer-one-clerk-retry) is not in the app.
 
 ---
 
@@ -401,7 +417,7 @@ Steps 2–5 are in the app. Steps 6–7 are where embeddings and a tool-calling 
 | Wrong clash for the couple | Embedding search on the user’s wording | Select passages from top scores first. Use search only inside that short list |
 | Lost tool format | Date schema was “retrieved” and missed, or the classifier picked `question` for a date | Schemas for the chosen label are included as a set. An unrecognized classifier answer falls back to `detectChatIntent` |
 | Stale index | History updated in the library, vectors still describe the old beat | Rebuild a character’s chunks on save. The sheet in OPFS stays the source of truth |
-| First-turn preprompt bug, repeated | Retrieval runs once and its text is not stored | Assemble the system message on every send, the way `resolveThreadSystemPrompt` already does |
+| First-turn preprompt bug, repeated | Retrieval runs once and its text is not stored, or the prompt still says the preprompt arrived only on turn one | `assembleChatContext` rebuilds the system message on every send. `resolveThreadSystemPrompt` only returns the bundled prompt body |
 | Agent loops that never finish | Model keeps searching | Cap tool rounds (a handful). Then force a final write with whatever was retrieved |
 | Cost and latency | A classifier call before every writer call, plus embeddings later | The classifier prompt is a few lines and does not stream. Same FAL path as chat. Keyword fallback skips the wait when the call fails |
 | Privacy | Character history sent to an embeddings API | Same trust boundary as chat today (FAL). Do not add a second vendor casually. Local embeddings are an option later if that boundary becomes a problem |
@@ -434,11 +450,11 @@ Character sheets still store the ten Schwartz scores only. Until a sheet can rec
 
 ### 8.2 Weight lives on the session
 
-**Decision.** `weight` (default 50) is a field on the session document, next to `modelId`. The prompt receives one injected line. The rubric stays in the date playbook. `set weight` / `get weight` update and read the session, not the prompt file.
+**Decision.** `weight` (default 50) is a field on the session document, next to `modelId`. The prompt receives one injected line. The rubric stays in the date playbook. `set weight` updates the session, not the prompt file. `get weight` is still only a sentence in the Date section; the app does not parse it.
 
 ### 8.3 Recent history
 
-**Decision.** A character card includes the last **3** history beats by default. The count is a session field so a thread can change it. Older beats stay in OPFS and are retrieved only when the turn needs them. Traits tagged `Physical` and `Style` still belong on a date card even when they are older than those three beats; the count limits history summaries, not traits that define how someone looks.
+**Decision.** A character card includes the last **3** history beats by default. The count is a session field so a thread can change it (`set history N`, 0–20). Older beats stay in OPFS and are retrieved only when the turn needs them. That retrieval is not built. Traits tagged `Physical` and `Style` still belong on a date card even when they are older than those three beats; the count limits history summaries, not traits that define how someone looks. The history cap is in the app. Trait filtering is not: every trait is still sent.
 
 ### 8.4 One writer, one clerk retry
 
@@ -466,7 +482,7 @@ What it must return, and nothing else:
 { "intent": "date" | "conversation" | "edit" | "question" }
 ```
 
-The app parses that JSON. Any other shape, a timeout, or a network error uses `detectChatIntent` and continues. The user does not see the classifier’s text. The streaming writer is the only voice.
+The app parses that JSON (`parseIntentLabel` takes the first JSON object in the reply). Any other shape, a timeout, or a network error uses `detectChatIntent` and continues. Aborting the send cancels the classifier and does not fall back. The classifier call sets thinking off. The user does not see the classifier’s text. The streaming writer is the only voice, and it requests reasoning only when the composer Reason toggle is on.
 
 The label selects the pack in §4.3. It does not choose individual headings inside a pack. A `date` label still includes the date schemas as a set.
 
