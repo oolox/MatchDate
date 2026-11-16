@@ -5,6 +5,7 @@ import { inMemoryFileStorage } from './inMemoryFileStorage';
 import {
   characterDocumentFromCharacter,
   characterFromDocument,
+  loadCharacterDocumentMigrating,
 } from './characterPersistence';
 import { deleteCharacterDocument, loadCharacterDocument, saveCharacterDocument } from './characterPersistence';
 import { listLibraryItems } from './libraryIndex';
@@ -12,6 +13,7 @@ import {
   duplicateCharacter,
   listCharacters,
   loadCharacter,
+  loadCharacterWithMigration,
   saveCharacter,
 } from './persistenceService';
 import { characterDocumentPath } from './paths';
@@ -108,7 +110,66 @@ describe('characterPersistence', () => {
     const loaded = characterFromDocument(await loadCharacterDocument(storage, 'legacy'));
     expect(loaded.history).toEqual([]);
     expect(loaded.images).toEqual([]);
+    expect(loaded.dateHistory).toEqual([]);
     expect(loaded.identity).toBe('binary');
+  });
+
+  it('migrates legacy dateSummary/dateTranscript into dateHistory and saves', async () => {
+    const storage = getFileStorageService();
+    await storage.write(
+      characterDocumentPath('legacy-dates'),
+      JSON.stringify({
+        schemaVersion: 2,
+        type: 'character',
+        id: 'legacy-dates',
+        name: 'Legacy Dates',
+        attributes: createDefaultCharacter('Legacy Dates').attributes,
+        history: [],
+        traits: [],
+        dateSummary: [
+          {
+            id: 'summary-1',
+            shortSummary: 'Quiet evening.',
+            location: 'Corner trattoria',
+            justification: 'Aligned.',
+            character: [
+              { id: 'legacy-dates', dateReview: 'Nice.', dateScore: 8, dateFit: 8 },
+            ],
+            dateTime: '2028-09-12T19:00:00-04:00',
+            chatId: 'chat-1',
+          },
+        ],
+        dateTranscript: [
+          {
+            id: 'transcript-1',
+            location: 'Corner trattoria',
+            dateTime: '2028-09-12T19:00:00-04:00',
+            characterIds: ['legacy-dates'],
+            segments: [{ type: 'text', text: 'They sat down.' }],
+          },
+        ],
+        images: [],
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+
+    const { character, migratedDateHistory } = await loadCharacterWithMigration('legacy-dates');
+    expect(migratedDateHistory).toBe(true);
+    expect(character.dateHistory).toHaveLength(1);
+    expect(character.dateHistory[0]?.dateSummary?.id).toBe('summary-1');
+    expect(character.dateHistory[0]?.dateTranscript?.id).toBe('transcript-1');
+
+    const raw = JSON.parse(await storage.read(characterDocumentPath('legacy-dates'))) as Record<
+      string,
+      unknown
+    >;
+    expect(raw).toHaveProperty('dateHistory');
+    expect(raw).not.toHaveProperty('dateSummary');
+    expect(raw).not.toHaveProperty('dateTranscript');
+
+    const second = await loadCharacterDocumentMigrating(storage, 'legacy-dates');
+    expect(second.migratedDateHistory).toBe(false);
   });
 
   it('registers characters in library.json', async () => {

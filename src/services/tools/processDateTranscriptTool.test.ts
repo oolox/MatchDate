@@ -15,7 +15,7 @@ describe('processDateTranscriptTool', () => {
     setFileStorageForTests(null);
   });
 
-  it('appends dateTranscript.data onto each associated character and saves', async () => {
+  it('upserts dateTranscript into dateHistory on each associated character', async () => {
     const a = await saveCharacter(createDefaultCharacter('Ivan'), 'char-ivan');
     const b = await saveCharacter(createDefaultCharacter('Hazel'), 'char-hazel');
 
@@ -25,7 +25,7 @@ describe('processDateTranscriptTool', () => {
       action: 'display',
       data: {
         id: 'transcript-1',
-        description: 'Dinner at a quiet Italian place',
+        location: 'Corner trattoria in the West Village',
         dateTime: '2028-09-12T19:00:00-04:00',
         characterIds: [a.id, b.id],
         segments: [
@@ -49,13 +49,15 @@ describe('processDateTranscriptTool', () => {
 
     const loadedA = await loadCharacter(a.id);
     const loadedB = await loadCharacter(b.id);
-    expect(loadedA.dateTranscript).toHaveLength(1);
-    expect(loadedB.dateTranscript).toHaveLength(1);
-    expect(loadedA.dateTranscript[0]?.id).toBe('transcript-1');
-    expect(loadedA.dateTranscript[0]?.description).toBe(
-      'Dinner at a quiet Italian place',
+    expect(loadedA.dateHistory).toHaveLength(1);
+    expect(loadedB.dateHistory).toHaveLength(1);
+    expect(loadedA.dateHistory[0]?.dateTranscript?.id).toBe('transcript-1');
+    expect(loadedA.dateHistory[0]?.dateTranscript?.location).toBe(
+      'Corner trattoria in the West Village',
     );
-    expect(loadedB.dateTranscript[0]?.dateTime).toBe('2028-09-12T19:00:00-04:00');
+    expect(loadedB.dateHistory[0]?.dateTranscript?.dateTime).toBe(
+      '2028-09-12T19:00:00-04:00',
+    );
   });
 
   it('dedupes by transcript id on the same character', async () => {
@@ -66,7 +68,7 @@ describe('processDateTranscriptTool', () => {
       action: 'display',
       data: {
         id: 'transcript-dup',
-        description: 'Coffee walk',
+        location: 'Downtown coffee walk',
         dateTime: '2028-09-12T11:00:00-04:00',
         characterIds: [saved.id],
         segments: [{ type: 'text', text: 'They walked.' }],
@@ -76,6 +78,6 @@ describe('processDateTranscriptTool', () => {
     expect((await processDateTranscriptTool(message)).ok).toBe(true);
     expect((await processDateTranscriptTool(message)).ok).toBe(true);
     const loaded = await loadCharacter(saved.id);
-    expect(loaded.dateTranscript).toHaveLength(1);
+    expect(loaded.dateHistory).toHaveLength(1);
   });
 });

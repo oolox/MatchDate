@@ -6,7 +6,12 @@ import {
   savedImageRefFromAsset,
 } from '../../services/storage/assetDocument';
 import { saveImage } from '../../services/storage/imageStorage';
-import { loadAsset, loadCharacter, saveCharacter } from '../../services/storage/persistenceService';
+import {
+  loadAsset,
+  loadCharacter,
+  loadCharacterWithMigration,
+  saveCharacter,
+} from '../../services/storage/persistenceService';
 import { setVoiceCharacterId } from '../../services/storage/voiceStorage';
 import type {
   BasicValue,
@@ -59,6 +64,7 @@ function toEditorCharacter(character: Character, images?: SavedImageRef[]): Char
     attributes: character.attributes,
     history: character.history ?? [],
     traits: character.traits ?? [],
+    dateHistory: character.dateHistory ?? [],
     images: images ?? character.images ?? [],
     ...(voiceAssetId ? { voiceAssetId } : {}),
   };
@@ -126,8 +132,8 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
     const seq = ++loadSeqRef.current;
     let cancelled = false;
     setIsBusy(true);
-    void loadCharacter(characterIdFromRoute)
-      .then((loaded) => {
+    void loadCharacterWithMigration(characterIdFromRoute)
+      .then(({ character: loaded, migratedDateHistory }) => {
         if (cancelled) {
           return;
         }
@@ -147,6 +153,9 @@ export function useCharacterEditor(characterIdFromRoute: string | null) {
             isDirty: false,
           }),
         );
+        if (migratedDateHistory) {
+          notify('Updated date history format on this character sheet.');
+        }
       })
       .catch((error) => {
         if (!cancelled) {

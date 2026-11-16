@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { MarkdownContent } from '../../markdown/MarkdownContent/MarkdownContent';
+import { DatePlanBubble } from '../../chat/DatePlanBubble/DatePlanBubble';
 import { DateSummaryBubble } from '../../chat/DateSummaryBubble/DateSummaryBubble';
 import { DateTranscriptBubble } from '../../chat/DateTranscriptBubble/DateTranscriptBubble';
 import { QuoteBubble } from '../../chat/QuoteBubble/QuoteBubble';
@@ -35,11 +36,21 @@ function AssistantMessageContentComponent({
             />
           );
         }
+        if (block.type === 'datePlan') {
+          return (
+            <DatePlanBubble
+              key={`datePlan-${index}-${block.id}`}
+              dateTime={block.dateTime}
+              location={block.location}
+              characterIds={block.characterIds}
+              complete={block.complete}
+            />
+          );
+        }
         if (block.type === 'dateSummary') {
           return (
             <DateSummaryBubble
               key={`dateSummary-${index}-${block.id}`}
-              description={block.description}
               shortSummary={block.shortSummary}
               location={block.location}
               justification={block.justification}
@@ -47,19 +58,21 @@ function AssistantMessageContentComponent({
               dateTime={block.dateTime}
               chatId={block.chatId}
               complete={block.complete}
+              showMeta={false}
               collapsible
             />
-
           );
         }
         if (block.type === 'dateTranscript') {
           return (
             <DateTranscriptBubble
               key={`dateTranscript-${index}-${block.id}`}
-              description={block.description}
+              location={block.location}
               dateTime={block.dateTime}
               segments={block.segments}
               complete={block.complete}
+              showMeta={false}
+              collapsible
             />
           );
         }

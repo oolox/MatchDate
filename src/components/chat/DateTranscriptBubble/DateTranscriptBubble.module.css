@@ -44,18 +44,22 @@
   color: var(--color-text-muted);
 }
 
-.dateTime {
+.dateTime,
+.location {
   margin: 0;
-  font-size: var(--font-size-sm, 0.875rem);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.description {
-  margin: 0;
-  font-size: var(--font-size-md, 1rem);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  line-height: 1.35;
+.location {
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-overflow: unset;
+  overflow: visible;
 }
 
 .collapseCaret {

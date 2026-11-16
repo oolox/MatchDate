@@ -20,10 +20,7 @@ function withNormalizedEditorCharacter(character: Character): Character {
   const voiceAssetId = normalizeVoiceAssetId(character.voiceAssetId);
   const next: Character = {
     ...character,
-    dateSummary: Array.isArray(character.dateSummary) ? character.dateSummary : [],
-    dateTranscript: Array.isArray(character.dateTranscript)
-      ? character.dateTranscript
-      : [],
+    dateHistory: Array.isArray(character.dateHistory) ? character.dateHistory : [],
     images: normalizeSavedImageRefs(character.images),
   };
   if (voiceAssetId) {
@@ -172,12 +169,12 @@ const characterSlice = createSlice({
       state.character.traits = next;
       state.isDirty = true;
     },
-    /** Remove one dateSummary entry by id, or dateTime+chatId fallback. */
+    /** Remove one dateHistory entry by summary/plan id, or dateTime+chatId fallback. */
     removeCharacterEditorDateSummary: (
       state,
       action: PayloadAction<{ id?: string; dateTime: string; chatId: string }>,
     ) => {
-      const list = state.character.dateSummary ?? [];
+      const list = state.character.dateHistory ?? [];
       if (list.length === 0) {
         return;
       }
@@ -186,17 +183,32 @@ const characterSlice = createSlice({
       const chatId = action.payload.chatId;
       let index = -1;
       if (id) {
-        index = list.findIndex((entry) => entry.id?.trim() === id);
-      }
-      if (index < 0) {
         index = list.findIndex(
-          (entry) => entry.dateTime === dateTime && entry.chatId === chatId,
+          (entry) =>
+            entry.dateSummary?.id?.trim() === id ||
+            entry.datePlan?.id?.trim() === id ||
+            entry.dateTranscript?.id?.trim() === id,
+        );
+      }
+      if (index < 0 && chatId) {
+        index = list.findIndex(
+          (entry) =>
+            entry.dateSummary?.dateTime === dateTime &&
+            entry.dateSummary?.chatId === chatId,
+        );
+      }
+      if (index < 0 && dateTime) {
+        index = list.findIndex(
+          (entry) =>
+            entry.datePlan?.dateTime === dateTime ||
+            entry.dateTranscript?.dateTime === dateTime ||
+            entry.dateSummary?.dateTime === dateTime,
         );
       }
       if (index < 0) {
         return;
       }
-      state.character.dateSummary = [
+      state.character.dateHistory = [
         ...list.slice(0, index),
         ...list.slice(index + 1),
       ];

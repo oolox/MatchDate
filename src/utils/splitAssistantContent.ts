@@ -2,6 +2,7 @@ import type { DateSummaryCharacterEntry } from '../features/chat/attach/dateSumm
 import type { DateTranscriptSegment } from '../features/chat/attach/dateTranscriptAttach';
 import { extractDateTranscriptSegments } from '../features/chat/attach/extractDateTranscriptSegments';
 import { isCharacterToolMessage } from '../features/chat/attach/parseCharacterTools';
+import { normalizeDatePlanToolMessage } from '../features/chat/attach/parseDatePlanTools';
 import { normalizeDateSummaryToolMessage } from '../features/chat/attach/parseDateSummaryTools';
 import { normalizeDateTranscriptToolMessage } from '../features/chat/attach/parseDateTranscriptTools';
 import { normalizeQuoteToolMessage } from '../features/chat/attach/parseQuoteTools';
@@ -49,10 +50,19 @@ export type AssistantDateSummaryBlock = {
 export type AssistantDateTranscriptBlock = {
   type: 'dateTranscript';
   id: string;
-  description: string;
+  location: string;
   dateTime: string;
   characterIds: string[];
   segments: DateTranscriptSegment[];
+  complete: boolean;
+};
+
+export type AssistantDatePlanBlock = {
+  type: 'datePlan';
+  id: string;
+  location: string;
+  dateTime: string;
+  characterIds: string[];
   complete: boolean;
 };
 
@@ -61,7 +71,8 @@ export type AssistantMessageBlock =
   | AssistantToolBlock
   | AssistantQuoteBlock
   | AssistantDateSummaryBlock
-  | AssistantDateTranscriptBlock;
+  | AssistantDateTranscriptBlock
+  | AssistantDatePlanBlock;
 
 export interface SplitAssistantContentOptions {
   isStreaming?: boolean;
@@ -346,6 +357,10 @@ function looksLikeDateTranscriptTool(raw: string): boolean {
   return /"tool"\s*:\s*"dateTranscript"/.test(raw);
 }
 
+function looksLikeDatePlanTool(raw: string): boolean {
+  return /"tool"\s*:\s*"datePlan"/.test(raw);
+}
+
 function unescapeHeaderString(value: string | undefined): string {
   if (value === undefined) {
     return '';
@@ -357,9 +372,9 @@ function unescapeHeaderString(value: string | undefined): string {
   }
 }
 
-function extractDateTranscriptHeaderFields(raw: string): {
+function extractDateMetaHeaderFields(raw: string): {
   id?: string;
-  description: string;
+  location: string;
   dateTime: string;
   characterIds: string[];
 } {
@@ -371,7 +386,10 @@ function extractDateTranscriptHeaderFields(raw: string): {
   const segmentsIndex = fromData.search(/"segments"\s*:/);
   const head = segmentsIndex >= 0 ? fromData.slice(0, segmentsIndex) : fromData;
   const id = /"id"\s*:\s*"([^"]+)"/.exec(head)?.[1]?.trim();
-  const descriptionRaw =
+  const locationRaw =
+    /"location"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1] ??
+    /"location"\s*:\s*"((?:\\.|[^"\\])*)$/.exec(fromData)?.[1] ??
+    // Legacy field name
     /"description"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(fromData)?.[1] ??
     /"description"\s*:\s*"((?:\\.|[^"\\])*)$/.exec(fromData)?.[1];
   const dateTimeRaw =
@@ -389,10 +407,28 @@ function extractDateTranscriptHeaderFields(raw: string): {
   }
   return {
     ...(id ? { id } : {}),
-    description: unescapeHeaderString(descriptionRaw),
+    location: unescapeHeaderString(locationRaw),
     dateTime: unescapeHeaderString(dateTimeRaw),
     characterIds,
   };
+}
+
+function extractDateTranscriptHeaderFields(raw: string): {
+  id?: string;
+  location: string;
+  dateTime: string;
+  characterIds: string[];
+} {
+  return extractDateMetaHeaderFields(raw);
+}
+
+function extractDatePlanHeaderFields(raw: string): {
+  id?: string;
+  location: string;
+  dateTime: string;
+  characterIds: string[];
+} {
+  return extractDateMetaHeaderFields(raw);
 }
 
 function pushMarkdown(blocks: AssistantMessageBlock[], content: string) {
@@ -464,6 +500,21 @@ export function splitAssistantContent(
         continue;
       }
 
+      const datePlan = normalizeDatePlanToolMessage(parsed);
+      if (datePlan) {
+        pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+        blocks.push({
+          type: 'datePlan',
+          id: datePlan.data.id!,
+          location: datePlan.data.location,
+          dateTime: datePlan.data.dateTime,
+          characterIds: datePlan.data.characterIds,
+          complete: true,
+        });
+        cursor = fence.closeIndex! + 3;
+        continue;
+      }
+
       const dateSummary = normalizeDateSummaryToolMessage(parsed);
       if (dateSummary) {
         pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
@@ -489,7 +540,7 @@ export function splitAssistantContent(
         blocks.push({
           type: 'dateTranscript',
           id: dateTranscript.data.id!,
-          description: dateTranscript.data.description,
+          location: dateTranscript.data.location,
           dateTime: dateTranscript.data.dateTime,
           characterIds: dateTranscript.data.characterIds,
           segments: dateTranscript.data.segments,
@@ -539,6 +590,21 @@ export function splitAssistantContent(
       break;
     }
 
+    if (isStreaming && looksLikeDatePlanTool(raw)) {
+      const header = extractDatePlanHeaderFields(raw);
+      pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
+      blocks.push({
+        type: 'datePlan',
+        id: header.id?.trim() || `streaming-datePlan-${fence.openIndex}`,
+        location: header.location,
+        dateTime: header.dateTime,
+        characterIds: header.characterIds,
+        complete: false,
+      });
+      cursor = content.length;
+      break;
+    }
+
     if (isStreaming && looksLikeDateSummaryTool(raw)) {
       const fields = extractDateSummaryFields(raw);
       pushMarkdown(blocks, content.slice(cursor, fence.openIndex));
@@ -566,7 +632,7 @@ export function splitAssistantContent(
       blocks.push({
         type: 'dateTranscript',
         id,
-        description: header.description,
+        location: header.location,
         dateTime: header.dateTime,
         characterIds: header.characterIds,
         segments: extractDateTranscriptSegments(raw),

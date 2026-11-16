@@ -15,7 +15,7 @@ describe('processDateSummaryTool', () => {
     setFileStorageForTests(null);
   });
 
-  it('appends dateSummary.data onto each associated character and saves', async () => {
+  it('upserts dateSummary into dateHistory on each associated character', async () => {
     const a = await saveCharacter(createDefaultCharacter('Ivan'), 'char-ivan');
     const b = await saveCharacter(createDefaultCharacter('Hazel'), 'char-hazel');
 
@@ -56,11 +56,11 @@ describe('processDateSummaryTool', () => {
 
     const loadedA = await loadCharacter(a.id);
     const loadedB = await loadCharacter(b.id);
-    expect(loadedA.dateSummary).toHaveLength(1);
-    expect(loadedB.dateSummary).toHaveLength(1);
-    expect(loadedA.dateSummary[0]?.id).toBe('summary-1');
-    expect(loadedA.dateSummary[0]?.shortSummary).toBe('Quiet evening.');
-    expect(loadedB.dateSummary[0]?.character).toHaveLength(2);
+    expect(loadedA.dateHistory).toHaveLength(1);
+    expect(loadedB.dateHistory).toHaveLength(1);
+    expect(loadedA.dateHistory[0]?.dateSummary?.id).toBe('summary-1');
+    expect(loadedA.dateHistory[0]?.dateSummary?.shortSummary).toBe('Quiet evening.');
+    expect(loadedB.dateHistory[0]?.dateSummary?.character).toHaveLength(2);
   });
 
   it('dedupes by summary id on the same character', async () => {
@@ -85,6 +85,49 @@ describe('processDateSummaryTool', () => {
     expect((await processDateSummaryTool(message)).ok).toBe(true);
     expect((await processDateSummaryTool(message)).ok).toBe(true);
     const loaded = await loadCharacter(saved.id);
-    expect(loaded.dateSummary).toHaveLength(1);
+    expect(loaded.dateHistory).toHaveLength(1);
+  });
+
+  it('pairs summary onto an existing transcript with matching location+dateTime', async () => {
+    const saved = await saveCharacter(
+      {
+        ...createDefaultCharacter('Ivan'),
+        dateHistory: [
+          {
+            dateTranscript: {
+              id: 'transcript-1',
+              location: 'Cafe.',
+              dateTime: '2028-09-12T19:00:00-04:00',
+              characterIds: ['char-ivan-3'],
+              segments: [{ type: 'text', text: 'They sat.' }],
+            },
+          },
+        ],
+      },
+      'char-ivan-3',
+    );
+
+    const message: DateSummaryToolMessage = {
+      tool: 'dateSummary',
+      origin: 'agent',
+      action: 'display',
+      data: {
+        id: 'summary-pair',
+        shortSummary: 'Warm.',
+        location: 'Cafe.',
+        justification: 'Fit.',
+        character: [
+          { id: saved.id, dateReview: 'Nice.', dateScore: 8, dateFit: 8 },
+        ],
+        dateTime: '2028-09-12T19:00:00-04:00',
+        chatId: 'chat-1',
+      },
+    };
+
+    expect((await processDateSummaryTool(message)).ok).toBe(true);
+    const loaded = await loadCharacter(saved.id);
+    expect(loaded.dateHistory).toHaveLength(1);
+    expect(loaded.dateHistory[0]?.dateTranscript?.id).toBe('transcript-1');
+    expect(loaded.dateHistory[0]?.dateSummary?.id).toBe('summary-pair');
   });
 });

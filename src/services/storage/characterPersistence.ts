@@ -14,12 +14,11 @@ import {
   normalizeCharacterTraitTags,
   normalizeVoiceAssetId,
 } from '../../types/character';
-import type { DateSummaryData } from '../../types/dateSummary';
-import { dateSummaryDataFromUnknown } from '../../features/chat/attach/dateSummaryAttach';
 import {
-  dateTranscriptDataFromUnknown,
-  type DateTranscriptData,
-} from '../../features/chat/attach/dateTranscriptAttach';
+  coerceDateHistory,
+  normalizeDateHistory,
+  type DateHistoryEntry,
+} from '../../types/dateHistory';
 import { normalizeSavedImageRefs } from '../../types/savedImage';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { nowIso } from '../../utils/id';
@@ -28,34 +27,6 @@ import { parseCharacterDocument } from './libraryRegistry';
 import { characterDocumentPath } from './paths';
 import type { FileStorageService } from './types';
 import { StorageError } from './types';
-
-export function normalizeDateSummaries(value: unknown): DateSummaryData[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const next: DateSummaryData[] = [];
-  for (const entry of value) {
-    const parsed = dateSummaryDataFromUnknown(entry);
-    if (parsed) {
-      next.push(parsed);
-    }
-  }
-  return next;
-}
-
-export function normalizeDateTranscripts(value: unknown): DateTranscriptData[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const next: DateTranscriptData[] = [];
-  for (const entry of value) {
-    const parsed = dateTranscriptDataFromUnknown(entry);
-    if (parsed) {
-      next.push(parsed);
-    }
-  }
-  return next;
-}
 
 export function characterDocumentFromCharacter(
   character: Character,
@@ -74,8 +45,7 @@ export function characterDocumentFromCharacter(
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
-    dateSummary: normalized.dateSummary,
-    dateTranscript: normalized.dateTranscript,
+    dateHistory: normalized.dateHistory,
     images: normalized.images,
     ...(normalized.voiceAssetId ? { voiceAssetId: normalized.voiceAssetId } : {}),
     createdAt: options.createdAt ?? now,
@@ -90,8 +60,7 @@ export function characterFromDocument(document: CharacterDocument): Character {
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
-    dateSummary: document.dateSummary ?? [],
-    dateTranscript: document.dateTranscript ?? [],
+    dateHistory: document.dateHistory ?? [],
     images: document.images ?? [],
     voiceAssetId: document.voiceAssetId,
   });
@@ -194,8 +163,7 @@ export function normalizeCharacter(character: Character): Character {
     }),
     history: normalizeHistory(character.history),
     traits: normalizeTraits(character.traits),
-    dateSummary: normalizeDateSummaries(character.dateSummary),
-    dateTranscript: normalizeDateTranscripts(character.dateTranscript),
+    dateHistory: normalizeDateHistory(character.dateHistory),
     images: normalizeSavedImageRefs(character.images),
     ...(voiceAssetId ? { voiceAssetId } : {}),
   };
@@ -206,7 +174,10 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
     return createDefaultCharacter(fallbackName);
   }
 
-  const value = raw as Partial<Character>;
+  const value = raw as Partial<Character> & {
+    dateSummary?: unknown;
+    dateTranscript?: unknown;
+  };
   const name = typeof value.name === 'string' ? value.name : fallbackName;
   if (!Array.isArray(value.attributes)) {
     return createDefaultCharacter(name);
@@ -227,14 +198,15 @@ export function parseCharacterPayload(raw: unknown, fallbackName: string): Chara
       value: clampScore(attribute.value),
     }));
 
+  const { dateHistory } = coerceDateHistory(value);
+
   return normalizeCharacter({
     name,
     identity: normalizeCharacterIdentity(value.identity),
     attributes,
     history: normalizeHistory(value.history),
     traits: normalizeTraits(value.traits),
-    dateSummary: normalizeDateSummaries(value.dateSummary),
-    dateTranscript: normalizeDateTranscripts(value.dateTranscript),
+    dateHistory,
     images: normalizeSavedImageRefs(value.images),
     voiceAssetId: value.voiceAssetId,
   });
@@ -277,8 +249,7 @@ export async function saveCharacterDocument(
     attributes: document.attributes,
     history: document.history ?? [],
     traits: document.traits ?? [],
-    dateSummary: document.dateSummary ?? [],
-    dateTranscript: document.dateTranscript ?? [],
+    dateHistory: document.dateHistory ?? [],
     images: document.images ?? [],
     voiceAssetId: document.voiceAssetId,
   });
@@ -293,13 +264,15 @@ export async function saveCharacterDocument(
     attributes: normalized.attributes,
     history: normalized.history,
     traits: normalized.traits,
-    dateSummary: normalized.dateSummary,
-    dateTranscript: normalized.dateTranscript,
+    dateHistory: normalized.dateHistory,
     images: normalized.images,
     ...(normalized.voiceAssetId ? { voiceAssetId: normalized.voiceAssetId } : {}),
     createdAt,
     updatedAt: now,
   };
+  // Drop any legacy parallel date arrays that may have been spread from older docs.
+  delete (saved as CharacterDocument & { dateSummary?: unknown }).dateSummary;
+  delete (saved as CharacterDocument & { dateTranscript?: unknown }).dateTranscript;
   if (!normalized.voiceAssetId) {
     delete saved.voiceAssetId;
   }
@@ -326,6 +299,29 @@ export async function loadCharacterDocument(
   return parseCharacterDocument(await storage.read(path), path);
 }
 
+/**
+ * Load a character document and migrate legacy `dateSummary`/`dateTranscript`
+ * into `dateHistory` when needed. Persists the migrated shape.
+ */
+export async function loadCharacterDocumentMigrating(
+  storage: FileStorageService,
+  id: string,
+): Promise<{ document: CharacterDocument; migratedDateHistory: boolean }> {
+  const path = characterDocumentPath(id);
+  const rawText = await storage.read(path);
+  const parsed = JSON.parse(rawText) as Record<string, unknown>;
+  const document = parseCharacterDocument(rawText, path);
+  const { dateHistory, migrated } = coerceDateHistory(parsed);
+  if (!migrated) {
+    return { document, migratedDateHistory: false };
+  }
+  const saved = await saveCharacterDocument(storage, {
+    ...document,
+    dateHistory,
+  });
+  return { document: saved, migratedDateHistory: true };
+}
+
 export async function tryLoadCharacterDocument(
   storage: FileStorageService,
   id: string,
@@ -335,7 +331,8 @@ export async function tryLoadCharacterDocument(
     return null;
   }
   try {
-    return parseCharacterDocument(await storage.read(path), path);
+    const { document } = await loadCharacterDocumentMigrating(storage, id);
+    return document;
   } catch {
     return null;
   }
@@ -351,3 +348,5 @@ export async function deleteCharacterDocument(
   }
   await removeLibraryItem(storage, 'character', id);
 }
+
+export type { DateHistoryEntry };

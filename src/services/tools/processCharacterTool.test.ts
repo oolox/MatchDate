@@ -119,24 +119,27 @@ describe('applyCharacterUpdatePatch', () => {
     ]);
   });
 
-  it('preserves dateSummary when updating other fields', () => {
+  it('preserves dateHistory when updating other fields', () => {
     const existing = createDefaultCharacter('Alex');
-    existing.dateSummary = [
+    existing.dateHistory = [
       {
-        id: 'ds-1',
-        shortSummary: 'Park picnic',
-        justification: 'Good vibe',
-        location: 'City park',
-        character: [
-          {
-            id: 'c1',
-            dateReview: 'Nice afternoon',
-            dateScore: 8,
-            dateFit: 7,
-          },
-        ],
-        dateTime: '2026-09-13T18:00:00.000Z',
-        chatId: 'chat-1',
+        dateSummary: {
+          id: 'ds-1',
+          description: '',
+          shortSummary: 'Park picnic',
+          justification: 'Good vibe',
+          location: 'City park',
+          character: [
+            {
+              id: 'c1',
+              dateReview: 'Nice afternoon',
+              dateScore: 8,
+              dateFit: 7,
+            },
+          ],
+          dateTime: '2026-09-13T18:00:00.000Z',
+          chatId: 'chat-1',
+        },
       },
     ];
 
@@ -149,7 +152,7 @@ describe('applyCharacterUpdatePatch', () => {
       { sessionId: 'sess-new' },
     );
 
-    expect(merged?.character.dateSummary).toEqual(existing.dateSummary);
+    expect(merged?.character.dateHistory).toEqual(existing.dateHistory);
   });
 
   it('returns null for empty patches', () => {

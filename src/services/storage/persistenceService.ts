@@ -14,7 +14,7 @@ import {
   characterDocumentFromCharacter,
   characterFromDocument,
   deleteCharacterDocument,
-  loadCharacterDocument,
+  loadCharacterDocumentMigrating,
   saveCharacterDocument,
   tryLoadCharacterDocument,
 } from './characterPersistence';
@@ -169,10 +169,22 @@ export async function saveCharacter(
 }
 
 export async function loadCharacter(id: string): Promise<Character> {
+  const { character } = await loadCharacterWithMigration(id);
+  return character;
+}
+
+/** Load character; migrates legacy date arrays → `dateHistory` and saves when needed. */
+export async function loadCharacterWithMigration(id: string): Promise<{
+  character: Character;
+  migratedDateHistory: boolean;
+}> {
   const storage = getStorage();
   await ensureInitialized(storage);
-  const document = await loadCharacterDocument(storage, id);
-  return characterFromDocument(document);
+  const { document, migratedDateHistory } = await loadCharacterDocumentMigrating(storage, id);
+  return {
+    character: characterFromDocument(document),
+    migratedDateHistory,
+  };
 }
 
 export async function deleteCharacter(id: string): Promise<void> {

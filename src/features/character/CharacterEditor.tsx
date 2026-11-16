@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DateSummaryBubble } from '../../components/chat/DateSummaryBubble/DateSummaryBubble';
+import { DateTranscriptBubble } from '../../components/chat/DateTranscriptBubble/DateTranscriptBubble';
 import { IconButton } from '../../components/ui/IconButton/IconButton';
+import { DateHistoryCard } from './DateHistoryCard';
 import type { VoiceGenderHint } from '../../services/fal/models/tts';
 import { useAppSelector } from '../../store/hooks';
 import { selectCharacterReturnChatPath } from '../../store/slices/characterSlice';
 import { selectSelectedSessionId } from '../../store/slices/sessionsSlice';
 import { createId } from '../../store/slices/threadSlice';
 import type { CharacterIdentity } from '../../types/character';
-import type { DateSummaryData } from '../../types/dateSummary';
+import type { DateHistoryEntry } from '../../types/dateHistory';
 import { nowIso } from '../../utils/id';
 import {
   dataTransferHasMasterDaterLibrary,
@@ -53,15 +55,46 @@ function sortByAtDesc<T extends { at: string }>(items: T[]): T[] {
   });
 }
 
-function dateSummarySortKey(summary: DateSummaryData): number {
-  const raw = summary.dateTime.trim();
+function dateHistorySortKey(entry: DateHistoryEntry): number {
+  const raw =
+    entry.datePlan?.dateTime?.trim() ||
+    entry.dateSummary?.dateTime?.trim() ||
+    entry.dateTranscript?.dateTime?.trim() ||
+    '';
   const first = raw.split(/\s+(?:to|–|-|—)\s+/i)[0] ?? raw;
   const time = Date.parse(first);
   return Number.isNaN(time) ? 0 : time;
 }
 
-function sortDateSummariesNewestFirst(items: DateSummaryData[]): DateSummaryData[] {
-  return [...items].sort((a, b) => dateSummarySortKey(b) - dateSummarySortKey(a));
+function sortDateHistoryNewestFirst(items: DateHistoryEntry[]): DateHistoryEntry[] {
+  return [...items].sort((a, b) => dateHistorySortKey(b) - dateHistorySortKey(a));
+}
+
+function dateHistoryCardMeta(entry: DateHistoryEntry): {
+  dateTime: string;
+  location: string;
+  characterIds: string[];
+} {
+  const dateTime =
+    entry.datePlan?.dateTime?.trim() ||
+    entry.dateSummary?.dateTime?.trim() ||
+    entry.dateTranscript?.dateTime?.trim() ||
+    '';
+  const location =
+    entry.datePlan?.location?.trim() ||
+    entry.dateSummary?.location?.trim() ||
+    entry.dateTranscript?.location?.trim() ||
+    '';
+  const characterIds =
+    entry.datePlan?.characterIds ??
+    entry.dateTranscript?.characterIds ??
+    entry.dateSummary?.character.map((c) => c.id) ??
+    [];
+  return {
+    dateTime,
+    location,
+    characterIds: [...new Set(characterIds.map((id) => id.trim()).filter(Boolean))],
+  };
 }
 
 export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
@@ -99,6 +132,10 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
   const [voiceExpanded, setVoiceExpanded] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(true);
   const [datesExpanded, setDatesExpanded] = useState(true);
+  /** Per-date card expand state; missing key defaults to expanded. */
+  const [dateCardExpandedByKey, setDateCardExpandedByKey] = useState<
+    Record<string, boolean>
+  >({});
   const [addingTrait, setAddingTrait] = useState(false);
   const [addingHistory, setAddingHistory] = useState(false);
   const [editingTraitOriginalName, setEditingTraitOriginalName] = useState<string | null>(
@@ -224,8 +261,8 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
     [character.traits],
   );
   const datesNewestFirst = useMemo(
-    () => sortDateSummariesNewestFirst(character.dateSummary ?? []),
-    [character.dateSummary],
+    () => sortDateHistoryNewestFirst(character.dateHistory ?? []),
+    [character.dateHistory],
   );
 
   return (
@@ -547,28 +584,70 @@ export function CharacterEditor({ editor, voiceEditor }: CharacterEditorProps) {
             <p className={styles.emptyDates}>No dates yet.</p>
           ) : (
             <div className={styles.datesList}>
-              {datesNewestFirst.map((summary, index) => (
-                <DateSummaryBubble
-                  key={summary.id?.trim() || `${summary.dateTime}-${summary.chatId}-${index}`}
-                  description={summary.description}
-                  shortSummary={summary.shortSummary}
-                  location={summary.location}
-                  justification={summary.justification}
-                  character={summary.character}
-                  dateTime={summary.dateTime}
-                  chatId={summary.chatId}
-                  complete
-                  collapsible
-                  removeDisabled={sheetEntryActionsDisabled}
-                  onRemove={() => {
-                    removeDateSummary({
-                      id: summary.id,
-                      dateTime: summary.dateTime,
-                      chatId: summary.chatId,
-                    });
-                  }}
-                />
-              ))}
+              {datesNewestFirst.map((entry, index) => {
+                const plan = entry.datePlan;
+                const summary = entry.dateSummary;
+                const transcript = entry.dateTranscript;
+                const removeKey = {
+                  id: summary?.id ?? plan?.id,
+                  dateTime:
+                    summary?.dateTime ||
+                    plan?.dateTime ||
+                    transcript?.dateTime ||
+                    '',
+                  chatId: summary?.chatId || '',
+                };
+                const stackKey =
+                  plan?.id?.trim() ||
+                  summary?.id?.trim() ||
+                  transcript?.id?.trim() ||
+                  `${removeKey.dateTime}-${index}`;
+                const { dateTime, location, characterIds } = dateHistoryCardMeta(entry);
+                const cardExpanded = dateCardExpandedByKey[stackKey] !== false;
+                return (
+                  <DateHistoryCard
+                    key={stackKey}
+                    dateTime={dateTime}
+                    location={location}
+                    characterIds={characterIds}
+                    expanded={cardExpanded}
+                    onExpandedChange={(next) => {
+                      setDateCardExpandedByKey((prev) => ({
+                        ...prev,
+                        [stackKey]: next,
+                      }));
+                    }}
+                    removeDisabled={sheetEntryActionsDisabled}
+                    onRemove={() => {
+                      removeDateSummary(removeKey);
+                    }}
+                  >
+                    {transcript ? (
+                      <DateTranscriptBubble
+                        location={transcript.location}
+                        dateTime={transcript.dateTime}
+                        segments={transcript.segments}
+                        complete
+                        collapsible
+                        showMeta={false}
+                      />
+                    ) : null}
+                    {summary ? (
+                      <DateSummaryBubble
+                        shortSummary={summary.shortSummary}
+                        location={summary.location}
+                        justification={summary.justification}
+                        character={summary.character}
+                        dateTime={summary.dateTime}
+                        chatId={summary.chatId}
+                        complete
+                        collapsible
+                        showMeta={false}
+                      />
+                    ) : null}
+                  </DateHistoryCard>
+                );
+              })}
             </div>
           )}
         </CharacterCollapsibleCard>

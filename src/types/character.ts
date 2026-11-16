@@ -1,5 +1,4 @@
-import type { DateTranscriptData } from '../features/chat/attach/dateTranscriptAttach';
-import type { DateSummaryData } from './dateSummary';
+import type { DateHistoryEntry } from './dateHistory';
 import type { SavedImageRef } from './savedImage';
 
 export const BASIC_VALUES = [
@@ -86,10 +85,8 @@ export interface Character {
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
-  /** Past dateSummary tool payloads involving this character. */
-  dateSummary: DateSummaryData[];
-  /** Past dateTranscript tool payloads involving this character. */
-  dateTranscript: DateTranscriptData[];
+  /** Paired datePlan + dateTranscript + dateSummary entries involving this character. */
+  dateHistory: DateHistoryEntry[];
   /** Image asset refs (by guid / `SavedImageRef.id`), LuxNova-style. */
   images: SavedImageRef[];
   /**
@@ -108,10 +105,8 @@ export interface CharacterDocument {
   attributes: ValueScore[];
   history: CharacterHistoryEntry[];
   traits: CharacterTrait[];
-  /** Past dateSummary tool payloads involving this character. */
-  dateSummary?: DateSummaryData[];
-  /** Past dateTranscript tool payloads involving this character. */
-  dateTranscript?: DateTranscriptData[];
+  /** Paired datePlan + dateTranscript + dateSummary entries involving this character. */
+  dateHistory?: DateHistoryEntry[];
   /** Image asset refs keyed by asset id. */
   images?: SavedImageRef[];
   /** Library voice asset GUID when bound. */
@@ -135,8 +130,7 @@ export function createDefaultCharacter(name = ''): Character {
     attributes: createDefaultValueScores(),
     history: [],
     traits: [],
-    dateSummary: [],
-    dateTranscript: [],
+    dateHistory: [],
     images: [],
   };
 }

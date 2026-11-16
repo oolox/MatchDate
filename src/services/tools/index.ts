@@ -9,6 +9,10 @@ export {
   type ProcessCharacterToolSuccess,
 } from './processCharacterTool';
 export {
+  processDatePlanTool,
+  type ProcessDatePlanResult,
+} from './processDatePlanTool';
+export {
   processDateSummaryTool,
   type ProcessDateSummaryResult,
 } from './processDateSummaryTool';

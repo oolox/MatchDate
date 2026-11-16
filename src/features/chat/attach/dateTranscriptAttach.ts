@@ -24,8 +24,8 @@ export type DateTranscriptSegment = DateTranscriptTextSegment | DateTranscriptQu
 
 export interface DateTranscriptData {
   id?: string;
-  /** What the date is (outing description) — set before the scene. */
-  description: string;
+  /** ~10–20 words where the date takes place — must match dateSummary.location. */
+  location: string;
   /** When the date happens — ISO-8601 preferred. Must match dateSummary.dateTime. */
   dateTime: string;
   /** Character document GUIDs on this date (persist targets). */
@@ -42,10 +42,10 @@ export interface DateTranscriptToolMessage {
 }
 
 export function stableDateTranscriptId(
-  data: Pick<DateTranscriptData, 'description' | 'dateTime' | 'characterIds' | 'segments'>,
+  data: Pick<DateTranscriptData, 'location' | 'dateTime' | 'characterIds' | 'segments'>,
 ): string {
   const raw = [
-    data.description.trim(),
+    data.location.trim(),
     data.dateTime.trim(),
     data.characterIds.join(','),
     ...data.segments.map((segment) => {
@@ -164,8 +164,9 @@ export function appendDateTranscriptEntry(
 }
 
 /**
- * Full parse for a completed tool. Requires description, dateTime, and at least
+ * Full parse for a completed tool. Requires location, dateTime, and at least
  * one segment. characterIds may be empty here (speakers can still associate).
+ * Legacy `description` is accepted as location when `location` is missing.
  */
 export function dateTranscriptDataFromUnknown(data: unknown): DateTranscriptData | null {
   if (!data || typeof data !== 'object') {
@@ -173,10 +174,14 @@ export function dateTranscriptDataFromUnknown(data: unknown): DateTranscriptData
   }
   const record = data as Record<string, unknown>;
   const id = typeof record.id === 'string' ? record.id.trim() : '';
-  const description =
-    typeof record.description === 'string' ? record.description.trim() : '';
+  const location =
+    typeof record.location === 'string' && record.location.trim()
+      ? record.location.trim()
+      : typeof record.description === 'string'
+        ? record.description.trim()
+        : '';
   const dateTime = typeof record.dateTime === 'string' ? record.dateTime.trim() : '';
-  if (!description || !dateTime || !Array.isArray(record.segments)) {
+  if (!location || !dateTime || !Array.isArray(record.segments)) {
     return null;
   }
   const segments: DateTranscriptSegment[] = [];
@@ -191,7 +196,7 @@ export function dateTranscriptDataFromUnknown(data: unknown): DateTranscriptData
   }
   return {
     ...(id ? { id } : {}),
-    description,
+    location,
     dateTime,
     characterIds: characterIdsFromRecord(record),
     segments,

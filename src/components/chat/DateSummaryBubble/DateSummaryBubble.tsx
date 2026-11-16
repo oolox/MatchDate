@@ -11,8 +11,6 @@ import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
 import styles from './DateSummaryBubble.module.css';
 
 export interface DateSummaryBubbleProps {
-  /** Outing description — matches dateTranscript.description when set. */
-  description?: string;
   shortSummary: string;
   location: string;
   justification: string;
@@ -22,6 +20,11 @@ export interface DateSummaryBubbleProps {
   complete?: boolean;
   /** Sheet-only: names/date stay visible; caret collapses the rest. */
   collapsible?: boolean;
+  /**
+   * When false, hide dateTime/location (shown by a preceding datePlan).
+   * Default true.
+   */
+  showMeta?: boolean;
   /** Sheet-only: shown next to the collapse caret. */
   onRemove?: () => void;
   removeDisabled?: boolean;
@@ -86,7 +89,6 @@ function scoreColor(value: number): string | undefined {
 }
 
 export function DateSummaryBubble({
-  description = '',
   shortSummary,
   location,
   justification,
@@ -95,6 +97,7 @@ export function DateSummaryBubble({
   chatId,
   complete = true,
   collapsible = false,
+  showMeta = true,
   onRemove,
   removeDisabled = false,
 }: DateSummaryBubbleProps) {
@@ -146,18 +149,30 @@ export function DateSummaryBubble({
       .filter(Boolean)
       .join(' & ') || (complete ? '' : '…');
   const when = formatLocalDateTime(dateTime) || (complete ? '' : '…');
-  const outing = description.trim();
-  const where = location.trim();
-  const summary = shortSummary.trim();
+  const where = location.trim() || (complete ? '' : '…');
+  const summary = shortSummary.trim() || (complete ? '' : '…');
   const why = justification.trim();
+
+  const meta = (
+    <>
+      <cite className={styles.names}>{nameLine}</cite>
+      {showMeta && when ? <p className={styles.dateTime}>{when}</p> : null}
+      {showMeta && where ? <p className={styles.location}>{where}</p> : null}
+      {summary ? (
+        <p
+          className={[styles.shortSummary, shortSummary.trim() ? '' : styles.empty]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {summary}
+        </p>
+      ) : null}
+    </>
+  );
 
   const header = collapsible ? (
     <div className={styles.headerRow}>
-      <div className={styles.headerMeta}>
-        <cite className={styles.names}>{nameLine}</cite>
-        <p className={styles.dateTime}>{when}</p>
-        {outing ? <p className={styles.outingDescription}>{outing}</p> : null}
-      </div>
+      <div className={styles.headerMeta}>{meta}</div>
       <div className={styles.headerActions}>
         {onRemove ? (
           <IconButton
@@ -183,11 +198,7 @@ export function DateSummaryBubble({
       </div>
     </div>
   ) : (
-    <>
-      <cite className={styles.names}>{nameLine}</cite>
-      <p className={styles.dateTime}>{when}</p>
-      {outing ? <p className={styles.outingDescription}>{outing}</p> : null}
-    </>
+    meta
   );
 
   return (
@@ -207,23 +218,6 @@ export function DateSummaryBubble({
         {header}
         {showDetails ? (
           <div id={collapsible ? detailsId : undefined} className={styles.details}>
-            {where || !complete ? (
-              <p
-                className={[styles.location, where ? '' : styles.empty]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                {where || '…'}
-              </p>
-            ) : null}
-            <p
-              className={[styles.shortSummary, summary ? '' : styles.empty]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {summary || (complete ? '' : '…')}
-            </p>
-
             {entries.length > 0 ? (
               <div className={styles.reviews}>
                 {entries.map((entry) => {

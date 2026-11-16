@@ -23,17 +23,23 @@ import {
 import { apiContentForMessage } from '../attach/xmlAttach';
 import type { CharacterToolMessage } from '../attach/jsonAttach';
 import { parseCharacterToolMessages } from '../attach/parseCharacterTools';
+import { parseDatePlanToolMessages } from '../attach/parseDatePlanTools';
 import { parseDateSummaryToolMessages } from '../attach/parseDateSummaryTools';
 import { parseDateTranscriptToolMessages } from '../attach/parseDateTranscriptTools';
 import {
-  appendDateSummaryEntry,
-  ensureDateSummaryToolId,
-} from '../attach/dateSummaryAttach';
+  datePlanAssociatedCharacterIds,
+  ensureDatePlanToolId,
+} from '../attach/datePlanAttach';
+import { ensureDateSummaryToolId } from '../attach/dateSummaryAttach';
 import {
-  appendDateTranscriptEntry,
   dateTranscriptAssociatedCharacterIds,
   ensureDateTranscriptToolId,
 } from '../attach/dateTranscriptAttach';
+import {
+  upsertDateHistoryPlan,
+  upsertDateHistorySummary,
+  upsertDateHistoryTranscript,
+} from '../../../types/dateHistory';
 import { useTxtChatAttachments, type DraftAttachment } from '../useTxtChatAttachments';
 import { useAbortController } from '../../../hooks/useAbortController';
 import { useStore } from 'react-redux';
@@ -64,6 +70,7 @@ import type { Thread, ThreadId } from '../../../types/chat';
 import {
   characterFromCreateData,
   processCharacterTool,
+  processDatePlanTool,
   processDateSummaryTool,
   processDateTranscriptTool,
   processTools,
@@ -292,12 +299,13 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
         );
         dispatch(setIsStreaming(false));
         void (async () => {
-          // Character tools apply to library; dateTranscript/dateSummary persist onto sheets.
+          // Character tools apply to library; date tools persist into dateHistory on sheets.
           const agentTools = parseCharacterToolMessages(accumulated).filter(
             (tool) => tool.origin === 'agent',
           );
           const updates = agentTools.filter((tool) => tool.action === 'update');
           const creates = agentTools.filter((tool) => tool.action === 'create');
+          const datePlans = parseDatePlanToolMessages(accumulated);
           const dateTranscripts = parseDateTranscriptToolMessages(accumulated);
           const dateSummaries = parseDateSummaryToolMessages(accumulated);
 
@@ -314,6 +322,36 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
             }
           }
 
+          for (const rawPlan of datePlans) {
+            const stamped = ensureDatePlanToolId(rawPlan);
+            const associatedIds = datePlanAssociatedCharacterIds(stamped.data);
+            const editorId = selectCharacterEditorId(store.getState());
+            if (editorId && associatedIds.includes(editorId)) {
+              const editorCharacter = selectCharacterEditorCharacter(store.getState());
+              dispatch(
+                markCharacterEditorSaved({
+                  characterId: editorId,
+                  character: {
+                    ...editorCharacter,
+                    dateHistory: upsertDateHistoryPlan(
+                      editorCharacter.dateHistory,
+                      stamped.data,
+                    ),
+                  },
+                }),
+              );
+            }
+            const result = await processDatePlanTool(stamped);
+            if (result.ok) {
+              libraryChanged = true;
+            } else if (result.updatedCharacterIds.length === 0) {
+              notify(result.message);
+            } else {
+              libraryChanged = true;
+              notify(result.message);
+            }
+          }
+
           for (const rawTranscript of dateTranscripts) {
             const stamped = ensureDateTranscriptToolId(rawTranscript);
             const associatedIds = dateTranscriptAssociatedCharacterIds(stamped.data);
@@ -325,8 +363,8 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
                   characterId: editorId,
                   character: {
                     ...editorCharacter,
-                    dateTranscript: appendDateTranscriptEntry(
-                      editorCharacter.dateTranscript,
+                    dateHistory: upsertDateHistoryTranscript(
+                      editorCharacter.dateHistory,
                       stamped.data,
                     ),
                   },
@@ -358,8 +396,8 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
                   characterId: editorId,
                   character: {
                     ...editorCharacter,
-                    dateSummary: appendDateSummaryEntry(
-                      editorCharacter.dateSummary,
+                    dateHistory: upsertDateHistorySummary(
+                      editorCharacter.dateHistory,
                       stamped.data,
                     ),
                   },

@@ -1,9 +1,9 @@
 import {
-  appendDateSummaryEntry,
   ensureDateSummaryToolId,
   type DateSummaryData,
   type DateSummaryToolMessage,
 } from '../../features/chat/attach/dateSummaryAttach';
+import { upsertDateHistorySummary } from '../../types/dateHistory';
 import { saveCharacterDocument, tryLoadCharacterDocument } from '../storage/characterPersistence';
 import { getFileStorageService } from '../storage';
 import type { CharacterDocument } from '../../types/character';
@@ -22,8 +22,8 @@ export type ProcessDateSummaryResult =
     };
 
 /**
- * Append `dateSummary.data` onto every associated character document and save.
- * Dedupes by summary `id` when already present on a sheet.
+ * Upsert `dateSummary.data` into each associated character's `dateHistory` and save.
+ * Dedupes by summary `id` when already present; pairs with transcript via location+dateTime.
  */
 export async function processDateSummaryTool(
   message: DateSummaryToolMessage,
@@ -54,16 +54,16 @@ export async function processDateSummaryTool(
         errors.push(`Character not found: ${characterId}`);
         continue;
       }
-      const prevLen = existing.dateSummary?.length ?? 0;
-      const nextList = appendDateSummaryEntry(existing.dateSummary, summary);
-      if (nextList.length === prevLen) {
+      const prev = existing.dateHistory ?? [];
+      const nextList = upsertDateHistorySummary(prev, summary);
+      if (nextList === prev) {
         updatedCharacterIds.push(characterId);
         documents.push(existing);
         continue;
       }
       const saved = await saveCharacterDocument(storage, {
         ...existing,
-        dateSummary: nextList,
+        dateHistory: nextList,
       });
       updatedCharacterIds.push(characterId);
       documents.push(saved);

@@ -15,27 +15,27 @@ describe('jsonAttach', () => {
       summary: 'Met at a cafe',
       sessionId: 'sess-1',
     });
-    character.dateSummary = [
+    character.dateHistory = [
       {
-        id: 'summary-1',
-        description: 'Dinner out',
-        shortSummary: 'Quiet evening.',
-        location: 'Garden.',
-        justification: 'Aligned.',
-        character: [
-          { id: 'char-1', dateReview: 'Nice.', dateScore: 8, dateFit: 8 },
-        ],
-        dateTime: '2028-09-12T19:00:00-04:00',
-        chatId: 'chat-1',
-      },
-    ];
-    character.dateTranscript = [
-      {
-        id: 'transcript-1',
-        description: 'Dinner out',
-        dateTime: '2028-09-12T19:00:00-04:00',
-        characterIds: ['char-1'],
-        segments: [{ type: 'text', text: 'They sat down.' }],
+        dateSummary: {
+          id: 'summary-1',
+          description: '',
+          shortSummary: 'Quiet evening.',
+          location: 'Garden.',
+          justification: 'Aligned.',
+          character: [
+            { id: 'char-1', dateReview: 'Nice.', dateScore: 8, dateFit: 8 },
+          ],
+          dateTime: '2028-09-12T19:00:00-04:00',
+          chatId: 'chat-1',
+        },
+        dateTranscript: {
+          id: 'transcript-1',
+          location: 'Corner trattoria',
+          dateTime: '2028-09-12T19:00:00-04:00',
+          characterIds: ['char-1'],
+          segments: [{ type: 'text', text: 'They sat down.' }],
+        },
       },
     ];
     const payload = buildCharacterWriteTool(character, 'char-1');
@@ -50,11 +50,9 @@ describe('jsonAttach', () => {
       history: character.history,
       traits: [],
     });
-    expect(payload.data).not.toHaveProperty('dateSummary');
-    expect(payload.data).not.toHaveProperty('dateTranscript');
+    expect(payload.data).not.toHaveProperty('dateHistory');
     expect(payload.data).not.toHaveProperty('voiceAssetId');
-    expect(JSON.stringify(payload)).not.toContain('dateSummary');
-    expect(JSON.stringify(payload)).not.toContain('dateTranscript');
+    expect(JSON.stringify(payload)).not.toContain('dateHistory');
     expect(JSON.stringify(payload)).not.toContain('voiceAssetId');
   });
 

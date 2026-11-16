@@ -1,6 +1,7 @@
 import type { AssetDocument } from '../../types/opfsDoc';
 import type { CharacterDocument } from '../../types/character';
 import { normalizeCharacterIdentity } from '../../types/character';
+import { coerceDateHistory } from '../../types/dateHistory';
 import { OPFS_SCHEMA_VERSION } from '../../types/opfsDoc';
 import { isAssetSubtype } from './assetDocument';
 import {
@@ -77,6 +78,12 @@ export function parseCharacterDocument(raw: string, path: string): CharacterDocu
         throw new StorageError('PARSE_ERROR', `Invalid character file: ${path}`);
       }
       const updatedAt = value.updatedAt ?? value.createdAt ?? new Date(0).toISOString();
+      const { dateHistory } = coerceDateHistory(
+        value as Partial<CharacterDocument> & {
+          dateSummary?: unknown;
+          dateTranscript?: unknown;
+        },
+      );
       return {
         schemaVersion:
           typeof value.schemaVersion === 'number' ? value.schemaVersion : OPFS_SCHEMA_VERSION,
@@ -87,8 +94,7 @@ export function parseCharacterDocument(raw: string, path: string): CharacterDocu
         attributes: value.attributes,
         history: Array.isArray(value.history) ? value.history : [],
         traits: Array.isArray(value.traits) ? value.traits : [],
-        dateSummary: Array.isArray(value.dateSummary) ? value.dateSummary : [],
-        dateTranscript: Array.isArray(value.dateTranscript) ? value.dateTranscript : [],
+        dateHistory,
         images: Array.isArray(value.images) ? value.images : [],
         ...(typeof value.voiceAssetId === 'string' && value.voiceAssetId.trim()
           ? { voiceAssetId: value.voiceAssetId.trim() }

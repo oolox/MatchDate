@@ -56,26 +56,32 @@ describe('characterSlice', () => {
     expect(state.isDirty).toBe(false);
   });
 
-  it('removes dateSummary entries by id', () => {
+  it('removes dateHistory entries by summary id', () => {
     const character = createDefaultCharacter('Alex');
-    character.dateSummary = [
+    character.dateHistory = [
       {
-        id: 'ds-keep',
-        shortSummary: 'Keep',
-        justification: 'Why',
-        location: 'Park',
-        character: [{ id: 'c1', dateReview: 'Ok', dateScore: 7, dateFit: 6 }],
-        dateTime: '2026-09-13T18:00:00.000Z',
-        chatId: 'chat-1',
+        dateSummary: {
+          id: 'ds-keep',
+          description: '',
+          shortSummary: 'Keep',
+          justification: 'Why',
+          location: 'Park',
+          character: [{ id: 'c1', dateReview: 'Ok', dateScore: 7, dateFit: 6 }],
+          dateTime: '2026-09-13T18:00:00.000Z',
+          chatId: 'chat-1',
+        },
       },
       {
-        id: 'ds-drop',
-        shortSummary: 'Drop',
-        justification: 'Why',
-        location: 'Cafe',
-        character: [{ id: 'c1', dateReview: 'Meh', dateScore: 4, dateFit: 5 }],
-        dateTime: '2026-09-14T18:00:00.000Z',
-        chatId: 'chat-2',
+        dateSummary: {
+          id: 'ds-drop',
+          description: '',
+          shortSummary: 'Drop',
+          justification: 'Why',
+          location: 'Cafe',
+          character: [{ id: 'c1', dateReview: 'Meh', dateScore: 4, dateFit: 5 }],
+          dateTime: '2026-09-14T18:00:00.000Z',
+          chatId: 'chat-2',
+        },
       },
     ];
     let state = characterReducer(
@@ -90,8 +96,8 @@ describe('characterSlice', () => {
         chatId: 'chat-2',
       }),
     );
-    expect(state.character.dateSummary).toHaveLength(1);
-    expect(state.character.dateSummary[0]?.id).toBe('ds-keep');
+    expect(state.character.dateHistory).toHaveLength(1);
+    expect(state.character.dateHistory[0]?.dateSummary?.id).toBe('ds-keep');
     expect(state.isDirty).toBe(true);
   });
 

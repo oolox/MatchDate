@@ -15,13 +15,13 @@ export interface DateSummaryData {
   /** Summary instance id. Optional from the model; stamped when missing. */
   id?: string;
   /**
-   * Outing description — must match `dateTranscript.data.description`.
-   * Legacy summaries may omit this (empty string).
+   * Legacy outing description. Prefer `location` + `shortSummary`.
+   * Older summaries may still have this; new tools omit it.
    */
   description: string;
   shortSummary: string;
   justification: string;
-  /** ~10–20 words describing where the date took place. */
+  /** ~10–20 words where the date took place — must match `dateTranscript.data.location`. */
   location: string;
   character: DateSummaryCharacterEntry[];
   /** Must match `dateTranscript.data.dateTime`. */

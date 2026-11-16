@@ -1,10 +1,10 @@
 import {
-  appendDateTranscriptEntry,
   dateTranscriptAssociatedCharacterIds,
   ensureDateTranscriptToolId,
   type DateTranscriptData,
   type DateTranscriptToolMessage,
 } from '../../features/chat/attach/dateTranscriptAttach';
+import { upsertDateHistoryTranscript } from '../../types/dateHistory';
 import { saveCharacterDocument, tryLoadCharacterDocument } from '../storage/characterPersistence';
 import { getFileStorageService } from '../storage';
 import type { CharacterDocument } from '../../types/character';
@@ -23,8 +23,8 @@ export type ProcessDateTranscriptResult =
     };
 
 /**
- * Append `dateTranscript.data` onto every associated character document and save.
- * Dedupes by transcript `id` when already present on a sheet.
+ * Upsert `dateTranscript.data` into each associated character's `dateHistory` and save.
+ * Dedupes by transcript `id` when already present; pairs with summary via location+dateTime.
  */
 export async function processDateTranscriptTool(
   message: DateTranscriptToolMessage,
@@ -53,16 +53,16 @@ export async function processDateTranscriptTool(
         errors.push(`Character not found: ${characterId}`);
         continue;
       }
-      const prevLen = existing.dateTranscript?.length ?? 0;
-      const nextList = appendDateTranscriptEntry(existing.dateTranscript, transcript);
-      if (nextList.length === prevLen) {
+      const prev = existing.dateHistory ?? [];
+      const nextList = upsertDateHistoryTranscript(prev, transcript);
+      if (nextList === prev) {
         updatedCharacterIds.push(characterId);
         documents.push(existing);
         continue;
       }
       const saved = await saveCharacterDocument(storage, {
         ...existing,
-        dateTranscript: nextList,
+        dateHistory: nextList,
       });
       updatedCharacterIds.push(characterId);
       documents.push(saved);

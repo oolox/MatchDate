@@ -301,6 +301,61 @@ describe('splitAssistantContent', () => {
     });
   });
 
+  it('extracts completed datePlan tool fences', () => {
+    const content = `
+\`\`\`json
+{
+  "tool": "datePlan",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "dateTime": "2028-09-12T19:00:00-04:00",
+    "location": "Corner trattoria in the West Village",
+    "characterIds": [
+      "b97ca029-9b7b-495c-8b8a-ac924e6ed0f6",
+      "0a4fa111-89b6-459f-a3d4-af278e293034"
+    ]
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'datePlan',
+      complete: true,
+      dateTime: '2028-09-12T19:00:00-04:00',
+      location: 'Corner trattoria in the West Village',
+      characterIds: [
+        'b97ca029-9b7b-495c-8b8a-ac924e6ed0f6',
+        '0a4fa111-89b6-459f-a3d4-af278e293034',
+      ],
+    });
+    expect((blocks[0] as { id: string }).id).toMatch(/^datePlan-/);
+  });
+
+  it('streams datePlan fields as they arrive', () => {
+    const content = `
+\`\`\`json
+{
+  "tool": "datePlan",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "dateTime": "2028-09-12T11:00:00-04:00",
+    "location": "Farmers market downtown",
+    "characterIds": ["char-a"
+`;
+    const blocks = splitAssistantContent(content, { isStreaming: true });
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'datePlan',
+      complete: false,
+      dateTime: '2028-09-12T11:00:00-04:00',
+      location: 'Farmers market downtown',
+    });
+  });
+
   it('extracts completed dateTranscript tool fences with nested quotes', () => {
     const content = `
 \`\`\`json
@@ -309,7 +364,7 @@ describe('splitAssistantContent', () => {
   "origin": "agent",
   "action": "display",
   "data": {
-    "description": "Dinner at a quiet Italian place",
+    "location": "Corner trattoria in the West Village",
     "dateTime": "2028-09-12T19:00:00-04:00",
     "characterIds": [
       "b97ca029-9b7b-495c-8b8a-ac924e6ed0f6",
@@ -334,7 +389,7 @@ describe('splitAssistantContent', () => {
     expect(blocks[0]).toMatchObject({
       type: 'dateTranscript',
       complete: true,
-      description: 'Dinner at a quiet Italian place',
+      location: 'Corner trattoria in the West Village',
       dateTime: '2028-09-12T19:00:00-04:00',
       segments: [
         { type: 'text', text: 'They sat by the window.' },
@@ -358,7 +413,7 @@ describe('splitAssistantContent', () => {
   "origin": "agent",
   "action": "display",
   "data": {
-    "description": "Walk through the market",
+    "location": "Farmers market downtown",
     "dateTime": "2028-09-12T11:00:00-04:00",
     "characterIds": ["char-a", "char-b"],
     "segments": [
@@ -373,7 +428,7 @@ describe('splitAssistantContent', () => {
     expect(blocks[0]).toMatchObject({
       type: 'dateTranscript',
       complete: false,
-      description: 'Walk through the market',
+      location: 'Farmers market downtown',
       dateTime: '2028-09-12T11:00:00-04:00',
     });
     const segments = (blocks[0] as { segments: unknown[] }).segments;

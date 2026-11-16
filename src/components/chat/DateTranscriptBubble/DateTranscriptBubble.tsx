@@ -5,12 +5,17 @@ import type { DateTranscriptSegment } from '../../../features/chat/attach/dateTr
 import styles from './DateTranscriptBubble.module.css';
 
 export interface DateTranscriptBubbleProps {
-  description: string;
+  location: string;
   dateTime: string;
   segments: DateTranscriptSegment[];
   complete?: boolean;
   /** When true (default), header stays visible and a caret toggles the scene body. */
   collapsible?: boolean;
+  /**
+   * When false, hide dateTime/location (shown by a preceding datePlan).
+   * Default true for transcript-only / sheet fallback.
+   */
+  showMeta?: boolean;
 }
 
 function tryParseDate(value: string): Date | null {
@@ -34,17 +39,18 @@ function formatLocalDateTime(value: string): string {
 }
 
 export function DateTranscriptBubble({
-  description,
+  location,
   dateTime,
   segments,
   complete = true,
   collapsible = true,
+  showMeta = true,
 }: DateTranscriptBubbleProps) {
   const detailsId = useId();
   const [expanded, setExpanded] = useState(true);
   const showDetails = !collapsible || expanded;
   const when = formatLocalDateTime(dateTime) || (complete ? '' : '…');
-  const outing = description.trim() || (complete ? '' : '…');
+  const where = location.trim() || (complete ? '' : '…');
 
   const rootClass = [
     styles.root,
@@ -54,27 +60,34 @@ export function DateTranscriptBubble({
     .filter(Boolean)
     .join(' ');
 
-  const header = (
-    <div className={styles.headerRow}>
-      <div className={styles.headerMeta}>
-        <p className={styles.label}>Date</p>
-        {when ? <p className={styles.dateTime}>{when}</p> : null}
-        {outing ? <p className={styles.description}>{outing}</p> : null}
+  const header =
+    showMeta || collapsible ? (
+      <div className={styles.headerRow}>
+        <div className={styles.headerMeta}>
+          {showMeta ? (
+            <>
+              <p className={styles.label}>Date</p>
+              {when ? <p className={styles.dateTime}>{when}</p> : null}
+              {where ? <p className={styles.location}>{where}</p> : null}
+            </>
+          ) : (
+            <p className={styles.label}>Transcript</p>
+          )}
+        </div>
+        {collapsible ? (
+          <IconButton
+            icon={expanded ? 'caret-up' : 'caret-down'}
+            label={expanded ? 'Collapse date transcript' : 'Expand date transcript'}
+            variant="secondary"
+            size="xs"
+            className={styles.collapseCaret}
+            aria-expanded={expanded}
+            aria-controls={detailsId}
+            onClick={() => setExpanded((open) => !open)}
+          />
+        ) : null}
       </div>
-      {collapsible ? (
-        <IconButton
-          icon={expanded ? 'caret-up' : 'caret-down'}
-          label={expanded ? 'Collapse date transcript' : 'Expand date transcript'}
-          variant="secondary"
-          size="xs"
-          className={styles.collapseCaret}
-          aria-expanded={expanded}
-          aria-controls={detailsId}
-          onClick={() => setExpanded((open) => !open)}
-        />
-      ) : null}
-    </div>
-  );
+    ) : null;
 
   return (
     <article
