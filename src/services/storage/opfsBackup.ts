@@ -151,39 +151,80 @@ export function defaultOpfsBackupFilename(now: Date = new Date()): string {
   return `masterdater-opfs-${stamp}.zip`;
 }
 
-/** Save a blob to the user's disk (File System Access API or download fallback). */
-export async function downloadBlob(blob: Blob, filename: string): Promise<void> {
-  const w = window as Window & {
-    showSaveFilePicker?: (options?: {
-      suggestedName?: string;
-      types?: Array<{ description?: string; accept: Record<string, string[]> }>;
-    }) => Promise<FileSystemFileHandle>;
-  };
+const ZIP_PICKER_TYPES = [
+  {
+    description: 'ZIP archive',
+    accept: { 'application/zip': ['.zip'] },
+  },
+] as const;
 
-  if (typeof w.showSaveFilePicker === 'function') {
+type SaveFilePicker = (options?: {
+  suggestedName?: string;
+  startIn?: string;
+  types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+}) => Promise<FileSystemFileHandle>;
+
+type OpenFilePicker = (options?: {
+  multiple?: boolean;
+  types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+}) => Promise<FileSystemFileHandle[]>;
+
+function saveFilePicker(): SaveFilePicker | undefined {
+  return (window as Window & { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
+}
+
+function openFilePicker(): OpenFilePicker | undefined {
+  return (window as Window & { showOpenFilePicker?: OpenFilePicker }).showOpenFilePicker;
+}
+
+function isPickerCancel(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+export interface ZipSaveLocation {
+  filename: string;
+  write: (blob: Blob) => Promise<void>;
+}
+
+/**
+ * Open the save dialog immediately, while the click is still a user gesture.
+ * Returns null when the user cancels. Falls back to a direct download when
+ * the browser has no save picker.
+ */
+export async function chooseZipSaveLocation(
+  suggestedName: string,
+): Promise<ZipSaveLocation | null> {
+  const picker = saveFilePicker();
+  if (typeof picker === 'function') {
     try {
-      const handle = await w.showSaveFilePicker({
-        suggestedName: filename,
-        types: [
-          {
-            description: 'ZIP archive',
-            accept: { 'application/zip': ['.zip'] },
-          },
-        ],
+      const handle = await picker({
+        suggestedName,
+        startIn: 'downloads',
+        types: [...ZIP_PICKER_TYPES],
       });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return;
+      return {
+        filename: handle.name,
+        write: async (blob) => {
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        },
+      };
     } catch (error) {
-      // User cancel — don't fall through to forced download.
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw error;
+      if (isPickerCancel(error)) {
+        return null;
       }
-      // Unsupported / denied — fall back.
     }
   }
 
+  return {
+    filename: suggestedName,
+    write: (blob) => downloadBlob(blob, suggestedName),
+  };
+}
+
+/** Save a blob via a temporary download link. */
+export async function downloadBlob(blob: Blob, filename: string): Promise<void> {
   const url = URL.createObjectURL(blob);
   try {
     const anchor = document.createElement('a');
@@ -198,13 +239,36 @@ export async function downloadBlob(blob: Blob, filename: string): Promise<void> 
   }
 }
 
-/** Open a single .zip via hidden file input. */
-export function pickZipFile(): Promise<File | null> {
+/** Open a single .zip. Prefers the native open dialog. */
+export async function pickZipFile(): Promise<File | null> {
+  const picker = openFilePicker();
+  if (typeof picker === 'function') {
+    try {
+      const [handle] = await picker({
+        multiple: false,
+        types: [...ZIP_PICKER_TYPES],
+      });
+      if (!handle) {
+        return null;
+      }
+      return await handle.getFile();
+    } catch (error) {
+      if (isPickerCancel(error)) {
+        return null;
+      }
+    }
+  }
+
+  return pickZipFileFromInput();
+}
+
+function pickZipFileFromInput(): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.zip,application/zip';
-    input.style.display = 'none';
+    input.style.position = 'fixed';
+    input.style.left = '-1000px';
     const cleanup = () => {
       input.remove();
     };
@@ -213,7 +277,6 @@ export function pickZipFile(): Promise<File | null> {
       cleanup();
       resolve(file);
     });
-    // If the picker is cancelled, `change` may not fire; resolve null on focus return.
     const onFocus = () => {
       window.removeEventListener('focus', onFocus);
       window.setTimeout(() => {

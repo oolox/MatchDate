@@ -467,7 +467,10 @@ export function MessageComposerContainer({ threadId }: MessageComposerContainerP
           }
 
           for (const rawSummary of dateSummaries) {
-            const stamped = ensureDateSummaryToolId(rawSummary);
+            const stamped = ensureDateSummaryToolId({
+              ...rawSummary,
+              data: { ...rawSummary.data, chatId: threadId },
+            });
             // Optimistic: patch open character editor before OPFS write so the sheet doesn't flash.
             const editorId = selectCharacterEditorId(store.getState());
             if (

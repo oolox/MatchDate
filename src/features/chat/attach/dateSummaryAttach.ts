@@ -123,8 +123,9 @@ export function dateSummaryDataFromUnknown(data: unknown): DateSummaryData | nul
   const dateTime = typeof record.dateTime === 'string' ? record.dateTime.trim() : '';
   const chatId = typeof record.chatId === 'string' ? record.chatId.trim() : '';
 
-  // `location` / `description` preferred; legacy tools may omit them (still render).
-  if (!shortSummary || !justification || !dateTime || !chatId) {
+  // `location` / `description` / `chatId` may be omitted. The app stamps `chatId`
+  // from the thread when the model leaves it out.
+  if (!shortSummary || !justification || !dateTime) {
     return null;
   }
 

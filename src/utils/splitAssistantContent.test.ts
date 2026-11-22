@@ -259,7 +259,7 @@ describe('splitAssistantContent', () => {
     });
   });
 
-  it('skips dateSummary fences missing required fields', () => {
+  it('renders a dateSummary that omits chatId', () => {
     const content = `\`\`\`json
 {
   "tool": "dateSummary",
@@ -271,6 +271,32 @@ describe('splitAssistantContent', () => {
     "justification": "Fit.",
     "character": [{ "id": "char-1", "dateReview": "Nice.", "dateScore": 7, "dateFit": 8 }],
     "dateTime": "2026-11-01T19:00:00.000Z"
+  }
+}
+\`\`\`
+`;
+    const blocks = splitAssistantContent(content);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      type: 'dateSummary',
+      shortSummary: 'Warm.',
+      chatId: '',
+      complete: true,
+    });
+  });
+
+  it('skips a dateSummary fence that has no shortSummary', () => {
+    const content = `\`\`\`json
+{
+  "tool": "dateSummary",
+  "origin": "agent",
+  "action": "display",
+  "data": {
+    "location": "A quiet bar downtown.",
+    "justification": "Fit.",
+    "character": [{ "id": "char-1", "dateReview": "Nice.", "dateScore": 7, "dateFit": 8 }],
+    "dateTime": "2026-11-01T19:00:00.000Z",
+    "chatId": "sess-9"
   }
 }
 \`\`\`

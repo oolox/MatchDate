@@ -190,8 +190,7 @@ After a date (or similar shared romantic outing) between attached characters, em
         "dateFit": 5
       }
     ],
-    "dateTime": "<MUST match datePlan.data.dateTime exactly>",
-    "chatId": "<current chat / session id>"
+    "dateTime": "<MUST match datePlan.data.dateTime exactly>"
   }
 }
 ```
@@ -200,7 +199,7 @@ Rules:
 - `location` + `dateTime` are required and **must match** the preceding `datePlan` / `dateTranscript` (copy those strings; do not invent a second plan).
 - `character` = one object per person on the date (same UUIDs as user `write` attaches / plan `characterIds`). Required; at least two for a typical date.
 - Per entry: `id` (GUID), `dateReview` (~50–100 words from **that** character’s POV: feelings, opinions, honest feedback), `dateScore` (1–10 how the date went: 1 awful/terrible … 10 dream date), `dateFit` (1–10 how well this date *type* matches their ideal outing: 1 nightmare … 10 perfect).
-- `chatId` is required — the current chat/session id for this thread.
+- Do **not** emit `chatId`. The app stamps the current thread id. Do not invent one.
 - `shortSummary` = **outcome** vibe after the date (spark, awkward, warm, strained, etc.) — plan/transcript never show this. History `update` summaries should match this.
 - Live scene belongs in **`dateTranscript`** (not free prose, not inside this summary). Outing meta belongs in **`datePlan`**.
 - `justification` may name values briefly; do not dump raw numeric ValueScores unless the user asks. `dateScore` / `dateFit` belong in the tool only (not spoken in scene dialogue).
