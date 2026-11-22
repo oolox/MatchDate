@@ -6,6 +6,7 @@ import {
   assetDocumentFromTextRef,
   assetDocumentFromVideoRef,
   assetDocumentFromVoiceRef,
+  assetDocumentFromCharacterSetRef,
 } from './assetDocument';
 import { parseAsset } from './libraryRegistry';
 import { removeLibraryItem, upsertLibraryItem } from './libraryIndex';
@@ -16,6 +17,7 @@ import type { SavedImageRef } from '../../types/savedImage';
 import type { SavedVideoRef } from '../../types/savedVideo';
 import type { SavedTextRef } from '../../types/savedText';
 import type { SavedVoiceRef } from '../../types/savedVoice';
+import type { SavedCharacterSetRef } from '../../types/savedCharacterSet';
 
 export async function saveAssetDocument(
   storage: FileStorageService,
@@ -131,6 +133,18 @@ export async function ensureVideoAsset(
     return existing;
   }
   return saveAssetDocument(storage, assetDocumentFromVideoRef(ref, options));
+}
+
+export async function ensureCharacterSetAsset(
+  storage: FileStorageService,
+  ref: SavedCharacterSetRef,
+  options?: { name?: string },
+): Promise<AssetDocument> {
+  const existing = await tryLoadAssetDocument(storage, ref.id);
+  if (existing?.subtype === 'characterSet') {
+    return existing;
+  }
+  return saveAssetDocument(storage, assetDocumentFromCharacterSetRef(ref, options));
 }
 
 export async function ensureVoiceAsset(

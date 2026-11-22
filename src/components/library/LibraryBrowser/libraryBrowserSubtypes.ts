@@ -16,6 +16,7 @@ const ASSETS_SUBTYPES: readonly LibraryBrowserSubtypeTab[] = [
   { id: 'video', label: 'VIDEO', docSubtype: 'video' },
   { id: 'text', label: 'TEXT', docSubtype: 'text' },
   { id: 'voice', label: 'VOICE', docSubtype: 'voice' },
+  { id: 'characterSet', label: 'SET', docSubtype: 'characterSet' },
   { id: 'all', label: 'ALL', docSubtype: null },
 ] as const;
 

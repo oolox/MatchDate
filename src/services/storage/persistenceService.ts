@@ -6,10 +6,19 @@ import type { SessionsState } from '../../store/slices/sessionsSlice';
 import { getFileStorageService } from './index';
 import {
   deleteAssetDocument,
+  ensureCharacterSetAsset,
   loadAssetDocument,
   saveAssetDocument,
   tryLoadAssetDocument,
 } from './assetPersistence';
+import { savedCharacterSetRefFromAsset } from './assetDocument';
+import {
+  copyOpfsStoreSnapshot,
+  deleteOpfsTree,
+  gameSaveStem,
+  restoreOpfsStoreSnapshot,
+  type OpfsBackupOptions,
+} from './opfsBackup';
 import {
   characterDocumentFromCharacter,
   characterFromDocument,
@@ -33,7 +42,7 @@ import {
   toggleFavorite as toggleLibraryFavorite,
   upsertLibraryItem,
 } from './libraryIndex';
-import { CONFIG_PATH, sessionDocumentPath } from './paths';
+import { characterSetRootPath, CONFIG_PATH, sessionDocumentPath } from './paths';
 import type { ConfigManifest, FileStorageService, LibraryItemKind, LibraryItemMeta } from './types';
 import { StorageError } from './types';
 import type { AssetDocument } from '../../types/opfsDoc';
@@ -139,8 +148,51 @@ export async function deleteAsset(id: string): Promise<void> {
     await deleteVideo(id);
   } else if (asset.subtype === 'voice') {
     await deleteVoiceSample(id);
+  } else if (asset.subtype === 'characterSet') {
+    const { metadata } = savedCharacterSetRefFromAsset(asset);
+    await deleteOpfsTree(storage, metadata.rootPath);
   }
   await deleteAssetDocument(storage, id);
+}
+
+/** Snapshot the live store into OPFS and record it as a characterSet asset. */
+export async function saveCharacterSetCopy(
+  fileName: string,
+  options?: OpfsBackupOptions,
+): Promise<{ id: string; name: string; fileCount: number; rootPath: string }> {
+  const name = gameSaveStem(fileName);
+  if (name.length <= 3) {
+    throw new StorageError('INVALID_PATH', 'File name must be longer than 3 characters');
+  }
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  const id = createId();
+  const rootPath = characterSetRootPath(id);
+  const { fileCount } = await copyOpfsStoreSnapshot(storage, rootPath, options);
+  await ensureCharacterSetAsset(storage, {
+    id,
+    fileName: name,
+    path: rootPath,
+    createdAt: nowIso(),
+    metadata: { fileName: name, rootPath },
+  });
+  return { id, name, fileCount, rootPath };
+}
+
+/** Restore a character-set snapshot onto the live store, the same way an import writes a zip. */
+export async function loadCharacterSetCopy(
+  id: string,
+): Promise<{ name: string; written: number }> {
+  const storage = getStorage();
+  await ensureInitialized(storage);
+  const asset = await loadAssetDocument(storage, id);
+  if (asset.subtype !== 'characterSet') {
+    throw new StorageError('PARSE_ERROR', 'Not a character set');
+  }
+  const saved = savedCharacterSetRefFromAsset(asset);
+  const { written } = await restoreOpfsStoreSnapshot(storage, saved.metadata.rootPath);
+  await reconcileLibraryIndex(storage);
+  return { name: saved.metadata.fileName, written };
 }
 
 export async function listCharacters(): Promise<LibraryItemMeta[]> {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { loadImage } from '../../../services/storage/imageStorage';
 import { loadAssetThumb, peekAssetThumb } from '../../../services/storage/imageThumbCache';
+import { useAppSelector } from '../../../store/hooks';
+import { selectLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { Icon } from '../../ui/Icon/Icon';
 import styles from './LibraryList.module.css';
 
@@ -10,6 +12,7 @@ export interface LibraryAssetThumbProps {
 }
 
 export function LibraryAssetThumb({ assetId, name }: LibraryAssetThumbProps) {
+  const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const [objectUrl, setObjectUrl] = useState<string | null>(() => peekAssetThumb(assetId));
   const [failed, setFailed] = useState(false);
 
@@ -21,6 +24,8 @@ export function LibraryAssetThumb({ assetId, name }: LibraryAssetThumbProps) {
       return;
     }
 
+    setObjectUrl(null);
+    setFailed(false);
     let cancelled = false;
     void loadAssetThumb(assetId, (id) => loadImage(id)).then((url) => {
       if (cancelled) {
@@ -37,7 +42,7 @@ export function LibraryAssetThumb({ assetId, name }: LibraryAssetThumbProps) {
     return () => {
       cancelled = true;
     };
-  }, [assetId]);
+  }, [assetId, libraryEpoch]);
 
   return (
     <div className={styles.thumbWrap} aria-hidden="true">

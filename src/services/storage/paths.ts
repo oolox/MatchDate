@@ -23,6 +23,12 @@ export const TEXT_ASSETS_DIR = `${ASSETS_DIR}/text`;
 export const VOICE_ASSETS_DIR = `${ASSETS_DIR}/voice`;
 export const ASSETS_METADATA_DIR = `${ASSETS_DIR}/metadata`;
 export const CHARACTERS_DIR = `${OPFS_ROOT}/characters`;
+/** Copied OPFS stores for character-set saves. */
+export const CHARACTER_SETS_DIR = `${OPFS_ROOT}/characterSets`;
+
+export function characterSetRootPath(id: string): StoragePath {
+  return `${CHARACTER_SETS_DIR}/${id}`;
+}
 
 /** Rewrite legacy root + file brand prefixes in a storage path. */
 export function toCanonicalStoragePath(path: StoragePath): StoragePath {

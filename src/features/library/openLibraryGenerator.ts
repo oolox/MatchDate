@@ -4,7 +4,7 @@ import type { LibraryItemKind, LibraryItemMeta } from '../../services/storage/ty
 import type { AppDispatch } from '../../store';
 import { markSessionSaved, setSelectedSessionId } from '../../store/slices/sessionsSlice';
 import { sessionToThread } from '../../types/session';
-import { loadThread } from '../../store/slices/threadSlice';
+import { createId, loadThread, startNewChat } from '../../store/slices/threadSlice';
 
 export type GeneratorLibraryKind = 'session';
 
@@ -25,6 +25,14 @@ export function pathForGeneratorLoad(item: LibraryItemMeta): string | null {
     return null;
   }
   return sessionPathForId(item.id);
+}
+
+/** Leave the open conversation and show a blank chat. */
+export function resetChatView(dispatch: AppDispatch, navigate: NavigateFunction): void {
+  const id = createId();
+  dispatch(startNewChat(id));
+  dispatch(setSelectedSessionId(id));
+  navigate(sessionPathForId(id));
 }
 
 export async function loadSessionIntoApp(options: {

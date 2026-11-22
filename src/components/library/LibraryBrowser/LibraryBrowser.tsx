@@ -12,12 +12,14 @@ import {
 import {
   loadSessionIntoApp,
   pathForGeneratorLoad,
+  resetChatView,
 } from '../../../features/library/openLibraryGenerator';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
 import { selectIsStreaming } from '../../../store/slices/chatUiSlice';
 import { selectIsActiveThreadDirty } from '../../../store/slices/sessionsSlice';
-import { duplicateCharacter } from '../../../services/storage/persistenceService';
+import { resetImageThumbCache } from '../../../services/storage/imageThumbCache';
+import { duplicateCharacter, loadCharacterSetCopy } from '../../../services/storage/persistenceService';
 import { formatFailure } from '../../../utils/formatFailure';
 import { LibrarySidebar } from '../LibraryList/LibrarySidebar';
 import {
@@ -42,6 +44,7 @@ import {
   subtypesForFolder,
   type LibraryBrowserSubtypeId,
 } from './libraryBrowserSubtypes';
+import { LoadCharacterSetModal } from './LoadCharacterSetModal';
 import { useLibraryCatalog } from './useLibraryCatalog';
 import styles from './LibraryBrowser.module.css';
 
@@ -101,6 +104,7 @@ export function LibraryBrowser({
     initialSubtype(loadableKinds, preferredSubtype),
   );
   const [actionBusy, setActionBusy] = useState(false);
+  const [pendingCharacterSet, setPendingCharacterSet] = useState<LibraryItemMeta | null>(null);
   const [identityFilter, setIdentityFilter] = useState<CharacterIdentity[]>(() => [
     ...ALL_CHARACTER_IDENTITIES,
   ]);
@@ -184,6 +188,10 @@ export function LibraryBrowser({
   const handleSelect = useCallback(
     (item: LibraryItemMeta) => {
       if (isBusy || isDirty) {
+        return;
+      }
+      if (item.kind === 'asset' && item.subtype === 'characterSet') {
+        setPendingCharacterSet(item);
         return;
       }
       if (isLoadable(item)) {
@@ -275,9 +283,37 @@ export function LibraryBrowser({
     ],
   );
 
+  const closeCharacterSetPrompt = useCallback(() => {
+    if (actionBusy) {
+      return;
+    }
+    setPendingCharacterSet(null);
+  }, [actionBusy]);
+
+  const confirmCharacterSetLoad = useCallback(async () => {
+    if (!pendingCharacterSet || actionBusy) {
+      return;
+    }
+    setActionBusy(true);
+    try {
+      const { name, written } = await loadCharacterSetCopy(pendingCharacterSet.id);
+      resetImageThumbCache();
+      dispatch(bumpLibraryEpoch());
+      onCatalogMutated?.();
+      resetChatView(dispatch, navigate);
+      notify(`Loaded set ${name} (${written} file${written === 1 ? '' : 's'}).`);
+      setPendingCharacterSet(null);
+    } catch (error) {
+      notify(formatFailure('load set', pendingCharacterSet.name, error));
+    } finally {
+      setActionBusy(false);
+    }
+  }, [actionBusy, dispatch, navigate, notify, onCatalogMutated, pendingCharacterSet]);
+
   const chromeKey = `${activeTab}:${activeSubtype}`;
 
   return (
+    <>
     <LibrarySidebar
       kind={listKind}
       items={filteredItems}
@@ -335,5 +371,14 @@ export function LibraryBrowser({
       onCopy={handleCopy}
       onDelete={handleDelete}
     />
+    <LoadCharacterSetModal
+      open={pendingCharacterSet !== null}
+      busy={actionBusy}
+      onConfirm={() => {
+        void confirmCharacterSetLoad();
+      }}
+      onCancel={closeCharacterSetPrompt}
+    />
+    </>
   );
 }

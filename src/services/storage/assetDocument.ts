@@ -4,7 +4,11 @@ import type { SavedImageMetadata, SavedImageRef } from '../../types/savedImage';
 import type { SavedVideoRef } from '../../types/savedVideo';
 import type { SavedTextMetadata, SavedTextRef } from '../../types/savedText';
 import type { SavedVoiceRef, VoiceAssetMetadata } from '../../types/savedVoice';
-import { imagePath, textPath, videoPath, voicePath } from './paths';
+import type {
+  CharacterSetAssetMetadata,
+  SavedCharacterSetRef,
+} from '../../types/savedCharacterSet';
+import { characterSetRootPath, imagePath, textPath, videoPath, voicePath } from './paths';
 
 export function isAssetSubtype(value: unknown): value is OpfsAssetSubtype {
   return (
@@ -12,7 +16,8 @@ export function isAssetSubtype(value: unknown): value is OpfsAssetSubtype {
     value === 'video' ||
     value === 'frame' ||
     value === 'text' ||
-    value === 'voice'
+    value === 'voice' ||
+    value === 'characterSet'
   );
 }
 
@@ -153,6 +158,47 @@ export function savedVoiceRefFromAsset(asset: AssetDocument): SavedVoiceRef {
       ...(meta?.preset ? { preset: meta.preset } : {}),
       ...(meta?.providerIds ? { providerIds: meta.providerIds } : {}),
       ...(meta?.waveformPeaks ? { waveformPeaks: meta.waveformPeaks } : {}),
+    },
+  };
+}
+
+export function assetDocumentFromCharacterSetRef(
+  ref: SavedCharacterSetRef,
+  options?: { name?: string },
+): AssetDocument {
+  const fileName = ref.metadata.fileName.trim() || ref.fileName || ref.id;
+  return {
+    schemaVersion: OPFS_SCHEMA_VERSION,
+    type: 'asset',
+    subtype: 'characterSet',
+    id: ref.id,
+    name: options?.name?.trim() || fileName,
+    blobPath: ref.path || characterSetRootPath(ref.id),
+    fileName: ref.fileName || fileName,
+    metadata: {
+      fileName,
+      rootPath: ref.metadata.rootPath.trim() || characterSetRootPath(ref.id),
+    } satisfies CharacterSetAssetMetadata,
+    createdAt: ref.createdAt,
+    updatedAt: ref.createdAt,
+    refs: {},
+  };
+}
+
+export function savedCharacterSetRefFromAsset(asset: AssetDocument): SavedCharacterSetRef {
+  const meta =
+    asset.subtype === 'characterSet'
+      ? (asset.metadata as CharacterSetAssetMetadata | undefined)
+      : undefined;
+  const fileName = meta?.fileName?.trim() || asset.name || asset.fileName || asset.id;
+  return {
+    id: asset.id,
+    fileName,
+    path: asset.blobPath,
+    createdAt: asset.createdAt,
+    metadata: {
+      fileName,
+      rootPath: meta?.rootPath?.trim() || characterSetRootPath(asset.id),
     },
   };
 }

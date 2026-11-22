@@ -231,6 +231,23 @@ describe('library browser character tab', () => {
     expect(subtypes?.some((tab) => tab.id === 'character')).toBe(false);
   });
 
+  it('includes SET as an asset subtype filter', () => {
+    const subtypes = subtypesForFolder('assets') ?? [];
+    const setTab = subtypes.find((tab) => tab.id === 'characterSet');
+    expect(setTab?.label).toBe('SET');
+    const item = {
+      kind: 'asset' as const,
+      id: 'set-1',
+      name: 'date',
+      createdAt: '',
+      updatedAt: '',
+      subtype: 'characterSet' as const,
+    };
+    expect(itemMatchesSubtypeTab(item, setTab!)).toBe(true);
+    const allTab = subtypes.find((tab) => tab.id === 'all');
+    expect(itemMatchesSubtypeTab(item, allTab!)).toBe(true);
+  });
+
   it('filters characters in the characters folder tab', () => {
     const subtypes = subtypesForFolder('characters') ?? [];
     const allTab = subtypes.find((tab) => tab.id === 'all');

@@ -52,7 +52,8 @@ export type OpfsDocSubtype =
   | 'text'
   | 'voice'
   | 'frame'
-  | 'character';
+  | 'character'
+  | 'characterSet';
 
 export interface LibraryCatalogFields {
   name: string;

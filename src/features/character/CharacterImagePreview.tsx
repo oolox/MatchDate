@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../components/ui/Icon/Icon';
 import { loadImage } from '../../services/storage/imageStorage';
 import { loadAssetThumb, peekAssetThumb } from '../../services/storage/imageThumbCache';
+import { useAppSelector } from '../../store/hooks';
+import { selectLibraryEpoch } from '../../store/slices/appShellSlice';
 import type { SavedImageRef } from '../../types/savedImage';
 import styles from './CharacterImagesSection.module.css';
 
@@ -13,6 +15,7 @@ export interface CharacterImagePreviewProps {
 }
 
 export function CharacterImagePreview({ image, name }: CharacterImagePreviewProps) {
+  const libraryEpoch = useAppSelector(selectLibraryEpoch);
   const [objectUrl, setObjectUrl] = useState<string | null>(() => peekAssetThumb(image.id));
   const [failed, setFailed] = useState(false);
 
@@ -34,6 +37,8 @@ export function CharacterImagePreview({ image, name }: CharacterImagePreviewProp
       return;
     }
 
+    setObjectUrl(null);
+    setFailed(false);
     let cancelled = false;
     void loadAssetThumb(image.id, (id) => loadImage(id)).then((url) => {
       if (cancelled) {
@@ -50,7 +55,7 @@ export function CharacterImagePreview({ image, name }: CharacterImagePreviewProp
     return () => {
       cancelled = true;
     };
-  }, [image.id]);
+  }, [image.id, libraryEpoch]);
 
   return (
     <div

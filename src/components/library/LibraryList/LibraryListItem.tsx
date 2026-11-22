@@ -9,6 +9,7 @@ import {
 } from '../../../utils/masterdaterLibraryDrag';
 import { formatLibraryListDateTime } from './libraryListDateTime';
 import { LibraryAssetThumb } from './LibraryAssetThumb';
+import { LibraryCharacterSetThumb } from './LibraryCharacterSetThumb';
 import { LibraryCharacterThumb } from './LibraryCharacterThumb';
 import { LibraryTextThumb } from './LibraryTextThumb';
 import { LibraryVideoThumb } from './LibraryVideoThumb';
@@ -84,6 +85,9 @@ export function LibraryListItem({
         <LibraryAssetThumb assetId={item.id} name={item.name} />
       ) : null}
       {isAsset && assetSubtype === 'video' ? <LibraryVideoThumb name={item.name} /> : null}
+      {isAsset && assetSubtype === 'characterSet' ? (
+        <LibraryCharacterSetThumb name={item.name} />
+      ) : null}
       <button
         type="button"
         className={styles.select}

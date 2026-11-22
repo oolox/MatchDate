@@ -115,7 +115,7 @@ export const localOpfsStorage: FileStorageService = {
       const directory = segments.length
         ? await getDirectoryHandle(root, segments, false)
         : root;
-      await directory.removeEntry(fileName);
+      await directory.removeEntry(fileName, { recursive: true });
       return true;
     } catch {
       return false;

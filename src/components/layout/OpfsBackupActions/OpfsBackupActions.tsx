@@ -1,111 +1,163 @@
-import { useCallback, useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { gameBackupFilename, gameSaveStem } from '../../../services/storage/opfsBackup';
 import { Button } from '../../ui/Button';
-import { useNotification } from '../../notification/Notification/useNotification';
-import { getFileStorageService } from '../../../services/storage';
-import {
-  chooseZipSaveLocation,
-  defaultOpfsBackupFilename,
-  exportOpfsZipBlob,
-  importOpfsZip,
-  pickZipFile,
-} from '../../../services/storage/opfsBackup';
-import { reconcileLibrary } from '../../../services/storage/persistenceService';
-import { useAppDispatch } from '../../../store/hooks';
-import { bumpLibraryEpoch } from '../../../store/slices/appShellSlice';
+import { Checkbox } from '../../ui/Checkbox';
+import { FullScreenModal } from '../../ui/FullScreenModal';
 import styles from './OpfsBackupActions.module.css';
+import { useOpfsBackup } from './useOpfsBackup';
 
-export function OpfsBackupActions() {
-  const { notify } = useNotification();
-  const dispatch = useAppDispatch();
-  const [busy, setBusy] = useState<'save' | 'load' | null>(null);
+type OpfsBackupActionsProps = {
+  exportLabel?: string;
+  importLabel?: string;
+  exportingLabel?: string;
+  importingLabel?: string;
+  /** Header Save asks which backup to write before the current export runs. */
+  confirmSave?: boolean;
+  /** Match the main nav toggles. Config Export and Import stay on the default button. */
+  buttonVariant?: 'secondary' | 'tab';
+};
 
-  const handleSave = useCallback(async () => {
-    const location = await chooseZipSaveLocation(defaultOpfsBackupFilename());
-    if (!location) {
-      notify('Save cancelled.');
+export function OpfsBackupActions({
+  exportLabel = 'Export',
+  importLabel = 'Import',
+  exportingLabel = 'Exporting…',
+  importingLabel = 'Importing…',
+  confirmSave = false,
+  buttonVariant = 'secondary',
+}: OpfsBackupActionsProps) {
+  const { busy, controlsDisabled, handleExport, handleImport, handleSaveSet } = useOpfsBackup();
+  const navButtonClass = buttonVariant === 'tab' ? styles.navButton : undefined;
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const [includeChat, setIncludeChat] = useState(false);
+  const fileStem = gameSaveStem(fileName);
+  const fileNameReady = fileStem.length > 3;
+
+  const closeSave = () => {
+    setSaveOpen(false);
+    setFileName('');
+    setIncludeChat(false);
+  };
+
+  const saveGame = () => {
+    if (!fileNameReady) {
       return;
     }
+    const filename = gameBackupFilename(fileName);
+    const options = { includeChat };
+    closeSave();
+    void handleExport(filename, options);
+  };
 
-    setBusy('save');
-    try {
-      const storage = getFileStorageService();
-      const { blob, fileCount } = await exportOpfsZipBlob(storage);
-      await location.write(blob);
-      notify(`Saved ${fileCount} file${fileCount === 1 ? '' : 's'} → ${location.filename}`);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        notify('Save cancelled.');
-        return;
-      }
-      const message = error instanceof Error ? error.message : 'Save failed';
-      notify(message);
-    } finally {
-      setBusy(null);
-    }
-  }, [notify]);
-
-  const handleLoad = useCallback(async () => {
-    const file = await pickZipFile();
-    if (!file) {
-      notify('Load cancelled.');
+  const saveSet = () => {
+    if (!fileNameReady) {
       return;
     }
+    const name = fileStem;
+    const options = { includeChat };
+    closeSave();
+    void handleSaveSet(name, options);
+  };
 
-    const confirmed = window.confirm(
-      'This will write into OPFS. Existing files with the same path will be overwritten. Continue?',
-    );
-    if (!confirmed) {
-      notify('Load cancelled.');
-      return;
-    }
-
-    setBusy('load');
-    try {
-      const storage = getFileStorageService();
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const { written, skipped } = await importOpfsZip(storage, bytes);
-      await reconcileLibrary();
-      dispatch(bumpLibraryEpoch());
-      notify(
-        `Loaded ${written} file${written === 1 ? '' : 's'}` +
-          (skipped ? ` (${skipped} skipped)` : '') +
-          '.',
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Load failed';
-      notify(message);
-    } finally {
-      setBusy(null);
-    }
-  }, [dispatch, notify]);
-
-  const controlsDisabled = busy !== null;
+  const submitSave = (event: FormEvent) => {
+    event.preventDefault();
+    saveGame();
+  };
 
   return (
-    <div className={styles.actions}>
+    <div className={[styles.actions, buttonVariant === 'tab' ? styles.navActions : ''].filter(Boolean).join(' ')}>
       <Button
         type="button"
-        variant="tab"
+        variant={buttonVariant}
+        className={navButtonClass}
         disabled={controlsDisabled}
-        aria-label="Save OPFS backup"
-        title="Choose where to save the /masterdater ZIP backup"
+        aria-label="Export OPFS backup"
+        title="Download /masterdater as a ZIP backup"
         onClick={() => {
-          void handleSave();
+          if (confirmSave) {
+            setSaveOpen(true);
+            return;
+          }
+          void handleExport();
         }}
       >
-        {busy === 'save' ? 'Saving…' : 'SAVE'}
+        {busy === 'export' || busy === 'set' ? exportingLabel : exportLabel}
       </Button>
+      <FullScreenModal
+        open={saveOpen}
+        onClose={closeSave}
+        ariaLabel="Save?"
+        closeLabel="Cancel save"
+      >
+        <form className={styles.savePrompt} onSubmit={submitSave}>
+          <h2 className={styles.saveTitle}>Save?</h2>
+          <div className={styles.fileNameField}>
+            <label className={styles.fileNameLabel} htmlFor="save-file-name">
+              File name
+            </label>
+            <input
+              id="save-file-name"
+              className={styles.fileNameInput}
+              type="text"
+              name="fileName"
+              value={fileName}
+              autoFocus
+              onChange={(event) => {
+                setFileName(event.target.value);
+              }}
+            />
+            <Checkbox className={styles.saveOption} label="Wipe Memory" variant="secondary" />
+            <Checkbox
+              className={styles.saveOption}
+              label="Include chat"
+              variant="secondary"
+              checked={includeChat}
+              onChange={(event) => {
+                setIncludeChat(event.target.checked);
+              }}
+            />
+          </div>
+          <div className={styles.saveChoices}>
+            <Button
+              type="submit"
+              variant="secondary"
+              className={styles.saveChoice}
+              disabled={!fileNameReady}
+            >
+              Export
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className={styles.saveChoice}
+              disabled={!fileNameReady}
+              onClick={saveSet}
+            >
+              Save
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className={styles.saveChoice}
+              onClick={closeSave}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </FullScreenModal>
       <Button
         type="button"
-        variant="tab"
+        variant={buttonVariant}
+        className={navButtonClass}
         disabled={controlsDisabled}
-        aria-label="Load OPFS backup"
-        title="Choose a MasterDater or legacy MatchDate ZIP to load"
+        aria-label="Import OPFS backup"
+        title="Restore a MasterDater (or legacy MatchDate) OPFS ZIP into this origin"
         onClick={() => {
-          void handleLoad();
+          void handleImport();
         }}
       >
-        {busy === 'load' ? 'Loading…' : 'LOAD'}
+        {busy === 'import' ? importingLabel : importLabel}
       </Button>
     </div>
   );

@@ -8,7 +8,14 @@ export function AppHeader() {
       <h1 className={styles.title}>MasterDater</h1>
       <div className={styles.tools}>
         <AppMainNav />
-        <OpfsBackupActions />
+        <OpfsBackupActions
+          confirmSave
+          buttonVariant="tab"
+          exportLabel="SAVE"
+          importLabel="LOAD"
+          exportingLabel="SAVING…"
+          importingLabel="LOADING…"
+        />
       </div>
     </header>
   );
